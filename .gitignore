@@ -205,3 +205,4 @@ dist
 ### Browser test artifacts ###
 /test-results/
 /playwright-report/
+.playwright-cli/

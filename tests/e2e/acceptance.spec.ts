@@ -4,6 +4,7 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	test.skip(testInfo.project.name !== "desktop", "The shared mutable acceptance journey runs once.");
 	test.setTimeout(90_000);
 	await page.goto("/login");
+	await page.getByRole("button", { name: /Admin/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 
 	await page.getByRole("link", { name: "Attendance terminal" }).click();
@@ -36,7 +37,7 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.reload();
 	await page.getByRole("button", { name: "Sign out" }).first().click();
-	await page.getByRole("button", { name: /Employee Farah/ }).click();
+	await page.getByRole("button", { name: /Employee/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await expect(page.getByText("August payslip is ready")).toBeVisible();
 	await page.goto("/employee/payslips");

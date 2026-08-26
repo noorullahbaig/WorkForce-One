@@ -3,7 +3,8 @@ import AxeBuilder from "@axe-core/playwright";
 
 test("admin can sign in and reach live people and payroll data", async ({ page }) => {
 	await page.goto("/login");
-	await expect(page.getByRole("heading", { name: "Sign in to your account" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
+	await page.getByRole("button", { name: /Admin/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await expect(page.getByRole("heading", { name: /Good morning/ })).toBeVisible();
 	await page.goto("/admin/employees");
@@ -14,7 +15,7 @@ test("admin can sign in and reach live people and payroll data", async ({ page }
 
 test("employee account only sees Farah self-service", async ({ page }) => {
 	await page.goto("/login");
-	await page.getByRole("button", { name: /Employee Farah/ }).click();
+	await page.getByRole("button", { name: /Employee/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await expect(page.getByRole("heading", { name: "Good morning, Farah" })).toBeVisible();
 	await page.goto("/admin");

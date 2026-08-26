@@ -1,5 +1,5 @@
 import { Form, redirect, useActionData, useNavigation, useSearchParams } from "react-router";
-import { ArrowRight, CheckCircle2, Fingerprint, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Lock, ShieldCheck, User } from "lucide-react";
 import { z } from "zod";
 import { assertSameOrigin, authenticate, createSession, getUser } from "../services/auth.server";
 import { cloudflareContext } from "../context";
@@ -32,35 +32,68 @@ export default function Login() {
 	const actionData = useActionData<typeof action>();
 	const navigation = useNavigation();
 	const [search] = useSearchParams();
-	return <main className="login-page">
-		<section className="login-story">
-			<div className="wordmark inverse"><span>W1</span> Workforce One</div>
-			<div className="story-copy"><p className="eyebrow light">Malaysia-ready people operations</p><h1>Clarity from clock-in to payday.</h1><p>A focused HR workspace for teams that want payroll precision without losing the human context.</p>
-				<div className="story-proof"><ShieldCheck/><span><strong>Enterprise security</strong><small>End-to-end encrypted sessions and role-based access</small></span></div>
-			</div>
-			<p className="story-foot">Statutory fixtures verified 26 Aug 2026 · Malaysia under-60 profile</p>
-		</section>
-		<section className="login-panel"><div className="login-card">
-			<div className="mobile-wordmark wordmark"><span>W1</span> Workforce One</div>
-			<p className="eyebrow">Welcome back</p><h2>Sign in to your account</h2><p className="muted">Enter your workspace credentials to continue.</p>
-			{actionData?.error && <div className="alert danger" role="alert">{actionData.error}</div>}
-			<Form method="post" className="form-stack">
-				<input type="hidden" name="returnTo" value={search.get("returnTo") ?? ""}/>
-				<label>Email address<input name="email" type="email" autoComplete="username" defaultValue="admin@workforceone.demo" required/></label>
-				<label>Password<input name="password" type="password" autoComplete="current-password" defaultValue="AdminDemo#2026" required/></label>
-				<button className="button primary wide" disabled={navigation.state !== "idle"}>{navigation.state !== "idle" ? "Signing in…" : <>Enter workspace <ArrowRight size={18}/></>}</button>
-			</Form>
-			<div className="demo-accounts"><p><Sparkles size={15}/> Quick sign-in</p>
-				<button type="button" onClick={() => fill("admin@workforceone.demo", "AdminDemo#2026")}>Admin <small>Payroll & people</small></button>
-				<button type="button" onClick={() => fill("employee@workforceone.demo", "EmployeeDemo#2026")}>Employee <small>Farah’s self-service</small></button>
-			</div>
-			<div className="login-trust"><span><CheckCircle2/>Enterprise ready</span><span><Fingerprint/>Biometric verified</span></div>
-		</div></section>
-	</main>;
+	return (
+		<main className="login-page">
+			<section className="login-story">
+				<div className="wordmark inverse"><span>W1</span> Workforce One</div>
+				<div className="story-copy">
+					<h1>Clarity from clock-in to payday.</h1>
+				</div>
+				<svg className="story-deco" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+					<circle cx="200" cy="200" r="190" stroke="currentColor" strokeWidth="1" strokeDasharray="4 4" />
+					<circle cx="200" cy="200" r="140" stroke="currentColor" strokeWidth="1" />
+					<circle cx="200" cy="200" r="90" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+					<circle cx="200" cy="200" r="40" stroke="currentColor" strokeWidth="1" />
+					<path d="M10 200H390M200 10V390" stroke="currentColor" strokeWidth="1" strokeOpacity="0.5" />
+				</svg>
+			</section>
+			<section className="login-panel">
+				<div className="login-card">
+					<div className="login-brand"><span>W1</span></div>
+					<h2>Sign in</h2>
+					{actionData?.error && <div className="alert danger" role="alert">{actionData.error}</div>}
+					<Form method="post" className="form-stack">
+						<input type="hidden" name="returnTo" value={search.get("returnTo") ?? ""} />
+						<label>
+							Email address
+							<input name="email" type="email" autoComplete="username" required />
+						</label>
+						<label>
+							Password
+							<input name="password" type="password" autoComplete="current-password" required />
+						</label>
+						<button className="button primary wide" disabled={navigation.state !== "idle"}>
+							{navigation.state !== "idle" ? "Signing in…" : <>Enter workspace <ArrowRight size={18} /></>}
+						</button>
+					</Form>
+					<div className="demo-divider">Try the demo</div>
+					<div className="demo-accounts">
+						<button type="button" onClick={() => fill("admin@workforceone.demo", "AdminDemo#2026")}>
+							<span className="demo-icon"><ShieldCheck size={18} /></span>
+							<strong>Admin</strong>
+							<small>Payroll & HR</small>
+						</button>
+						<button type="button" onClick={() => fill("employee@workforceone.demo", "EmployeeDemo#2026")}>
+							<span className="demo-icon"><User size={18} /></span>
+							<strong>Employee</strong>
+							<small>Farah’s portal</small>
+						</button>
+					</div>
+					<p className="login-session-note">
+						<Lock size={12} /> Session data stays within your browser.
+					</p>
+				</div>
+			</section>
+		</main>
+	);
 }
 
 function fill(email: string, password: string) {
 	const emailInput = document.querySelector<HTMLInputElement>('input[name="email"]');
 	const passwordInput = document.querySelector<HTMLInputElement>('input[name="password"]');
-	if (emailInput && passwordInput) { emailInput.value = email; passwordInput.value = password; emailInput.focus(); }
+	if (emailInput && passwordInput) {
+		emailInput.value = email;
+		passwordInput.value = password;
+		emailInput.focus();
+	}
 }
