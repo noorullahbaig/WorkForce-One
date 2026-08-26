@@ -244,7 +244,7 @@ export default function Portal() {
 				</div>
 				<div className="top-actions">
 					<Link to={data.admin?"/admin/notifications":"/employee/notifications"} aria-label="Notifications" className="icon-button"><Bell/>{data.notifications.some((item)=>!item.readAt)&&<i/>}</Link>
-					<div className="avatar">{initials(data.user.name)}</div>
+					<UserMenu user={data.user} admin={data.admin}/>
 				</div>
 			</header>
 			{busy&&<div className="route-progress"/>}
@@ -252,6 +252,40 @@ export default function Portal() {
 			<div className="page-wrap">{data.admin?<AdminRouter path={path} data={data}/>:<EmployeeRouter path={path} data={data}/>}</div>
 		</main>
 	</div>;
+}
+
+function UserMenu({user, admin}:{user:DemoUser; admin:boolean}) {
+	return <details className="user-popover">
+		<summary className="avatar-button" aria-label="User profile & account">
+			<div className="avatar">{initials(user.name)}</div>
+		</summary>
+		<div className="user-menu">
+			<div className="user-menu-header">
+				<strong>{user.name}</strong>
+				<small>{user.email}</small>
+				<span className="user-role-badge">{admin ? "Administrator" : "Employee"}</span>
+			</div>
+			<div className="user-menu-links">
+				{admin ? (
+					<Link to="/admin/employees" className="user-menu-item">
+						<Users size={15}/> People directory
+					</Link>
+				) : (
+					<Link to="/employee/profile" className="user-menu-item">
+						<UserRound size={15}/> My Profile
+					</Link>
+				)}
+				<Link to={admin ? "/admin/notifications" : "/employee/notifications"} className="user-menu-item">
+					<Bell size={15}/> Notifications
+				</Link>
+			</div>
+			<Form method="post" action="/logout" style={{margin:0}}>
+				<button className="user-menu-logout">
+					<LogOut size={15}/> Sign out
+				</button>
+			</Form>
+		</div>
+	</details>;
 }
 
 function CompanyDropdown({companyInfo, employeeCount}:{companyInfo:CompanyInfo; employeeCount:number}) {
