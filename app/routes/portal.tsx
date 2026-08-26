@@ -2,7 +2,7 @@ import {
 	Form, Link, NavLink, useActionData, useLoaderData, useLocation, useNavigation,
 } from "react-router";
 import {
-	Bell, Building2, CalendarDays, Check, ChevronRight, Clock3, Coffee, Download,
+	Bell, CalendarDays, Check, ChevronRight, Clock3, Coffee, Download,
 	FileText, Fingerprint, Home, Landmark, LayoutDashboard, LogOut, Menu, Play, Plus, QrCode,
 	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Square, Trash2, UserCheck,
 	UserMinus, UserRound, Users, WalletCards, X,

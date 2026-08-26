@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-	{ ignores: ["build/**", ".react-router/**", "worker-configuration.d.ts", "stitch_merdeka_hr_payroll_system/**"] },
+	{ ignores: ["build/**", ".react-router/**", "worker-configuration.d.ts"] },
 	js.configs.recommended,
 	...tseslint.configs.recommended,
 	{
