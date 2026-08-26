@@ -69,6 +69,10 @@ export async function action({ request, context }: Route.ActionArgs) {
 		await env.DB.prepare("UPDATE notifications SET read_at=? WHERE id=? AND user_id=?").bind(now, data.id, user.id).run();
 		return { ok: "Notification marked as read." };
 	}
+	if (intent === "read-all-notifications") {
+		await env.DB.prepare("UPDATE notifications SET read_at=? WHERE user_id=? AND read_at IS NULL").bind(now, user.id).run();
+		return { ok: "All notifications marked as read." };
+	}
 	if (intent === "apply-leave" && user.employeeId) {
 		const start = String(data.startDate); const end = String(data.endDate);
 		const days = Math.floor((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86400000) + 1;
@@ -109,13 +113,14 @@ export async function action({ request, context }: Route.ActionArgs) {
 	if (intent === "update-self-profile" && user.employeeId) {
 		const phone = String(data.phone ?? "").trim();
 		const email = String(data.email ?? "").trim();
+		const bankAccountNumber = String(data.bankAccountNumber ?? "").trim();
 		if (!phone || !email) return { error: "Please provide a valid phone number and email address." };
 		await env.DB.batch([
-			env.DB.prepare("UPDATE employees SET phone=?, email=?, updated_at=? WHERE id=?").bind(phone, email, now, user.employeeId),
+			env.DB.prepare("UPDATE employees SET phone=?, email=?, bank_account_number=?, updated_at=? WHERE id=?").bind(phone, email, bankAccountNumber || null, now, user.employeeId),
 			env.DB.prepare("UPDATE users SET email=?, updated_at=? WHERE id=?").bind(email, now, user.id),
 			env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,'company-merdeka',?,'employee.self_update','employee',?,'{}',?)").bind(crypto.randomUUID(), user.id, user.employeeId, now),
 		]);
-		return { ok: "Contact information updated successfully." };
+		return { ok: "Profile information updated successfully." };
 	}
 
 	if (!adminPath) throw new Response("Forbidden", { status: 403 });
@@ -325,7 +330,7 @@ function Empty({title,body}:{title:string;body:string}) { return <div className=
 function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}) {
 	if(path.includes("/employees/")) return <EmployeeInspector employee={data.employees.find((e)=>path.endsWith(e.id))}/>;
 	if(path==="/admin/employees") return <People data={data}/>;
-	if(path==="/admin/attendance/simulate") return <Simulator employees={data.employees}/>;
+	if(path==="/admin/attendance/simulate") return <Simulator employees={data.employees} attendance={data.attendance}/>;
 	if(path==="/admin/attendance") return <AttendancePage records={data.attendance}/>;
 	if(path==="/admin/leave") return <LeaveAdmin records={data.leave}/>;
 	if(path==="/admin/payroll/policies") return <Policy policies={data.policies}/>;
@@ -351,6 +356,7 @@ function AdminHome({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	const [query,setQuery]=useState("");
 	const [showFilters, setShowFilters]=useState(false);
+	const [showAddForm, setShowAddForm]=useState(false);
 	const [dept, setDept]=useState("all");
 	const [type, setType]=useState("all");
 	const [status, setStatus]=useState("all");
@@ -367,7 +373,7 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	});
 
 	return <>
-		<PageHeader eyebrow="People" title="Employee directory" description={`${data.employees.length} people · employment, pay and statutory profiles`} action={<a className="button primary" href="#add-employee"><Plus/>Add employee</a>}/>
+		<PageHeader eyebrow="People" title="Employee directory" description={`${data.employees.length} people · employment, pay and statutory profiles`} action={<button className="button primary" onClick={()=>setShowAddForm(true)}><Plus/>Add employee</button>}/>
 		<div className="toolbar">
 			<div className="search">
 				<Search/>
@@ -421,13 +427,66 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 			<div className="table-head"><span>Employee</span><span>Team & role</span><span>Pay profile</span><span>Status</span><span/></div>
 			{filtered.length ? filtered.map((e)=><Link className="table-row" to={`/admin/employees/${e.id}`} key={e.id}><span className="person"><i>{initials(e.fullName)}</i><span><strong>{e.fullName}</strong><small>{e.employeeCode} · {e.email}</small></span></span><span><strong>{e.department}</strong><small>{e.position}</small></span><span><strong>{e.salaryType==="monthly"?money(e.monthlySalarySen):`${money(e.hourlyRateSen)}/hr`}</strong><small>{e.employmentType.replace("_"," ")}</small></span><Status value={e.status}/><ChevronRight/></Link>) : <Empty title="No matching employees" body="Try adjusting your search or filters."/>}
 		</section>
-		<EmployeeForm/>
+		<EmployeeForm open={showAddForm} onToggle={()=>setShowAddForm(!showAddForm)}/>
 	</>;
 }
 
-function EmployeeForm({employee}:{employee?:Employee}) { return <details id="add-employee" className="surface employee-form"><summary>{employee?"Edit employee profile":"Add an employee"}<ChevronRight/></summary><Form method="post" className="form-stack"><input type="hidden" name="intent" value="save-employee"/>{employee&&<input type="hidden" name="employeeId" value={employee.id}/>}<div className="form-pair"><label>Full name<input name="fullName" defaultValue={employee?.fullName} required/></label><label>Employee ID<input name="employeeCode" defaultValue={employee?.employeeCode??`MC-${1011}`} required/></label></div><div className="form-pair"><label>Email<input name="email" type="email" defaultValue={employee?.email} required/></label><label>Phone<input name="phone" defaultValue={employee?.phone??"+60 "} required/></label></div><div className="form-pair"><label>Department<input name="department" defaultValue={employee?.department} required/></label><label>Position<input name="position" defaultValue={employee?.position} required/></label></div><div className="form-pair"><label>Employment<select name="employmentType" defaultValue={employee?.employmentType??"full_time"}><option value="full_time">Full time</option><option value="part_time">Part time</option><option value="contract">Contract</option></select></label><label>Pay basis<select name="salaryType" defaultValue={employee?.salaryType??"monthly"}><option value="monthly">Monthly</option><option value="hourly">Hourly</option></select></label></div><div className="form-pair"><label>Rate (RM)<input name="rateRm" type="number" min="1" step="0.01" defaultValue={((employee?.monthlySalarySen??employee?.hourlyRateSen??450000)/100).toFixed(2)} required/></label><label>Start date<input name="startDate" type="date" defaultValue={employee?.startDate??"2026-08-26"} required/></label></div><div className="form-pair"><label>MyKad / IC No.<input name="icNumber" defaultValue={employee?.icNumber??""} placeholder="920315-10-5542"/></label><label>KWSP / EPF Member No.<input name="epfNumber" defaultValue={employee?.epfNumber??""} placeholder="21498102"/></label></div><div className="form-pair"><label>LHDN Tax No.<input name="taxNumber" defaultValue={employee?.taxNumber??""} placeholder="SG 291048201"/></label><label>Bank Name<input name="bankName" defaultValue={employee?.bankName??"Maybank"} placeholder="Maybank / CIMB / Public Bank"/></label></div><div className="form-pair"><label>Bank Account Number<input name="bankAccountNumber" defaultValue={employee?.bankAccountNumber??""} placeholder="514012384910"/></label><div/></div><button className="button primary">{employee?"Save changes":"Add employee"}</button></Form></details> }
+function EmployeeForm({employee, open, onToggle}:{employee?:Employee; open?:boolean; onToggle?:()=>void}) {
+	return <details id="add-employee" className="surface employee-form" open={open}>
+		<summary onClick={(e)=>{ if (onToggle) { e.preventDefault(); onToggle(); } }}>{employee?"Edit employee profile":"Add an employee"}<ChevronRight/></summary>
+		<Form method="post" className="form-stack">
+			<input type="hidden" name="intent" value="save-employee"/>
+			{employee&&<input type="hidden" name="employeeId" value={employee.id}/>}
+			<div className="form-pair">
+				<label>Full name<input name="fullName" defaultValue={employee?.fullName} required/></label>
+				<label>Employee ID<input name="employeeCode" defaultValue={employee?.employeeCode??`MC-${1011}`} required/></label>
+			</div>
+			<div className="form-pair">
+				<label>Email<input name="email" type="email" defaultValue={employee?.email} required/></label>
+				<label>Phone<input name="phone" defaultValue={employee?.phone??"+60 "} required/></label>
+			</div>
+			<div className="form-pair">
+				<label>Department<input name="department" defaultValue={employee?.department} required/></label>
+				<label>Position<input name="position" defaultValue={employee?.position} required/></label>
+			</div>
+			<div className="form-pair">
+				<label>Employment
+					<select name="employmentType" defaultValue={employee?.employmentType??"full_time"}>
+						<option value="full_time">Full time</option>
+						<option value="part_time">Part time</option>
+						<option value="contract">Contract</option>
+					</select>
+				</label>
+				<label>Pay basis
+					<select name="salaryType" defaultValue={employee?.salaryType??"monthly"}>
+						<option value="monthly">Monthly</option>
+						<option value="hourly">Hourly</option>
+					</select>
+				</label>
+			</div>
+			<div className="form-pair">
+				<label>Rate (RM)<input name="rateRm" type="number" min="1" step="0.01" defaultValue={((employee?.monthlySalarySen??employee?.hourlyRateSen??450000)/100).toFixed(2)} required/></label>
+				<label>Start date<input name="startDate" type="date" defaultValue={employee?.startDate??"2026-08-26"} required/></label>
+			</div>
+			<div className="form-pair">
+				<label>MyKad / IC No.<input name="icNumber" defaultValue={employee?.icNumber??""} placeholder="920315-10-5542"/></label>
+				<label>KWSP / EPF Member No.<input name="epfNumber" defaultValue={employee?.epfNumber??""} placeholder="21498102"/></label>
+			</div>
+			<div className="form-pair">
+				<label>LHDN Tax No.<input name="taxNumber" defaultValue={employee?.taxNumber??""} placeholder="SG 291048201"/></label>
+				<label>Bank Name<input name="bankName" defaultValue={employee?.bankName??"Maybank"} placeholder="Maybank / CIMB / Public Bank"/></label>
+			</div>
+			<div className="form-pair">
+				<label>Bank Account Number<input name="bankAccountNumber" defaultValue={employee?.bankAccountNumber??""} placeholder="514012384910"/></label>
+				<div/>
+			</div>
+			<button className="button primary">{employee?"Save changes":"Add employee"}</button>
+		</Form>
+	</details>;
+}
 
 function EmployeeInspector({employee}:{employee?:Employee}) {
+	const [showEdit, setShowEdit] = useState(false);
 	if(!employee) return <Empty title="Employee not found" body="This profile is not available."/>;
 	return <>
 		<PageHeader eyebrow="People / Employee" title={employee.fullName} description={`${employee.employeeCode} · ${employee.position}`} action={
@@ -441,7 +500,7 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 						{employee.status === "inactive" ? <><UserCheck size={16}/> Activate</> : <><UserMinus size={16}/> Deactivate</>}
 					</button>
 				</Form>
-				<a className="button primary" href="#add-employee">Edit profile</a>
+				<button className="button primary" onClick={()=>setShowEdit(true)}>Edit profile</button>
 			</>
 		}/>
 		<div className="profile-grid">
@@ -474,7 +533,7 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 				</dl>
 			</section>
 		</div>
-		<EmployeeForm employee={employee}/>
+		<EmployeeForm employee={employee} open={showEdit} onToggle={()=>setShowEdit(!showEdit)}/>
 	</>;
 }
 
@@ -496,9 +555,98 @@ function AttendancePage({records}:{records:Attendance[]}) {
 	</>;
 }
 
-function Simulator({employees}:{employees:Employee[]}) { return <><PageHeader eyebrow="Time / Terminal" title="Attendance terminal" description="Simulate clock-in/out terminal events and verify time calculations." action={<Link className="button secondary" to="/admin/attendance">View records</Link>}/><div className="simulator-grid"><section className="surface simulator"><div className="sim-display"><span className="live-dot">Terminal active</span><div className="scan-ring"><Fingerprint/></div><h2>Ready to capture</h2><p>Select an employee and device method. Existing open shifts will be clocked out at 6:15 PM MYT.</p></div><Form method="post" className="form-stack"><input type="hidden" name="intent" value="simulate-attendance"/><label>Employee<select name="employeeId" defaultValue="emp-001">{employees.map((e)=><option value={e.id} key={e.id}>{e.fullName} · {e.employeeCode}</option>)}</select></label><div className="method-choice"><label><input type="radio" name="method" value="fingerprint" defaultChecked/><span><Fingerprint/><strong>Fingerprint</strong><small>Front counter device</small></span></label><label><input type="radio" name="method" value="qr"/><span><QrCode/><strong>QR code</strong><small>Employee mobile scan</small></span></label></div><button className="button primary wide">Capture attendance</button></Form></section><aside className="surface sim-aside"><p className="eyebrow">Terminal operation</p><h3>Device event processing</h3><ul><li><Check/>Creates or completes an attendance record</li><li><Check/>Stores the chosen device method</li><li><Check/>Calculates worked time and overtime</li><li><Check/>Updates payroll inputs instantly</li></ul></aside></div></> }
+function Simulator({employees, attendance}:{employees:Employee[]; attendance:Attendance[]}) {
+	const [selectedId, setSelectedId] = useState(employees[0]?.id ?? "emp-001");
+	const empAttendance = attendance.filter((r) => r.employeeId === selectedId && r.workDate === "2026-08-26");
+	const openShift = empAttendance.find((r) => !r.clockOut);
+	const selectedEmp = employees.find((e) => e.id === selectedId);
 
-function LeaveAdmin({records}:{records:Leave[]}) { return <><PageHeader eyebrow="People / Leave" title="Leave management" description="Review requests and maintain auditable balances."/><div className="metric-strip compact"><article><span>Pending</span><strong>{records.filter((r)=>r.status==="pending").length}</strong></article><article><span>Approved this month</span><strong>{records.filter((r)=>r.status==="approved").length}</strong></article><article><span>Unpaid leave inputs</span><strong>{records.filter((r)=>r.status==="approved"&&!r.paid).reduce((t,r)=>t+r.days,0)} days</strong></article></div><section className="request-list">{records.map((r)=><article className="surface request" key={r.id}><div className="person"><i>{initials(r.fullName)}</i><span><strong>{r.fullName}</strong><small>{r.typeName} · {r.days} day{r.days===1?"":"s"}</small></span></div><div><span>{date(r.startDate)}{r.startDate!==r.endDate?` – ${date(r.endDate)}`:""}</span><small>“{r.reason}”</small></div><Status value={r.status}/>{r.status==="pending"?<Form method="post" className="request-actions"><input type="hidden" name="intent" value="review-leave"/><input type="hidden" name="id" value={r.id}/><button className="button ghost" name="decision" value="rejected"><X/>Decline</button><button className="button primary" name="decision" value="approved"><Check/>Approve</button></Form>:<span/>}</article>)}</section></> }
+	return <>
+		<PageHeader eyebrow="Time / Terminal" title="Attendance terminal" description="Simulate biometric clock-in/out terminal events and verify time calculations." action={<Link className="button secondary" to="/admin/attendance">View records</Link>}/>
+		<div className="simulator-grid">
+			<section className="surface simulator">
+				<div className="sim-display">
+					<span className="live-dot">Terminal active</span>
+					<div className="scan-ring"><Fingerprint/></div>
+					<h2>{openShift ? "Clock-out capture" : "Clock-in capture"}</h2>
+					<p>{openShift ? `${selectedEmp?.fullName} clocked in at ${time(openShift.clockIn)}. Press capture to record shift departure at 6:15 PM MYT.` : `${selectedEmp?.fullName || "Employee"} is not on shift. Press capture to record morning arrival at 9:00 AM MYT.`}</p>
+				</div>
+				<Form method="post" className="form-stack">
+					<input type="hidden" name="intent" value="simulate-attendance"/>
+					<label>Employee
+						<select name="employeeId" value={selectedId} onChange={(e)=>setSelectedId(e.target.value)}>
+							{employees.map((e)=><option value={e.id} key={e.id}>{e.fullName} · {e.employeeCode}</option>)}
+						</select>
+					</label>
+					<div className="method-choice">
+						<label><input type="radio" name="method" value="fingerprint" defaultChecked/><span><Fingerprint/><strong>Fingerprint</strong><small>Front counter device</small></span></label>
+						<label><input type="radio" name="method" value="qr"/><span><QrCode/><strong>QR code</strong><small>Employee mobile scan</small></span></label>
+					</div>
+					<button className="button primary wide">
+						Capture attendance
+					</button>
+				</Form>
+			</section>
+			<aside className="surface sim-aside">
+				<p className="eyebrow">Terminal operation</p>
+				<h3>Device event processing</h3>
+				<ul>
+					<li><Check/>Creates or completes an attendance record</li>
+					<li><Check/>Stores the chosen device method</li>
+					<li><Check/>Calculates worked time and overtime</li>
+					<li><Check/>Updates payroll inputs instantly</li>
+				</ul>
+				{empAttendance.length > 0 && (
+					<div style={{marginTop:"20px",paddingTop:"16px",borderTop:"1px solid var(--line)"}}>
+						<p className="eyebrow" style={{marginBottom:"6px"}}>Today's events for {selectedEmp?.fullName.split(" ")[0]}</p>
+						{empAttendance.map((r)=>(
+							<div key={r.id} style={{fontSize:".8rem",display:"flex",justifyContent:"space-between",marginBottom:"6px"}}>
+								<span>{time(r.clockIn)} – {r.clockOut ? time(r.clockOut) : "Active"}</span>
+								<Status value={r.status}/>
+							</div>
+						))}
+					</div>
+				)}
+			</aside>
+		</div>
+	</>;
+}
+
+function LeaveAdmin({records}:{records:Leave[]}) {
+	return <>
+		<PageHeader eyebrow="People / Leave" title="Leave management" description="Review requests and maintain auditable balances."/>
+		<div className="metric-strip compact">
+			<article><span>Pending</span><strong>{records.filter((r)=>r.status==="pending").length}</strong></article>
+			<article><span>Approved this month</span><strong>{records.filter((r)=>r.status==="approved").length}</strong></article>
+			<article><span>Unpaid leave inputs</span><strong>{records.filter((r)=>r.status==="approved"&&!r.paid).reduce((t,r)=>t+r.days,0)} days</strong></article>
+		</div>
+		<section className="request-list">
+			{records.length ? records.map((r)=>(
+				<article className="surface request" key={r.id}>
+					<div className="person">
+						<i>{initials(r.fullName)}</i>
+						<span><strong>{r.fullName}</strong><small>{r.typeName} · {r.days} day{r.days===1?"":"s"}</small></span>
+					</div>
+					<div>
+						<span>{date(r.startDate)}{r.startDate!==r.endDate?` – ${date(r.endDate)}`:""}</span>
+						<small>“{r.reason}”</small>
+					</div>
+					<Status value={r.status}/>
+					{r.status==="pending" ? (
+						<Form method="post" className="request-actions">
+							<input type="hidden" name="intent" value="review-leave"/>
+							<input type="hidden" name="id" value={r.id}/>
+							<button className="button ghost" name="decision" value="rejected"><X/>Decline</button>
+							<button className="button primary" name="decision" value="approved"><Check/>Approve</button>
+						</Form>
+					) : <span/>}
+				</article>
+			)) : (
+				<Empty title="No leave requests" body="When employees submit leave applications, they will appear here for review."/>
+			)}
+		</section>
+	</>;
+}
 
 function PayrollList({runs}:{runs:Payroll[]}) { return <><PageHeader eyebrow="Payroll" title="Payroll runs" description="A traceable path from source inputs to immutable payslips." action={<Link className="button secondary" to="/admin/payroll/policies"><ShieldCheck/>Statutory policy</Link>}/><section className="surface table payroll-table"><div className="table-head"><span>Pay period</span><span>Policy</span><span>Gross</span><span>Net pay</span><span>Status</span><span/></div>{runs.map((r)=><Link className="table-row" key={r.id} to={`/admin/payroll/${r.id}`}><span><strong>{date(r.periodStart,{month:"long",year:"numeric"})}</strong><small>Pay date · {date(r.payDate)}</small></span><span><strong>{r.policyName}</strong><small>Verified 26 Aug 2026</small></span><span>{r.status==="finalised"?money(r.grossTotalSen):"Calculated on review"}</span><span><strong>{r.status==="finalised"?money(r.netTotalSen):"—"}</strong></span><Status value={r.status}/><ChevronRight/></Link>)}</section></> }
 
@@ -595,10 +743,11 @@ function PayrollDetail({run,employees,attendance,adjustments}:{run?:Payroll;empl
 }
 
 function Policy({policies}:{policies:PolicyRecord[]}){
+	const [showCreate, setShowCreate] = useState(false);
 	return <>
-		<PageHeader eyebrow="Payroll / Policies" title="Statutory Policies" description="Statutory contribution schedules for Malaysian employees under 60." action={<a className="button primary" href="#create-policy"><Plus/>Clone custom policy</a>}/>
-		<details id="create-policy" className="surface employee-form" style={{marginBottom:"20px"}}>
-			<summary>Create or clone statutory policy <ChevronRight/></summary>
+		<PageHeader eyebrow="Payroll / Policies" title="Statutory Policies" description="Statutory contribution schedules for Malaysian employees under 60." action={<button className="button primary" onClick={()=>setShowCreate(true)}><Plus/>Clone custom policy</button>}/>
+		<details id="create-policy" className="surface employee-form" open={showCreate} style={{marginBottom:"20px"}}>
+			<summary onClick={(e)=>{ e.preventDefault(); setShowCreate(!showCreate); }}>Create or clone statutory policy <ChevronRight/></summary>
 			<Form method="post" className="form-stack" style={{marginTop:"14px"}}>
 				<input type="hidden" name="intent" value="clone-policy"/>
 				<div className="form-pair">
@@ -676,7 +825,30 @@ function Reports({runs}:{runs:Payroll[]}){
 	</>;
 }
 
-function Notifications({items}:{items:Notification[]}){return <><PageHeader eyebrow="Inbox" title="Notifications" description="Every alert links back to the work that created it."/><section className="surface notification-list">{items.length?items.map((item)=><article key={item.id} className={item.readAt?"":"unread"}><span className="notification-dot"/><div><strong>{item.title}</strong><p>{item.body}</p><small>{date(item.createdAt,{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}</small></div><div>{item.href&&<Link className="text-button" to={item.href}>Open <ChevronRight/></Link>}{!item.readAt&&<Form method="post"><input type="hidden" name="intent" value="read-notification"/><input type="hidden" name="id" value={item.id}/><button className="text-button">Mark read</button></Form>}</div></article>):<Empty title="All caught up" body="New payroll, leave and attendance updates will appear here."/>}</section></>}
+function Notifications({items}:{items:Notification[]}){
+	const hasUnread = items.some((i)=>!i.readAt);
+	return <>
+		<PageHeader eyebrow="Inbox" title="Notifications" description="Every alert links back to the work that created it." action={hasUnread ? <Form method="post" style={{margin:0}}><input type="hidden" name="intent" value="read-all-notifications"/><button className="button secondary"><Check size={16}/>Mark all as read</button></Form> : undefined}/>
+		<section className="surface notification-list">
+			{items.length ? items.map((item)=>(
+				<article key={item.id} className={item.readAt ? "" : "unread"}>
+					<span className="notification-dot"/>
+					<div>
+						<strong>{item.title}</strong>
+						<p>{item.body}</p>
+						<small>{date(item.createdAt,{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}</small>
+					</div>
+					<div>
+						{item.href&&<Link className="text-button" to={item.href}>Open <ChevronRight/></Link>}
+						{!item.readAt&&<Form method="post"><input type="hidden" name="intent" value="read-notification"/><input type="hidden" name="id" value={item.id}/><button className="text-button">Mark read</button></Form>}
+					</div>
+				</article>
+			)) : (
+				<Empty title="All caught up" body="New payroll, leave and attendance updates will appear here."/>
+			)}
+		</section>
+	</>;
+}
 
 function EmployeeRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}){const employee=data.employees[0];if(path==="/employee/attendance")return <EmployeeAttendance records={data.attendance} employee={employee}/>;if(path==="/employee/leave")return <EmployeeLeave records={data.leave} balances={data.balances}/>;if(path.includes("/employee/payslips/"))return <PayslipDetail slip={data.payslips.find((p)=>path.endsWith(p.id))}/>;if(path==="/employee/payslips")return <Payslips slips={data.payslips}/>;if(path==="/employee/notifications")return <Notifications items={data.notifications}/>;if(path==="/employee/profile")return <EmployeeProfile employee={employee}/>;return <EmployeeHome data={data} employee={employee}/>}
 
@@ -768,8 +940,9 @@ function Payslips({slips}:{slips:Payslip[]}){return <><PageHeader eyebrow="Self-
 function PayslipDetail({slip}:{slip?:Payslip}){if(!slip)return <Empty title="Payslip not found" body="You do not have access to this record."/>;const b=JSON.parse(slip.breakdownJson) as PayrollBreakdown;return <><PageHeader eyebrow="Payslips / Detail" title={`${date(`${slip.period}-01`,{month:"long",year:"numeric"})} payslip`} description={`Merdeka Coffee · paid ${date(slip.payDate)}`} action={<a className="button primary" href={`/resources/payslips/${slip.id}.pdf`}><Download/>Download PDF</a>}/><section className="payslip-paper"><div className="payslip-brand"><div className="wordmark"><span>W1</span> Workforce One</div><div><strong>Merdeka Coffee Sdn. Bhd.</strong><small>Document issuer · 202001028884</small></div></div><div className="net-block"><span>Net pay</span><strong>{money(slip.netPaySen)}</strong><small>Finalised · immutable payroll snapshot</small></div><div className="payslip-columns"><dl><h3>Earnings</h3><div><dt>Base pay</dt><dd>{money(b.basePaySen)}</dd></div><div><dt>Overtime</dt><dd>{money(b.overtimePaySen)}</dd></div><div><dt>Allowances</dt><dd>{money(b.allowanceSen)}</dd></div><div className="total"><dt>Gross pay</dt><dd>{money(slip.grossPaySen)}</dd></div></dl><dl><h3>Deductions</h3><div><dt>EPF</dt><dd>{money(b.epfEmployeeSen)}</dd></div><div><dt>SOCSO</dt><dd>{money(b.socsoEmployeeSen)}</dd></div><div><dt>EIS</dt><dd>{money(b.eisEmployeeSen)}</dd></div><div><dt>PCB</dt><dd>{money(b.pcbSen)}</dd></div><div className="total"><dt>Total deductions</dt><dd>{money(slip.totalDeductionsSen)}</dd></div></dl></div><p className="payslip-note">Generated from the finalised payroll record. PCB values reflect verified tax schedules.</p></section></>}
 
 function EmployeeProfile({employee}:{employee:Employee}){
+	const [showEdit, setShowEdit] = useState(false);
 	return <>
-		<PageHeader eyebrow="Self-service" title="Profile" description="Your personal and employment details." action={<a className="button primary" href="#edit-contact"><Plus/>Edit contact</a>}/>
+		<PageHeader eyebrow="Self-service" title="Profile" description="Your personal and employment details." action={<button className="button primary" onClick={()=>setShowEdit(true)}><Plus/>Edit contact</button>}/>
 		<div className="profile-grid">
 			<section className="surface profile-card">
 				<div className="profile-hero">
@@ -801,8 +974,8 @@ function EmployeeProfile({employee}:{employee:Employee}){
 			</section>
 		</div>
 
-		<details id="edit-contact" className="surface employee-form" style={{marginTop:"20px"}}>
-			<summary>Update contact details <ChevronRight/></summary>
+		<details id="edit-contact" className="surface employee-form" open={showEdit} style={{marginTop:"20px"}}>
+			<summary onClick={(e)=>{ e.preventDefault(); setShowEdit(!showEdit); }}>Update contact & bank details <ChevronRight/></summary>
 			<Form method="post" className="form-stack" style={{marginTop:"12px"}}>
 				<input type="hidden" name="intent" value="update-self-profile"/>
 				<div className="form-pair">
@@ -813,7 +986,13 @@ function EmployeeProfile({employee}:{employee:Employee}){
 						<input name="phone" defaultValue={employee.phone} required/>
 					</label>
 				</div>
-				<button className="button primary">Save contact updates</button>
+				<div className="form-pair">
+					<label>Disbursement Bank Account No.
+						<input name="bankAccountNumber" defaultValue={employee.bankAccountNumber ?? ""} placeholder="e.g. 514012384910"/>
+					</label>
+					<div/>
+				</div>
+				<button className="button primary">Save profile updates</button>
 			</Form>
 		</details>
 	</>;

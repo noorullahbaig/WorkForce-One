@@ -35,7 +35,7 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	await page.getByRole("button", { name: "Open navigation" }).isVisible();
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.reload();
-	await page.getByRole("button", { name: "Sign out" }).click();
+	await page.getByRole("button", { name: "Sign out" }).first().click();
 	await page.getByRole("button", { name: /Employee Farah/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await expect(page.getByText("August payslip is ready")).toBeVisible();
