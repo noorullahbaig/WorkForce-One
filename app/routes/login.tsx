@@ -1,4 +1,4 @@
-import { Form, redirect, useActionData, useNavigation, useSearchParams } from "react-router";
+import { Form, Link, redirect, useActionData, useNavigation, useSearchParams } from "react-router";
 import { ArrowRight, Lock, ShieldCheck, User } from "lucide-react";
 import { z } from "zod";
 import { assertSameOrigin, authenticate, createSession, getUser } from "../services/auth.server";
@@ -35,7 +35,9 @@ export default function Login() {
 	return (
 		<main className="login-page">
 			<section className="login-story">
-				<div className="wordmark inverse"><span>W1</span> Workforce One</div>
+				<Link to="/" className="wordmark inverse" aria-label="Workforce One home">
+					<span>W1</span> Workforce One
+				</Link>
 				<div className="story-content">
 					<h1>Clarity from clock-in to payday.</h1>
 					<div className="story-visual-wrap">
@@ -52,7 +54,9 @@ export default function Login() {
 			</section>
 			<section className="login-panel">
 				<div className="login-card">
-					<div className="login-brand"><span>W1</span></div>
+					<Link to="/" className="login-brand" aria-label="Workforce One home">
+						<span>W1</span>
+					</Link>
 					<h2>Sign in</h2>
 					{actionData?.error && <div className="alert danger" role="alert">{actionData.error}</div>}
 					<Form method="post" className="form-stack">
