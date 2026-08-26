@@ -3,7 +3,7 @@ import {
 } from "react-router";
 import {
 	Bell, Building2, CalendarDays, Check, ChevronRight, Clock3, Coffee, Download,
-	FileText, Fingerprint, Home, LayoutDashboard, LogOut, Menu, Play, Plus, QrCode,
+	FileText, Fingerprint, Home, Landmark, LayoutDashboard, LogOut, Menu, Play, Plus, QrCode,
 	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Square, Trash2, UserCheck,
 	UserMinus, UserRound, Users, WalletCards, X,
 } from "lucide-react";
@@ -16,7 +16,7 @@ import { assertSameOrigin, requireUser, type DemoUser } from "../services/auth.s
 import { resetDemoData } from "../services/reset.server";
 import type { Route } from "./+types/portal";
 
-type Employee = { id:string; employeeCode:string; fullName:string; email:string; phone:string; department:string; position:string; employmentType:string; salaryType:"monthly"|"hourly"; monthlySalarySen:number|null; hourlyRateSen:number|null; startDate:string; status:string };
+type Employee = { id:string; employeeCode:string; fullName:string; email:string; phone:string; department:string; position:string; employmentType:string; salaryType:"monthly"|"hourly"; monthlySalarySen:number|null; hourlyRateSen:number|null; startDate:string; status:string; icNumber:string|null; epfNumber:string|null; taxNumber:string|null; bankName:string|null; bankAccountNumber:string|null };
 type Attendance = { id:string; employeeId:string; fullName:string; employeeCode:string; workDate:string; clockIn:string|null; clockOut:string|null; clockInMethod:string|null; clockOutMethod:string|null; workedMinutes:number|null; overtimeMinutes:number|null; status:string };
 type Leave = { id:string; employeeId:string; fullName:string; leaveTypeId:string; typeName:string; paid:number; startDate:string; endDate:string; days:number; reason:string; status:string };
 type Payroll = { id:string; period:string; periodStart:string; periodEnd:string; payDate:string; status:string; grossTotalSen:number; deductionTotalSen:number; netTotalSen:number; employerContributionTotalSen:number; finalisedAt:string|null; policyName:string };
@@ -38,7 +38,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 	const employeeScope = admin ? "" : " WHERE e.id = ?";
 	const bind = <T extends D1PreparedStatement>(statement: T) => admin ? statement : statement.bind(user.employeeId);
 	const [employees, attendance, leave, payrolls, payslips, notifications, balances, adjustments, policies, companyInfo] = await Promise.all([
-		all<Employee>(bind(env.DB.prepare(`SELECT e.id, e.employee_code employeeCode, e.full_name fullName, e.email, e.phone, e.department, e.position, e.employment_type employmentType, e.salary_type salaryType, e.monthly_salary_sen monthlySalarySen, e.hourly_rate_sen hourlyRateSen, e.start_date startDate, e.status FROM employees e${employeeScope} ORDER BY e.full_name`))),
+		all<Employee>(bind(env.DB.prepare(`SELECT e.id, e.employee_code employeeCode, e.full_name fullName, e.email, e.phone, e.department, e.position, e.employment_type employmentType, e.salary_type salaryType, e.monthly_salary_sen monthlySalarySen, e.hourly_rate_sen hourlyRateSen, e.start_date startDate, e.status, e.ic_number icNumber, e.epf_number epfNumber, e.tax_number taxNumber, e.bank_name bankName, e.bank_account_number bankAccountNumber FROM employees e${employeeScope} ORDER BY e.full_name`))),
 		all<Attendance>(bind(env.DB.prepare(`SELECT a.id, a.employee_id employeeId, e.full_name fullName, e.employee_code employeeCode, a.work_date workDate, a.clock_in clockIn, a.clock_out clockOut, a.clock_in_method clockInMethod, a.clock_out_method clockOutMethod, a.worked_minutes workedMinutes, a.overtime_minutes overtimeMinutes, a.status FROM attendance_records a JOIN employees e ON e.id=a.employee_id${employeeScope} ORDER BY a.work_date DESC, e.full_name`))),
 		all<Leave>(bind(env.DB.prepare(`SELECT l.id, l.employee_id employeeId, e.full_name fullName, l.leave_type_id leaveTypeId, t.name typeName, t.paid, l.start_date startDate, l.end_date endDate, l.days, l.reason, l.status FROM leave_requests l JOIN employees e ON e.id=l.employee_id JOIN leave_types t ON t.id=l.leave_type_id${employeeScope} ORDER BY l.created_at DESC`))),
 		all<Payroll>(env.DB.prepare(`SELECT r.id, r.period, r.period_start periodStart, r.period_end periodEnd, r.pay_date payDate, r.status, r.gross_total_sen grossTotalSen, r.deduction_total_sen deductionTotalSen, r.net_total_sen netTotalSen, r.employer_contribution_total_sen employerContributionTotalSen, r.finalised_at finalisedAt, p.name policyName FROM payroll_runs r JOIN payroll_policies p ON p.id=r.policy_id ORDER BY r.period DESC`)),
@@ -142,8 +142,14 @@ export async function action({ request, context }: Route.ActionArgs) {
 		const salaryType=data.salaryType==="hourly"?"hourly":"monthly"; const rateSen=Math.round(Number(data.rateRm)*100);
 		if(!Number.isFinite(rateSen)||rateSen<=0)return {error:"Enter a valid pay rate."};
 		const employeeId=String(data.employeeId||`custom-${crypto.randomUUID()}`);
-		if(data.employeeId){await env.DB.prepare("UPDATE employees SET employee_code=?,full_name=?,email=?,phone=?,department=?,position=?,employment_type=?,salary_type=?,monthly_salary_sen=?,hourly_rate_sen=?,start_date=?,updated_at=? WHERE id=? AND company_id='company-merdeka'").bind(data.employeeCode,data.fullName,data.email,data.phone,data.department,data.position,data.employmentType,salaryType,salaryType==="monthly"?rateSen:null,salaryType==="hourly"?rateSen:null,data.startDate,now,employeeId).run()}
-		else{await env.DB.prepare("INSERT INTO employees (id,company_id,employee_code,full_name,email,phone,department,position,employment_type,salary_type,monthly_salary_sen,hourly_rate_sen,start_date,status,statutory_profile,created_at,updated_at) VALUES (?,'company-merdeka',?,?,?,?,?,?,?,?,?,?,?,'active','my_under_60',?,?)").bind(employeeId,data.employeeCode,data.fullName,data.email,data.phone,data.department,data.position,data.employmentType,salaryType,salaryType==="monthly"?rateSen:null,salaryType==="hourly"?rateSen:null,data.startDate,now,now).run()}
+		const icNumber = String(data.icNumber ?? "").trim() || null;
+		const epfNumber = String(data.epfNumber ?? "").trim() || null;
+		const taxNumber = String(data.taxNumber ?? "").trim() || null;
+		const bankName = String(data.bankName ?? "").trim() || "Maybank";
+		const bankAccountNumber = String(data.bankAccountNumber ?? "").trim() || null;
+
+		if(data.employeeId){await env.DB.prepare("UPDATE employees SET employee_code=?,full_name=?,email=?,phone=?,department=?,position=?,employment_type=?,salary_type=?,monthly_salary_sen=?,hourly_rate_sen=?,start_date=?,ic_number=?,epf_number=?,tax_number=?,bank_name=?,bank_account_number=?,updated_at=? WHERE id=? AND company_id='company-merdeka'").bind(data.employeeCode,data.fullName,data.email,data.phone,data.department,data.position,data.employmentType,salaryType,salaryType==="monthly"?rateSen:null,salaryType==="hourly"?rateSen:null,data.startDate,icNumber,epfNumber,taxNumber,bankName,bankAccountNumber,now,employeeId).run()}
+		else{await env.DB.prepare("INSERT INTO employees (id,company_id,employee_code,full_name,email,phone,department,position,employment_type,salary_type,monthly_salary_sen,hourly_rate_sen,start_date,status,statutory_profile,ic_number,epf_number,tax_number,bank_name,bank_account_number,created_at,updated_at) VALUES (?,'company-merdeka',?,?,?,?,?,?,?,?,?,?,?,'active','my_under_60',?,?,?,?,?,?,?)").bind(employeeId,data.employeeCode,data.fullName,data.email,data.phone,data.department,data.position,data.employmentType,salaryType,salaryType==="monthly"?rateSen:null,salaryType==="hourly"?rateSen:null,data.startDate,icNumber,epfNumber,taxNumber,bankName,bankAccountNumber,now,now).run()}
 		await env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,'company-merdeka',?,'employee.saved','employee',?,'{}',?)").bind(crypto.randomUUID(),user.id,employeeId,now).run();
 		return {ok:data.employeeId?"Employee profile updated.":"Employee added to the directory."};
 	}
@@ -377,7 +383,7 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	</>;
 }
 
-function EmployeeForm({employee}:{employee?:Employee}) { return <details id="add-employee" className="surface employee-form"><summary>{employee?"Edit employee profile":"Add an employee"}<ChevronRight/></summary><Form method="post" className="form-stack"><input type="hidden" name="intent" value="save-employee"/>{employee&&<input type="hidden" name="employeeId" value={employee.id}/>}<div className="form-pair"><label>Full name<input name="fullName" defaultValue={employee?.fullName} required/></label><label>Employee ID<input name="employeeCode" defaultValue={employee?.employeeCode??`MC-${1011}`} required/></label></div><div className="form-pair"><label>Email<input name="email" type="email" defaultValue={employee?.email} required/></label><label>Phone<input name="phone" defaultValue={employee?.phone??"+60 "} required/></label></div><div className="form-pair"><label>Department<input name="department" defaultValue={employee?.department} required/></label><label>Position<input name="position" defaultValue={employee?.position} required/></label></div><div className="form-pair"><label>Employment<select name="employmentType" defaultValue={employee?.employmentType??"full_time"}><option value="full_time">Full time</option><option value="part_time">Part time</option><option value="contract">Contract</option></select></label><label>Pay basis<select name="salaryType" defaultValue={employee?.salaryType??"monthly"}><option value="monthly">Monthly</option><option value="hourly">Hourly</option></select></label></div><div className="form-pair"><label>Rate (RM)<input name="rateRm" type="number" min="1" step="0.01" defaultValue={((employee?.monthlySalarySen??employee?.hourlyRateSen??450000)/100).toFixed(2)} required/></label><label>Start date<input name="startDate" type="date" defaultValue={employee?.startDate??"2026-08-26"} required/></label></div><button className="button primary">{employee?"Save changes":"Add employee"}</button></Form></details> }
+function EmployeeForm({employee}:{employee?:Employee}) { return <details id="add-employee" className="surface employee-form"><summary>{employee?"Edit employee profile":"Add an employee"}<ChevronRight/></summary><Form method="post" className="form-stack"><input type="hidden" name="intent" value="save-employee"/>{employee&&<input type="hidden" name="employeeId" value={employee.id}/>}<div className="form-pair"><label>Full name<input name="fullName" defaultValue={employee?.fullName} required/></label><label>Employee ID<input name="employeeCode" defaultValue={employee?.employeeCode??`MC-${1011}`} required/></label></div><div className="form-pair"><label>Email<input name="email" type="email" defaultValue={employee?.email} required/></label><label>Phone<input name="phone" defaultValue={employee?.phone??"+60 "} required/></label></div><div className="form-pair"><label>Department<input name="department" defaultValue={employee?.department} required/></label><label>Position<input name="position" defaultValue={employee?.position} required/></label></div><div className="form-pair"><label>Employment<select name="employmentType" defaultValue={employee?.employmentType??"full_time"}><option value="full_time">Full time</option><option value="part_time">Part time</option><option value="contract">Contract</option></select></label><label>Pay basis<select name="salaryType" defaultValue={employee?.salaryType??"monthly"}><option value="monthly">Monthly</option><option value="hourly">Hourly</option></select></label></div><div className="form-pair"><label>Rate (RM)<input name="rateRm" type="number" min="1" step="0.01" defaultValue={((employee?.monthlySalarySen??employee?.hourlyRateSen??450000)/100).toFixed(2)} required/></label><label>Start date<input name="startDate" type="date" defaultValue={employee?.startDate??"2026-08-26"} required/></label></div><div className="form-pair"><label>MyKad / IC No.<input name="icNumber" defaultValue={employee?.icNumber??""} placeholder="920315-10-5542"/></label><label>KWSP / EPF Member No.<input name="epfNumber" defaultValue={employee?.epfNumber??""} placeholder="21498102"/></label></div><div className="form-pair"><label>LHDN Tax No.<input name="taxNumber" defaultValue={employee?.taxNumber??""} placeholder="SG 291048201"/></label><label>Bank Name<input name="bankName" defaultValue={employee?.bankName??"Maybank"} placeholder="Maybank / CIMB / Public Bank"/></label></div><div className="form-pair"><label>Bank Account Number<input name="bankAccountNumber" defaultValue={employee?.bankAccountNumber??""} placeholder="514012384910"/></label><div/></div><button className="button primary">{employee?"Save changes":"Add employee"}</button></Form></details> }
 
 function EmployeeInspector({employee}:{employee?:Employee}) {
 	if(!employee) return <Empty title="Employee not found" body="This profile is not available."/>;
@@ -410,16 +416,19 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 					<div><dt>Email</dt><dd>{employee.email}</dd></div>
 					<div><dt>Phone</dt><dd>{employee.phone}</dd></div>
 					<div><dt>Joined</dt><dd>{date(employee.startDate)}</dd></div>
+					<div><dt>MyKad / IC</dt><dd>{employee.icNumber || "—"}</dd></div>
+					<div><dt>EPF Member No</dt><dd>{employee.epfNumber || "—"}</dd></div>
 				</dl>
 			</section>
 			<section className="surface detail-list">
-				<div className="section-head"><h2>Employment & pay</h2></div>
+				<div className="section-head"><h2>Employment & banking</h2></div>
 				<dl>
 					<div><dt>Employment</dt><dd>{employee.employmentType.replace("_"," ")}</dd></div>
 					<div><dt>Pay basis</dt><dd>{employee.salaryType}</dd></div>
 					<div><dt>Current rate</dt><dd>{employee.salaryType==="monthly"?money(employee.monthlySalarySen):`${money(employee.hourlyRateSen)} / hour`}</dd></div>
-					<div><dt>Statutory profile</dt><dd>Malaysia · under 60</dd></div>
-					<div><dt>Contribution policy</dt><dd>Malaysia Standard — 2026</dd></div>
+					<div><dt>LHDN Tax No</dt><dd>{employee.taxNumber || "—"}</dd></div>
+					<div><dt>Disbursement Bank</dt><dd>{employee.bankName || "Maybank"} · {employee.bankAccountNumber || "—"}</dd></div>
+					<div><dt>Statutory policy</dt><dd>Malaysia Standard — 2026 (Under 60)</dd></div>
 				</dl>
 			</section>
 		</div>
@@ -457,7 +466,7 @@ function PayrollDetail({run,employees,attendance,adjustments}:{run?:Payroll;empl
 	const runAdjustments = adjustments.filter((a)=>a.payrollRunId === run.id);
 
 	return <>
-		<PageHeader eyebrow="Payroll / Run" title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`} description={`Pay date ${date(run.payDate)} · ${run.policyName}`} action={run.status==="finalised"?<><a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download/>CSV</a><a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText/>PDF report</a></>:undefined}/>
+		<PageHeader eyebrow="Payroll / Run" title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`} description={`Pay date ${date(run.payDate)} · ${run.policyName}`} action={run.status==="finalised"?<><a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download/>CSV</a><a className="button secondary" href={`/resources/payroll/${run.id}.bank.csv`}><Landmark size={16}/>Bank CSV</a><a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText/>PDF report</a></>:undefined}/>
 		<div className="payroll-steps"><span className="done"><i>1</i>Period</span><span className="done"><i>2</i>Inputs</span><span className={run.status==="finalised"?"done":"active"}><i>3</i>Review</span><span className={run.status==="finalised"?"done":""}><i>4</i>Finalise</span></div>
 		{run.status==="draft"&&missing.length>0&&<div className="alert warning"><Clock3/><div><strong>{missing.length} attendance exception{missing.length===1?"":"s"} block finalisation</strong><p>{missing.map((r)=>r.fullName).join(", ")} need a clock-out.</p></div><Link className="button secondary" to="/admin/attendance/simulate">Resolve now</Link></div>}
 
@@ -592,7 +601,38 @@ function Policy({policies}:{policies:PolicyRecord[]}){
 	</>;
 }
 
-function Reports({runs}:{runs:Payroll[]}){const final=runs.find((r)=>r.status==="finalised");return <><PageHeader eyebrow="Reports" title="Payroll exports" description="Protected files generated directly from finalised snapshots."/><div className="report-grid"><article className="surface report-card"><FileText/><div><h2>Payroll summary</h2><p>Employee totals, deductions and employer contributions for accounting review.</p></div>{final?<a className="button primary" href={`/resources/payroll/${final.id}.pdf`}><Download/>Download PDF</a>:<button disabled>No final run</button>}</article><article className="surface report-card"><WalletCards/><div><h2>Payroll CSV</h2><p>Structured payroll result rows for reconciliation and external accounting systems.</p></div>{final?<a className="button secondary" href={`/resources/payroll/${final.id}.csv`}><Download/>Download CSV</a>:<button disabled>No final run</button>}</article></div></>}
+function Reports({runs}:{runs:Payroll[]}){
+	const final=runs.find((r)=>r.status==="finalised");
+	return <>
+		<PageHeader eyebrow="Reports" title="Payroll exports" description="Protected files generated directly from finalised snapshots."/>
+		<div className="report-grid">
+			<article className="surface report-card">
+				<FileText/>
+				<div>
+					<h2>Payroll summary</h2>
+					<p>Employee totals, deductions and employer contributions for accounting review.</p>
+				</div>
+				{final?<a className="button primary" href={`/resources/payroll/${final.id}.pdf`}><Download/>Download PDF</a>:<button disabled>No final run</button>}
+			</article>
+			<article className="surface report-card">
+				<Landmark/>
+				<div>
+					<h2>Bank salary payout CSV</h2>
+					<p>Universal corporate bank batch file (Name, MyKad IC, Bank, Account No, Net Pay RM).</p>
+				</div>
+				{final?<a className="button secondary" href={`/resources/payroll/${final.id}.bank.csv`}><Download/>Download Bank CSV</a>:<button disabled>No final run</button>}
+			</article>
+			<article className="surface report-card">
+				<WalletCards/>
+				<div>
+					<h2>Detailed payroll CSV</h2>
+					<p>Structured payroll result rows for reconciliation and external accounting systems.</p>
+				</div>
+				{final?<a className="button secondary" href={`/resources/payroll/${final.id}.csv`}><Download/>Download CSV</a>:<button disabled>No final run</button>}
+			</article>
+		</div>
+	</>;
+}
 
 function Notifications({items}:{items:Notification[]}){return <><PageHeader eyebrow="Inbox" title="Notifications" description="Every alert links back to the work that created it."/><section className="surface notification-list">{items.length?items.map((item)=><article key={item.id} className={item.readAt?"":"unread"}><span className="notification-dot"/><div><strong>{item.title}</strong><p>{item.body}</p><small>{date(item.createdAt,{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}</small></div><div>{item.href&&<Link className="text-button" to={item.href}>Open <ChevronRight/></Link>}{!item.readAt&&<Form method="post"><input type="hidden" name="intent" value="read-notification"/><input type="hidden" name="id" value={item.id}/><button className="text-button">Mark read</button></Form>}</div></article>):<Empty title="All caught up" body="New payroll, leave and attendance updates will appear here."/>}</section></>}
 
@@ -670,16 +710,19 @@ function EmployeeProfile({employee}:{employee:Employee}){
 					<div><dt>Employee ID</dt><dd>{employee.employeeCode}</dd></div>
 					<div><dt>Email</dt><dd>{employee.email}</dd></div>
 					<div><dt>Phone</dt><dd>{employee.phone}</dd></div>
+					<div><dt>MyKad / IC</dt><dd>{employee.icNumber || "—"}</dd></div>
+					<div><dt>EPF Member No</dt><dd>{employee.epfNumber || "—"}</dd></div>
 				</dl>
 			</section>
 			<section className="surface detail-list">
-				<div className="section-head"><h2>Employment</h2></div>
+				<div className="section-head"><h2>Employment & banking</h2></div>
 				<dl>
 					<div><dt>Company</dt><dd>Merdeka Coffee Sdn. Bhd.</dd></div>
 					<div><dt>Department</dt><dd>{employee.department}</dd></div>
 					<div><dt>Joined</dt><dd>{date(employee.startDate)}</dd></div>
 					<div><dt>Pay basis</dt><dd>{employee.salaryType}</dd></div>
-					<div><dt>Statutory profile</dt><dd>Malaysia · under 60</dd></div>
+					<div><dt>Disbursement Bank</dt><dd>{employee.bankName || "Maybank"} · {employee.bankAccountNumber || "—"}</dd></div>
+					<div><dt>Statutory profile</dt><dd>Malaysia Standard · under 60</dd></div>
 				</dl>
 			</section>
 		</div>

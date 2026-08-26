@@ -8,6 +8,13 @@
       "when": 1787716923049,
       "tag": "0000_common_bruce_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787723311744,
+      "tag": "0001_lean_storm",
+      "breakpoints": true
     }
   ]
 }

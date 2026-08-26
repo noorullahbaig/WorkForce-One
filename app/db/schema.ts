@@ -46,6 +46,11 @@ export const employees = sqliteTable(
 		statutoryProfile: text("statutory_profile")
 			.notNull()
 			.default("my_under_60"),
+		icNumber: text("ic_number"),
+		epfNumber: text("epf_number"),
+		taxNumber: text("tax_number"),
+		bankName: text("bank_name"),
+		bankAccountNumber: text("bank_account_number"),
 		...timestamps,
 	},
 	(table) => [
