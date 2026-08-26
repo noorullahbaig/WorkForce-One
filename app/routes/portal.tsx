@@ -83,30 +83,25 @@ export async function action({ request, context }: Route.ActionArgs) {
 		const todayDate = "2026-08-26";
 		const actionType = String(data.actionType ?? "");
 		const method = data.method === "qr" ? "qr" : "fingerprint";
-		const existing = await env.DB.prepare("SELECT id, clock_in clockIn, clock_out clockOut, status FROM attendance_records WHERE employee_id=? AND work_date=?").bind(user.employeeId, todayDate).first<{id:string;clockIn:string|null;clockOut:string|null;status:string}>();
 		
 		if (actionType === "reset") {
-			if (existing) {
-				await env.DB.prepare("DELETE FROM attendance_records WHERE id=?").bind(existing.id).run();
-			}
-			return { ok: "Today's shift record reset. Ready to clock in." };
+			await env.DB.prepare("DELETE FROM attendance_records WHERE employee_id=? AND work_date=?").bind(user.employeeId, todayDate).run();
+			return { ok: "Today's shift records reset. Ready to clock in." };
 		}
 		
-		if (!existing || !existing.clockIn || actionType === "clock-in") {
-			const recordId = existing?.id ?? crypto.randomUUID();
-			if (existing) {
-				await env.DB.prepare("UPDATE attendance_records SET clock_in=?, clock_out=NULL, clock_in_method=?, clock_out_method=NULL, worked_minutes=NULL, overtime_minutes=NULL, status='missing_clock_out', updated_at=? WHERE id=?").bind(now, method, now, recordId).run();
-			} else {
-				await env.DB.prepare("INSERT INTO attendance_records (id, employee_id, work_date, clock_in, clock_in_method, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'missing_clock_out', ?, ?)").bind(recordId, user.employeeId, todayDate, now, method, now, now).run();
-			}
-			return { ok: `Clocked in successfully via ${method === "fingerprint" ? "Fingerprint" : "QR Code"} at ${time(now)}.` };
-		}
+		const openShift = await env.DB.prepare("SELECT id, clock_in clockIn, clock_out clockOut, status FROM attendance_records WHERE employee_id=? AND work_date=? AND status='missing_clock_out' ORDER BY clock_in DESC LIMIT 1").bind(user.employeeId, todayDate).first<{id:string;clockIn:string|null;clockOut:string|null;status:string}>();
 		
-		if (existing.clockIn && (!existing.clockOut || actionType === "clock-out")) {
+		if (actionType === "clock-out" && openShift?.clockIn) {
 			const clockOutTime = now;
-			const res = calculateAttendance({ clockIn: existing.clockIn, clockOut: clockOutTime, normalDayMinutes: 480 });
-			await env.DB.prepare("UPDATE attendance_records SET clock_out=?, clock_out_method=?, worked_minutes=?, overtime_minutes=?, status='present', updated_at=? WHERE id=?").bind(clockOutTime, method, res.workedMinutes, res.overtimeMinutes, now, existing.id).run();
+			const res = calculateAttendance({ clockIn: openShift.clockIn, clockOut: clockOutTime, normalDayMinutes: 480 });
+			await env.DB.prepare("UPDATE attendance_records SET clock_out=?, clock_out_method=?, worked_minutes=?, overtime_minutes=?, status='present', updated_at=? WHERE id=?").bind(clockOutTime, method, res.workedMinutes, res.overtimeMinutes, now, openShift.id).run();
 			return { ok: `Clocked out successfully via ${method === "fingerprint" ? "Fingerprint" : "QR Code"} · ${(res.workedMinutes! / 60).toFixed(1)} hours worked.` };
+		}
+		
+		if (actionType === "clock-in" || !openShift) {
+			const recordId = crypto.randomUUID();
+			await env.DB.prepare("INSERT INTO attendance_records (id, employee_id, work_date, clock_in, clock_in_method, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'missing_clock_out', ?, ?)").bind(recordId, user.employeeId, todayDate, now, method, now, now).run();
+			return { ok: `Clocked in successfully via ${method === "fingerprint" ? "Fingerprint" : "QR Code"} at ${time(now)}.` };
 		}
 		
 		return { ok: "Attendance shift updated." };
@@ -651,10 +646,18 @@ function Notifications({items}:{items:Notification[]}){return <><PageHeader eyeb
 
 function EmployeeRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}){const employee=data.employees[0];if(path==="/employee/attendance")return <EmployeeAttendance records={data.attendance} employee={employee}/>;if(path==="/employee/leave")return <EmployeeLeave records={data.leave} balances={data.balances}/>;if(path.includes("/employee/payslips/"))return <PayslipDetail slip={data.payslips.find((p)=>path.endsWith(p.id))}/>;if(path==="/employee/payslips")return <Payslips slips={data.payslips}/>;if(path==="/employee/notifications")return <Notifications items={data.notifications}/>;if(path==="/employee/profile")return <EmployeeProfile employee={employee}/>;return <EmployeeHome data={data} employee={employee}/>}
 
-function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;employee:Employee}){const today=data.attendance.find((r)=>r.workDate==="2026-08-26");const annual=data.balances.find((b)=>b.leaveTypeId==="leave-annual");return <><div className="employee-hello"><div><p>Wednesday, 26 August</p><h1>Good morning, {employee.fullName.split(" ")[0]}</h1></div><div className="avatar large">{initials(employee.fullName)}</div></div><section className="employee-hero"><div><p className="eyebrow light">Today’s attendance</p><h2>{today?.clockIn?"You’re clocked in":"Ready when you are"}</h2><p>{today?.clockIn?`Since ${time(today.clockIn)} · ${today.clockInMethod} scan`:"Start your workday with a secure scan."}</p></div><Link className="button paper" to="/employee/attendance">View activity <ChevronRight/></Link><span className="hero-orbit"><Clock3/></span></section><div className="employee-stats"><Link to="/employee/leave"><span><CalendarDays/></span><div><small>Annual leave</small><strong>{(annual?.allocatedDays??0)-(annual?.usedDays??0)} days</strong></div><ChevronRight/></Link><Link to="/employee/payslips"><span><WalletCards/></span><div><small>Latest net pay</small><strong>{money(data.payslips[0]?.netPaySen)}</strong></div><ChevronRight/></Link></div><section className="employee-section"><div className="section-head"><div><p className="eyebrow">For you</p><h2>Recent updates</h2></div><Link to="/employee/notifications">View all</Link></div>{data.notifications.slice(0,3).map((n)=><Link className="update-row" to={n.href??"/employee/notifications"} key={n.id}><span className="action-icon emerald"><Bell/></span><span><strong>{n.title}</strong><small>{n.body}</small></span><ChevronRight/></Link>)}</section></>}
+function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;employee:Employee}){
+	const todayRecords=data.attendance.filter((r)=>r.workDate==="2026-08-26");
+	const activeShift=todayRecords.find((r)=>!r.clockOut);
+	const totalMins=todayRecords.reduce((sum,r)=>sum+(r.workedMinutes??0),0);
+	const annual=data.balances.find((b)=>b.leaveTypeId==="leave-annual");
+	return <><div className="employee-hello"><div><p>Wednesday, 26 August</p><h1>Good morning, {employee.fullName.split(" ")[0]}</h1></div><div className="avatar large">{initials(employee.fullName)}</div></div><section className="employee-hero"><div><p className="eyebrow light">Today’s attendance</p><h2>{activeShift?"You’re clocked in":todayRecords.length>0?`${(totalMins/60).toFixed(1)}h worked today`:"Ready when you are"}</h2><p>{activeShift?`Since ${time(activeShift.clockIn)} · ${activeShift.clockInMethod === "qr" ? "QR" : "Fingerprint"} scan`:todayRecords.length>0?`Completed ${todayRecords.length} shift session${todayRecords.length===1?"":"s"} today`:"Start your workday with a secure scan."}</p></div><Link className="button paper" to="/employee/attendance">View activity <ChevronRight/></Link><span className="hero-orbit"><Clock3/></span></section><div className="employee-stats"><Link to="/employee/leave"><span><CalendarDays/></span><div><small>Annual leave</small><strong>{(annual?.allocatedDays??0)-(annual?.usedDays??0)} days</strong></div><ChevronRight/></Link><Link to="/employee/payslips"><span><WalletCards/></span><div><small>Latest net pay</small><strong>{money(data.payslips[0]?.netPaySen)}</strong></div><ChevronRight/></Link></div><section className="employee-section"><div className="section-head"><div><p className="eyebrow">For you</p><h2>Recent updates</h2></div><Link to="/employee/notifications">View all</Link></div>{data.notifications.slice(0,3).map((n)=><Link className="update-row" to={n.href??"/employee/notifications"} key={n.id}><span className="action-icon emerald"><Bell/></span><span><strong>{n.title}</strong><small>{n.body}</small></span><ChevronRight/></Link>)}</section></>}
 
 function EmployeeAttendance({records,employee}:{records:Attendance[];employee:Employee}){
-	const today=records.find((r)=>r.workDate==="2026-08-26");
+	const todayRecords=records.filter((r)=>r.workDate==="2026-08-26");
+	const openSession=todayRecords.find((r)=>!r.clockOut);
+	const totalWorkedMins=todayRecords.reduce((sum,r)=>sum+(r.workedMinutes??0),0);
+	const completedCount=todayRecords.filter((r)=>r.clockOut).length;
 	const [method, setMethod] = useState<"fingerprint"|"qr">("fingerprint");
 
 	return <>
@@ -663,8 +666,8 @@ function EmployeeAttendance({records,employee}:{records:Attendance[];employee:Em
 		<section className="employee-clock-card">
 			<div className="employee-clock-info">
 				<p className="eyebrow light">Shift Terminal</p>
-				<h2>{today?.clockOut ? "Shift completed for today" : today?.clockIn ? "Currently on shift" : "Ready to start shift"}</h2>
-				<p>{today?.clockOut ? `Completed: ${time(today.clockIn)} – ${time(today.clockOut)} (${today.workedMinutes ? (today.workedMinutes/60).toFixed(1) : 0}h worked)` : today?.clockIn ? `Started at ${time(today.clockIn)} · ${today.clockInMethod === "qr" ? "QR Code" : "Fingerprint"} scan` : "Select biometric scan method and clock in with one click."}</p>
+				<h2>{openSession ? "Currently on shift" : todayRecords.length > 0 ? `${(totalWorkedMins/60).toFixed(1)}h worked today` : "Ready to start shift"}</h2>
+				<p>{openSession ? `Active session started at ${time(openSession.clockIn)} (${openSession.clockInMethod === "qr" ? "QR Code" : "Fingerprint"} scan)` : todayRecords.length > 0 ? `Total cumulative time: ${(totalWorkedMins/60).toFixed(1)} hours across ${completedCount} completed shift${completedCount===1?"":"s"}.` : "Select biometric scan method and clock in with one click."}</p>
 				
 				<div className="clock-method-toggle" style={{display:"flex",gap:"8px",marginTop:"12px"}}>
 					<button type="button" onClick={()=>setMethod("fingerprint")} className={`button small ${method==="fingerprint"?"paper":"ghost"}`} style={{color:method==="fingerprint"?"var(--ink)":"#9fb3b1",borderColor:"#3a504d"}}>
@@ -677,35 +680,28 @@ function EmployeeAttendance({records,employee}:{records:Attendance[];employee:Em
 			</div>
 
 			<div className="employee-clock-actions" style={{display:"flex",flexDirection:"column",gap:"8px",alignItems:"flex-end"}}>
-				{!today?.clockIn && (
-					<Form method="post" style={{margin:0}}>
-						<input type="hidden" name="intent" value="employee-clock"/>
-						<input type="hidden" name="actionType" value="clock-in"/>
-						<input type="hidden" name="method" value={method}/>
-						<button className="button paper"><Play size={16}/> Clock In ({method === "fingerprint" ? "Fingerprint" : "QR"})</button>
-					</Form>
-				)}
-				{today?.clockIn && !today?.clockOut && (
+				{openSession ? (
 					<Form method="post" style={{margin:0}}>
 						<input type="hidden" name="intent" value="employee-clock"/>
 						<input type="hidden" name="actionType" value="clock-out"/>
 						<input type="hidden" name="method" value={method}/>
 						<button className="button paper"><Square size={16}/> Clock Out ({method === "fingerprint" ? "Fingerprint" : "QR"})</button>
 					</Form>
-				)}
-				{today?.clockOut && (
+				) : (
 					<div style={{display:"flex",gap:"8px",flexWrap:"wrap",justifyContent:"flex-end"}}>
 						<Form method="post" style={{margin:0}}>
 							<input type="hidden" name="intent" value="employee-clock"/>
 							<input type="hidden" name="actionType" value="clock-in"/>
 							<input type="hidden" name="method" value={method}/>
-							<button className="button paper"><Play size={14}/> Clock In Again</button>
+							<button className="button paper"><Play size={16}/> {todayRecords.length > 0 ? "Clock In (Next Shift)" : "Clock In"} ({method === "fingerprint" ? "Fingerprint" : "QR"})</button>
 						</Form>
-						<Form method="post" style={{margin:0}}>
-							<input type="hidden" name="intent" value="employee-clock"/>
-							<input type="hidden" name="actionType" value="reset"/>
-							<button className="button ghost" style={{color:"#9fb3b1",borderColor:"#3a504d"}}><RotateCcw size={14}/> Reset shift</button>
-						</Form>
+						{todayRecords.length > 0 && (
+							<Form method="post" style={{margin:0}}>
+								<input type="hidden" name="intent" value="employee-clock"/>
+								<input type="hidden" name="actionType" value="reset"/>
+								<button className="button ghost" style={{color:"#9fb3b1",borderColor:"#3a504d"}}><RotateCcw size={14}/> Reset today</button>
+							</Form>
+						)}
 					</div>
 				)}
 			</div>
@@ -713,20 +709,20 @@ function EmployeeAttendance({records,employee}:{records:Attendance[];employee:Em
 
 		<section className="attendance-today">
 			<div>
-				<p className="eyebrow light">Today · 26 Aug</p>
-				<h2>{today?.clockOut?"Shift complete":today?.clockIn?"In progress":"Not clocked in"}</h2>
-				<p>{today?.clockIn?`${time(today.clockIn)} clock-in · ${today.clockInMethod}`:"No event recorded"}</p>
+				<p className="eyebrow light">Today’s Summary · 26 Aug</p>
+				<h2>{openSession ? "Shift in progress" : todayRecords.length > 0 ? `${(totalWorkedMins/60).toFixed(1)} hours recorded` : "No activity recorded"}</h2>
+				<p>{todayRecords.length > 0 ? `${todayRecords.length} recorded session${todayRecords.length===1?"":"s"} · Cumulative daily total` : "Ready for next shift scan."}</p>
 			</div>
 			<div className="timeline">
-				<span className="active"><i/><small>Clock in</small><strong>{time(today?.clockIn)}</strong></span>
+				<span className="active"><i/><small>{openSession ? "Latest in" : "First in"}</small><strong>{time(todayRecords[0]?.clockIn)}</strong></span>
 				<b/>
-				<span className={today?.clockOut?"active":""}><i/><small>Clock out</small><strong>{time(today?.clockOut)}</strong></span>
+				<span className={todayRecords.some((r)=>r.clockOut) ? "active" : ""}><i/><small>{openSession ? "Current" : "Latest out"}</small><strong>{openSession ? "On shift" : time(todayRecords[todayRecords.length-1]?.clockOut)}</strong></span>
 			</div>
 		</section>
 
 		<section className="surface history">
 			<div className="section-head"><h2>Activity history</h2><span>{employee.employeeCode}</span></div>
-			{records.map((r)=><div className="history-row" key={r.id}><div className="date-tile"><b>{new Date(`${r.workDate}T00:00:00`).getDate()}</b><small>Aug</small></div><span><strong>{r.clockIn?`${time(r.clockIn)} – ${time(r.clockOut)}`:"Leave"}</strong><small>{r.workedMinutes?`${Math.floor(r.workedMinutes/60)}h ${r.workedMinutes%60}m worked`:r.status.replaceAll("_"," ")}</small></span><Status value={r.status}/></div>)}
+			{records.map((r)=><div className="history-row" key={r.id}><div className="date-tile"><b>{new Date(`${r.workDate}T00:00:00`).getDate()}</b><small>Aug</small></div><span><strong>{r.clockIn?`${time(r.clockIn)} – ${time(r.clockOut)}`:"Leave"}</strong><small>{r.workedMinutes?`${Math.floor(r.workedMinutes/60)}h ${r.workedMinutes%60}m worked (${r.clockInMethod === "qr" ? "QR" : "Fingerprint"})`:r.status.replaceAll("_"," ")}</small></span><Status value={r.status}/></div>)}
 		</section>
 	</>;
 }

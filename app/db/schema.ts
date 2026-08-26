@@ -117,7 +117,7 @@ export const attendanceRecords = sqliteTable(
 		...timestamps,
 	},
 	(table) => [
-		uniqueIndex("attendance_employee_date_unique").on(
+		index("attendance_employee_date_idx").on(
 			table.employeeId,
 			table.workDate,
 		),
