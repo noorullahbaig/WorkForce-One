@@ -17,8 +17,8 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	await expect(page.getByText(/Clock-out captured/)).toBeVisible();
 
 	await page.goto("/admin/leave");
-	const sarah = page.locator("article.request").filter({ hasText: "Sarah Lim" });
-	await sarah.getByRole("button", { name: "Approve" }).click();
+	await page.getByRole("link", { name: /Sarah Lim.*Annual leave/ }).click();
+	await page.getByRole("button", { name: "Approve request" }).click();
 	await expect(page.getByText("Leave request approved.")).toBeVisible();
 
 	await page.goto("/admin/payroll/payroll-2026-08");
@@ -42,4 +42,13 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	await expect(page.getByText("August payslip is ready")).toBeVisible();
 	await page.goto("/employee/payslips");
 	await expect(page.getByText("August 2026")).toBeVisible();
+
+	await page.getByRole("button", { name: "Sign out" }).first().click();
+	await page.getByRole("button", { name: /Admin/ }).click();
+	await page.getByRole("button", { name: "Enter workspace" }).click();
+	const reset = await page.request.post("/admin", {
+		form: { intent: "reset-demo" },
+		headers: { Origin: "http://127.0.0.1:5173" },
+	});
+	expect(reset.ok()).toBeTruthy();
 });

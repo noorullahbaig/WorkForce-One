@@ -145,10 +145,29 @@ export const leaveBalances = sqliteTable(
 		leaveTypeId: text("leave_type_id")
 			.notNull()
 			.references(() => leaveTypes.id, { onDelete: "cascade" }),
-		allocatedDays: integer("allocated_days").notNull(),
-		usedDays: integer("used_days").notNull().default(0),
+		allocatedHalfDays: integer("allocated_half_days").notNull(),
 	},
 	(table) => [primaryKey({ columns: [table.employeeId, table.leaveTypeId] })],
+);
+
+export const leaveBalanceAdjustments = sqliteTable(
+	"leave_balance_adjustments",
+	{
+		id: text("id").primaryKey(),
+		employeeId: text("employee_id")
+			.notNull()
+			.references(() => employees.id, { onDelete: "cascade" }),
+		leaveTypeId: text("leave_type_id")
+			.notNull()
+			.references(() => leaveTypes.id, { onDelete: "cascade" }),
+		deltaHalfDays: integer("delta_half_days").notNull(),
+		reason: text("reason").notNull(),
+		actorUserId: text("actor_user_id")
+			.notNull()
+			.references(() => users.id),
+		createdAt: text("created_at").notNull(),
+	},
+	(table) => [index("leave_adjustments_employee_type_idx").on(table.employeeId, table.leaveTypeId)],
 );
 
 export const leaveRequests = sqliteTable(
@@ -163,16 +182,47 @@ export const leaveRequests = sqliteTable(
 			.references(() => leaveTypes.id),
 		startDate: text("start_date").notNull(),
 		endDate: text("end_date").notNull(),
-		days: integer("days").notNull(),
+		durationHalfDays: integer("duration_half_days").notNull(),
+		dayPart: text("day_part", { enum: ["full", "morning", "afternoon"] })
+			.notNull()
+			.default("full"),
 		reason: text("reason").notNull(),
-		status: text("status", { enum: ["pending", "approved", "rejected"] })
+		status: text("status", { enum: ["pending", "approved", "rejected", "withdrawn", "cancelled"] })
 			.notNull()
 			.default("pending"),
 		reviewedBy: text("reviewed_by").references(() => users.id),
 		reviewedAt: text("reviewed_at"),
+		reviewNote: text("review_note"),
+		cancelledBy: text("cancelled_by").references(() => users.id),
+		cancelledAt: text("cancelled_at"),
 		...timestamps,
 	},
-	(table) => [index("leave_requests_status_idx").on(table.status)],
+	(table) => [
+		index("leave_requests_status_idx").on(table.status),
+		index("leave_requests_employee_dates_idx").on(table.employeeId, table.startDate, table.endDate),
+	],
+);
+
+export const holidays = sqliteTable(
+	"holidays",
+	{
+		id: text("id").primaryKey(),
+		companyId: text("company_id")
+			.notNull()
+			.references(() => companies.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		date: text("date").notNull(),
+		category: text("category", { enum: ["public", "company"] }).notNull(),
+		region: text("region").notNull().default("MY-PENANG"),
+		observed: integer("observed", { mode: "boolean" }).notNull().default(false),
+		sourceUrl: text("source_url"),
+		active: integer("active", { mode: "boolean" }).notNull().default(true),
+		...timestamps,
+	},
+	(table) => [
+		uniqueIndex("holidays_company_date_name_unique").on(table.companyId, table.date, table.name),
+		index("holidays_company_date_idx").on(table.companyId, table.date),
+	],
 );
 
 export const payrollPolicies = sqliteTable("payroll_policies", {

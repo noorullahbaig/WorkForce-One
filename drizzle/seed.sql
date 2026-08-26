@@ -8,9 +8,11 @@ DELETE FROM payroll_adjustments;
 DELETE FROM payroll_runs;
 DELETE FROM contribution_bands;
 DELETE FROM payroll_policies;
+DELETE FROM leave_balance_adjustments;
 DELETE FROM leave_requests;
 DELETE FROM leave_balances;
 DELETE FROM leave_types;
+DELETE FROM holidays;
 DELETE FROM attendance_records;
 DELETE FROM sessions;
 DELETE FROM login_attempts;
@@ -54,17 +56,42 @@ INSERT INTO leave_types (id, company_id, code, name, paid, default_days) VALUES
 ('leave-medical', 'company-merdeka', 'MC', 'Medical leave', 1, 14),
 ('leave-unpaid', 'company-merdeka', 'UL', 'Unpaid leave', 0, 0);
 
-INSERT INTO leave_balances (employee_id, leave_type_id, allocated_days, used_days)
-SELECT id, 'leave-annual', 14, CASE WHEN id = 'emp-007' THEN 2 ELSE 0 END FROM employees;
-INSERT INTO leave_balances (employee_id, leave_type_id, allocated_days, used_days)
-SELECT id, 'leave-medical', 14, 0 FROM employees;
-INSERT INTO leave_balances (employee_id, leave_type_id, allocated_days, used_days)
-SELECT id, 'leave-unpaid', 0, CASE WHEN id = 'emp-008' THEN 1 ELSE 0 END FROM employees;
+INSERT INTO leave_balances (employee_id, leave_type_id, allocated_half_days)
+SELECT id, 'leave-annual', 28 FROM employees;
+INSERT INTO leave_balances (employee_id, leave_type_id, allocated_half_days)
+SELECT id, 'leave-medical', 28 FROM employees;
+INSERT INTO leave_balances (employee_id, leave_type_id, allocated_half_days)
+SELECT id, 'leave-unpaid', 0 FROM employees;
 
-INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, days, reason, status, reviewed_by, reviewed_at, created_at, updated_at) VALUES
-('lr-001', 'emp-009', 'leave-annual', '2026-08-28', '2026-08-28', 1, 'Family appointment', 'pending', NULL, NULL, '2026-08-25T07:30:00.000Z', '2026-08-25T07:30:00.000Z'),
-('lr-002', 'emp-007', 'leave-annual', '2026-08-25', '2026-08-26', 2, 'Family holiday', 'approved', 'user-admin', '2026-08-22T03:20:00.000Z', '2026-08-21T02:00:00.000Z', '2026-08-22T03:20:00.000Z'),
-('lr-003', 'emp-008', 'leave-unpaid', '2026-08-18', '2026-08-18', 1, 'Personal matter', 'approved', 'user-admin', '2026-08-16T04:15:00.000Z', '2026-08-15T09:00:00.000Z', '2026-08-16T04:15:00.000Z');
+INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, duration_half_days, day_part, reason, status, reviewed_by, reviewed_at, created_at, updated_at) VALUES
+('lr-001', 'emp-009', 'leave-annual', '2026-08-28', '2026-08-28', 2, 'full', 'Family appointment', 'pending', NULL, NULL, '2026-08-25T07:30:00.000Z', '2026-08-25T07:30:00.000Z'),
+('lr-002', 'emp-007', 'leave-annual', '2026-08-25', '2026-08-26', 4, 'full', 'Family holiday', 'approved', 'user-admin', '2026-08-22T03:20:00.000Z', '2026-08-21T02:00:00.000Z', '2026-08-22T03:20:00.000Z'),
+('lr-003', 'emp-008', 'leave-unpaid', '2026-08-18', '2026-08-18', 2, 'full', 'Personal matter', 'approved', 'user-admin', '2026-08-16T04:15:00.000Z', '2026-08-15T09:00:00.000Z', '2026-08-16T04:15:00.000Z');
+
+INSERT INTO holidays (id, company_id, name, date, category, region, observed, source_url, active, created_at, updated_at) VALUES
+('holiday-2026-new-year', 'company-merdeka', 'New Year’s Day', '2026-01-01', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-thaipusam', 'company-merdeka', 'Thaipusam', '2026-02-01', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-thaipusam-observed', 'company-merdeka', 'Thaipusam (observed)', '2026-02-02', 'public', 'MY-PENANG', 1, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-cny-1', 'company-merdeka', 'Chinese New Year', '2026-02-17', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-cny-2', 'company-merdeka', 'Chinese New Year, second day', '2026-02-18', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-nuzul', 'company-merdeka', 'Nuzul Al-Quran', '2026-03-07', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-raya-1', 'company-merdeka', 'Hari Raya Aidilfitri', '2026-03-21', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-raya-2', 'company-merdeka', 'Hari Raya Aidilfitri, second day', '2026-03-22', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-raya-observed', 'company-merdeka', 'Hari Raya Aidilfitri (observed)', '2026-03-23', 'public', 'MY-PENANG', 1, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-labour', 'company-merdeka', 'Labour Day', '2026-05-01', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-qurban', 'company-merdeka', 'Hari Raya Haji', '2026-05-27', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-wesak', 'company-merdeka', 'Wesak Day', '2026-05-31', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-agong', 'company-merdeka', 'Birthday of the Yang di-Pertuan Agong', '2026-06-01', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-wesak-observed', 'company-merdeka', 'Wesak Day (observed)', '2026-06-02', 'public', 'MY-PENANG', 1, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-muharram', 'company-merdeka', 'Awal Muharram', '2026-06-17', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-heritage', 'company-merdeka', 'George Town World Heritage City Day', '2026-07-07', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-governor', 'company-merdeka', 'Birthday of the Governor of Penang', '2026-07-11', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-maulidur', 'company-merdeka', 'Maulidur Rasul', '2026-08-25', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-national', 'company-merdeka', 'National Day', '2026-08-31', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-malaysia', 'company-merdeka', 'Malaysia Day', '2026-09-16', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-deepavali', 'company-merdeka', 'Deepavali', '2026-11-08', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-deepavali-observed', 'company-merdeka', 'Deepavali (observed)', '2026-11-09', 'public', 'MY-PENANG', 1, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+('holiday-2026-christmas', 'company-merdeka', 'Christmas Day', '2026-12-25', 'public', 'MY-PENANG', 0, 'https://www.kabinet.gov.my/hari-kelepasan-am/', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z');
 
 INSERT INTO payroll_policies (id, company_id, name, effective_from, verification_date, source_urls_json, normal_day_minutes, overtime_multiplier_basis_points, locked, active, created_at, updated_at)
 VALUES ('policy-my-2026', 'company-merdeka', 'Malaysia Standard — 2026', '2026-01-01', '2026-08-26', '["https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution","https://perkeso.gov.my/en/our-services/employer-employee/contributions","https://www.hasil.gov.my/majikan/pembayaran-pcb/"]', 480, 15000, 1, 1, '2026-08-01T00:00:00.000Z', '2026-08-26T00:00:00.000Z');
