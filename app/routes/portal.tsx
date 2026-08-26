@@ -81,22 +81,35 @@ export async function action({ request, context }: Route.ActionArgs) {
 	}
 	if (intent === "employee-clock" && user.employeeId) {
 		const todayDate = "2026-08-26";
+		const actionType = String(data.actionType ?? "");
+		const method = data.method === "qr" ? "qr" : "fingerprint";
 		const existing = await env.DB.prepare("SELECT id, clock_in clockIn, clock_out clockOut, status FROM attendance_records WHERE employee_id=? AND work_date=?").bind(user.employeeId, todayDate).first<{id:string;clockIn:string|null;clockOut:string|null;status:string}>();
-		if (!existing || !existing.clockIn) {
+		
+		if (actionType === "reset") {
+			if (existing) {
+				await env.DB.prepare("DELETE FROM attendance_records WHERE id=?").bind(existing.id).run();
+			}
+			return { ok: "Today's shift record reset. Ready to clock in." };
+		}
+		
+		if (!existing || !existing.clockIn || actionType === "clock-in") {
 			const recordId = existing?.id ?? crypto.randomUUID();
 			if (existing) {
-				await env.DB.prepare("UPDATE attendance_records SET clock_in=?, clock_in_method='qr', status='missing_clock_out', updated_at=? WHERE id=?").bind(now, now, recordId).run();
+				await env.DB.prepare("UPDATE attendance_records SET clock_in=?, clock_out=NULL, clock_in_method=?, clock_out_method=NULL, worked_minutes=NULL, overtime_minutes=NULL, status='missing_clock_out', updated_at=? WHERE id=?").bind(now, method, now, recordId).run();
 			} else {
-				await env.DB.prepare("INSERT INTO attendance_records (id, employee_id, work_date, clock_in, clock_in_method, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'qr', 'missing_clock_out', ?, ?)").bind(recordId, user.employeeId, todayDate, now, now, now).run();
+				await env.DB.prepare("INSERT INTO attendance_records (id, employee_id, work_date, clock_in, clock_in_method, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'missing_clock_out', ?, ?)").bind(recordId, user.employeeId, todayDate, now, method, now, now).run();
 			}
-			return { ok: `Clocked in successfully at ${time(now)}.` };
+			return { ok: `Clocked in successfully via ${method === "fingerprint" ? "Fingerprint" : "QR Code"} at ${time(now)}.` };
 		}
-		if (existing.clockIn && !existing.clockOut) {
-			const res = calculateAttendance({ clockIn: existing.clockIn, clockOut: now, normalDayMinutes: 480 });
-			await env.DB.prepare("UPDATE attendance_records SET clock_out=?, clock_out_method='qr', worked_minutes=?, overtime_minutes=?, status='present', updated_at=? WHERE id=?").bind(now, res.workedMinutes, res.overtimeMinutes, now, existing.id).run();
-			return { ok: `Clocked out successfully · ${(res.workedMinutes! / 60).toFixed(1)} hours worked.` };
+		
+		if (existing.clockIn && (!existing.clockOut || actionType === "clock-out")) {
+			const clockOutTime = now;
+			const res = calculateAttendance({ clockIn: existing.clockIn, clockOut: clockOutTime, normalDayMinutes: 480 });
+			await env.DB.prepare("UPDATE attendance_records SET clock_out=?, clock_out_method=?, worked_minutes=?, overtime_minutes=?, status='present', updated_at=? WHERE id=?").bind(clockOutTime, method, res.workedMinutes, res.overtimeMinutes, now, existing.id).run();
+			return { ok: `Clocked out successfully via ${method === "fingerprint" ? "Fingerprint" : "QR Code"} · ${(res.workedMinutes! / 60).toFixed(1)} hours worked.` };
 		}
-		return { ok: "Shift for today is already completed." };
+		
+		return { ok: "Attendance shift updated." };
 	}
 	if (intent === "update-self-profile" && user.employeeId) {
 		const phone = String(data.phone ?? "").trim();
@@ -642,27 +655,58 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 
 function EmployeeAttendance({records,employee}:{records:Attendance[];employee:Employee}){
 	const today=records.find((r)=>r.workDate==="2026-08-26");
+	const [method, setMethod] = useState<"fingerprint"|"qr">("fingerprint");
+
 	return <>
 		<PageHeader eyebrow="Self-service" title="Attendance" description="Your workday history in Malaysia time."/>
 		
 		<section className="employee-clock-card">
-			<div>
+			<div className="employee-clock-info">
 				<p className="eyebrow light">Shift Terminal</p>
 				<h2>{today?.clockOut ? "Shift completed for today" : today?.clockIn ? "Currently on shift" : "Ready to start shift"}</h2>
-				<p>{today?.clockIn ? `Started at ${time(today.clockIn)}` : "Record your attendance with one click."}</p>
+				<p>{today?.clockOut ? `Completed: ${time(today.clockIn)} – ${time(today.clockOut)} (${today.workedMinutes ? (today.workedMinutes/60).toFixed(1) : 0}h worked)` : today?.clockIn ? `Started at ${time(today.clockIn)} · ${today.clockInMethod === "qr" ? "QR Code" : "Fingerprint"} scan` : "Select biometric scan method and clock in with one click."}</p>
+				
+				<div className="clock-method-toggle" style={{display:"flex",gap:"8px",marginTop:"12px"}}>
+					<button type="button" onClick={()=>setMethod("fingerprint")} className={`button small ${method==="fingerprint"?"paper":"ghost"}`} style={{color:method==="fingerprint"?"var(--ink)":"#9fb3b1",borderColor:"#3a504d"}}>
+						<Fingerprint size={14}/> Fingerprint
+					</button>
+					<button type="button" onClick={()=>setMethod("qr")} className={`button small ${method==="qr"?"paper":"ghost"}`} style={{color:method==="qr"?"var(--ink)":"#9fb3b1",borderColor:"#3a504d"}}>
+						<QrCode size={14}/> QR Code
+					</button>
+				</div>
 			</div>
-			<div className="employee-clock-actions">
+
+			<div className="employee-clock-actions" style={{display:"flex",flexDirection:"column",gap:"8px",alignItems:"flex-end"}}>
 				{!today?.clockIn && (
 					<Form method="post" style={{margin:0}}>
 						<input type="hidden" name="intent" value="employee-clock"/>
-						<button className="button paper"><Play size={16}/> Clock In</button>
+						<input type="hidden" name="actionType" value="clock-in"/>
+						<input type="hidden" name="method" value={method}/>
+						<button className="button paper"><Play size={16}/> Clock In ({method === "fingerprint" ? "Fingerprint" : "QR"})</button>
 					</Form>
 				)}
 				{today?.clockIn && !today?.clockOut && (
 					<Form method="post" style={{margin:0}}>
 						<input type="hidden" name="intent" value="employee-clock"/>
-						<button className="button paper"><Square size={16}/> Clock Out</button>
+						<input type="hidden" name="actionType" value="clock-out"/>
+						<input type="hidden" name="method" value={method}/>
+						<button className="button paper"><Square size={16}/> Clock Out ({method === "fingerprint" ? "Fingerprint" : "QR"})</button>
 					</Form>
+				)}
+				{today?.clockOut && (
+					<div style={{display:"flex",gap:"8px",flexWrap:"wrap",justifyContent:"flex-end"}}>
+						<Form method="post" style={{margin:0}}>
+							<input type="hidden" name="intent" value="employee-clock"/>
+							<input type="hidden" name="actionType" value="clock-in"/>
+							<input type="hidden" name="method" value={method}/>
+							<button className="button paper"><Play size={14}/> Clock In Again</button>
+						</Form>
+						<Form method="post" style={{margin:0}}>
+							<input type="hidden" name="intent" value="employee-clock"/>
+							<input type="hidden" name="actionType" value="reset"/>
+							<button className="button ghost" style={{color:"#9fb3b1",borderColor:"#3a504d"}}><RotateCcw size={14}/> Reset shift</button>
+						</Form>
+					</div>
 				)}
 			</div>
 		</section>
