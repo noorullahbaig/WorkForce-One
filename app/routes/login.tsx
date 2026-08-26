@@ -36,16 +36,19 @@ export default function Login() {
 		<main className="login-page">
 			<section className="login-story">
 				<div className="wordmark inverse"><span>W1</span> Workforce One</div>
-				<div className="story-copy">
+				<div className="story-content">
 					<h1>Clarity from clock-in to payday.</h1>
+					<div className="story-visual-wrap">
+						<img
+							src="/login-visual.svg"
+							alt="Workforce One clock-in to payday visual flow"
+							className="story-visual-img"
+							width="540"
+							height="540"
+							loading="eager"
+						/>
+					</div>
 				</div>
-				<svg className="story-deco" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-					<circle cx="200" cy="200" r="190" stroke="currentColor" strokeWidth="1" strokeDasharray="4 4" />
-					<circle cx="200" cy="200" r="140" stroke="currentColor" strokeWidth="1" />
-					<circle cx="200" cy="200" r="90" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
-					<circle cx="200" cy="200" r="40" stroke="currentColor" strokeWidth="1" />
-					<path d="M10 200H390M200 10V390" stroke="currentColor" strokeWidth="1" strokeOpacity="0.5" />
-				</svg>
 			</section>
 			<section className="login-panel">
 				<div className="login-card">
