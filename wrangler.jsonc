@@ -21,6 +21,9 @@
 		"APP_ENV": "development",
 		"DEMO_MODE": "true"
 	},
+	"assets": {
+		"directory": "./build/client"
+	},
 	"d1_databases": [
 		{
 			"binding": "DB",
