@@ -40,7 +40,7 @@ export default function Login() {
 					<h1>Clarity from clock-in to payday.</h1>
 					<div className="story-visual-wrap">
 						<img
-							src="/login-visual.svg"
+							src="/login-visual.png"
 							alt="Workforce One clock-in to payday visual flow"
 							className="story-visual-img"
 							width="540"
