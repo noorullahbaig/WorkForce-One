@@ -20,3 +20,23 @@
 .employee-form{margin-top:18px;padding:20px}.employee-form summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;font-family:Manrope;font-weight:700;cursor:pointer}.employee-form summary::marker{display:none}.employee-form summary svg{width:17px}.employee-form[open] summary svg{transform:rotate(90deg)}.employee-form .form-stack{max-width:760px}.employee-form .button{align-self:flex-start}
 .mobile-menu{position:relative}.mobile-menu summary{list-style:none;width:42px;height:42px;place-items:center;cursor:pointer}.mobile-menu summary::-webkit-details-marker{display:none}.mobile-menu-sheet{position:fixed;z-index:80;top:60px;left:10px;right:10px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow)}.mobile-menu-sheet>div{display:flex;justify-content:space-between;margin-bottom:12px}.mobile-menu-sheet>div span{color:var(--muted);font-size:.72rem}.mobile-menu-sheet nav{display:grid;grid-template-columns:1fr 1fr;margin-bottom:15px}.mobile-menu-sheet nav a{min-height:44px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);font-size:.8rem;font-weight:700;padding-right:10px}.mobile-menu-sheet nav svg{width:14px}
 .mobile-menu summary{display:grid}
+.filter-panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:18px;display:flex;flex-direction:column;gap:12px}
+.filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.filter-grid label{font-size:.75rem;font-weight:600;display:flex;flex-direction:column;gap:5px;color:var(--muted)}
+.filter-grid select{height:38px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:#fff;font-size:.8rem}
+.filter-actions{display:flex;justify-content:flex-end;gap:10px}
+.company-popover{position:relative;display:inline-block}
+.company-popover summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px}
+.company-popover summary::-webkit-details-marker{display:none}
+.company-popover[open] .company-menu{display:flex}
+.company-menu{position:absolute;top:calc(100% + 8px);left:0;z-index:60;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);min-width:260px;display:none;flex-direction:column;gap:8px}
+.company-menu dl{margin:0}
+.company-menu dt{font-size:.68rem;color:var(--muted);text-transform:uppercase}
+.company-menu dd{margin:0 0 8px;font-size:.82rem;font-weight:700}
+.employee-clock-card{background:var(--ink);color:#fff;border-radius:16px;padding:24px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.employee-clock-card h2{margin:0 0 4px;font-size:1.4rem}
+.employee-clock-card p{margin:0;color:#9fb3b1;font-size:.8rem}
+.employee-clock-actions{display:flex;gap:10px}
+.adjustment-panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:20px}
+.adjustment-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.adjustment-row{display:grid;grid-template-columns:1.5fr 1fr 1fr auto;align-items:center;padding:10px 14px;background:var(--paper);border-radius:8px;font-size:.8rem}
