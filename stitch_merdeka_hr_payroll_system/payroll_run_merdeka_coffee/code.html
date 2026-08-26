@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Payroll Run - Merdeka HR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "surface-low": "#eff4ff",
+                        "on-secondary-container": "#0c714d",
+                        "surface-container": "#eceef3",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#dae2fd",
+                        "surface-variant": "#e1e2e8",
+                        "on-tertiary-container": "#98805d",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "primary-container": "#131b2e",
+                        "error": "#ba1a1a",
+                        "border-outline-variant": "#c6c6cd",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#81d8ad",
+                        "surface-container-high": "#e7e8ee",
+                        "outline-variant": "#c6c6cd",
+                        "outline": "#76777d",
+                        "secondary": "#006c49",
+                        "on-surface-variant": "#45464d",
+                        "surface-lowest": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "inverse-on-surface": "#eff0f6",
+                        "secondary-container": "#9af2c5",
+                        "on-secondary": "#ffffff",
+                        "text-muted": "#45464d",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c20",
+                        "primary": "#000000",
+                        "inverse-surface": "#2e3135",
+                        "on-surface": "#191c20",
+                        "secondary-fixed": "#9df4c8",
+                        "surface-tint": "#565e74",
+                        "tertiary-fixed": "#fcdeb5",
+                        "surface-container-highest": "#e1e2e8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#131b2e",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "tertiary-container": "#271901",
+                        "surface-container-low": "#f2f3f9",
+                        "inverse-primary": "#bec6e0",
+                        "surface": "#f8f9ff",
+                        "on-secondary-fixed": "#002113",
+                        "background": "#f8f9ff",
+                        "tertiary": "#000000",
+                        "on-primary-container": "#7c839b",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-tertiary-fixed": "#271901",
+                        "surface-dim": "#d8dae0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter-mobile": "16px",
+                        "base": "4px",
+                        "table-row-compact": "8px",
+                        "margin-desktop": "32px",
+                        "table-row-standard": "12px",
+                        "gutter-desktop": "24px"
+                    },
+                    "fontFamily": {
+                        "display-lg-mobile": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "numeric-data": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-sm": ["18px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "numeric-data": ["14px", { "lineHeight": "20px", "fontWeight": "400", "fontVariantNumeric": "tabular-nums" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body class="bg-surface-low text-on-surface font-body-md antialiased h-screen overflow-hidden flex flex-col md:flex-row">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex w-64 h-screen fixed left-0 top-0 bg-primary-container text-secondary flex-col py-base border-r border-outline-variant z-50">
+<div class="px-gutter-desktop py-table-row-standard mb-8">
+<div class="font-headline-sm text-headline-sm font-bold text-on-primary">Merdeka Coffee</div>
+<div class="font-body-sm text-body-sm text-on-primary-container mt-1">HR Admin</div>
+</div>
+<div class="flex-1 space-y-1 mt-4">
+<a class="flex items-center text-on-primary-container hover:text-on-primary pl-4 py-3 hover:bg-primary-fixed-dim/10 transition-colors duration-200 ease-in-out font-body-md text-body-md font-medium" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mr-3 text-lg" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center text-on-primary-container hover:text-on-primary pl-4 py-3 hover:bg-primary-fixed-dim/10 transition-colors duration-200 ease-in-out font-body-md text-body-md font-medium" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mr-3 text-lg" data-icon="groups">groups</span>
+                Employees
+            </a>
+<a class="flex items-center text-secondary-container font-bold border-l-4 border-secondary-container pl-3 py-3 bg-primary-fixed-dim/10 transition-colors duration-200 ease-in-out font-body-md text-body-md font-medium" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mr-3 text-lg" data-icon="payments">payments</span>
+                Payroll
+            </a>
+<a class="flex items-center text-on-primary-container hover:text-on-primary pl-4 py-3 hover:bg-primary-fixed-dim/10 transition-colors duration-200 ease-in-out font-body-md text-body-md font-medium" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mr-3 text-lg" data-icon="card_giftcard">card_giftcard</span>
+                Benefits
+            </a>
+<a class="flex items-center text-on-primary-container hover:text-on-primary pl-4 py-3 hover:bg-primary-fixed-dim/10 transition-colors duration-200 ease-in-out font-body-md text-body-md font-medium" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mr-3 text-lg" data-icon="analytics">analytics</span>
+                Reports
+            </a>
+<a class="flex items-center text-on-primary-container hover:text-on-primary pl-4 py-3 hover:bg-primary-fixed-dim/10 transition-colors duration-200 ease-in-out font-body-md text-body-md font-medium" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mr-3 text-lg" data-icon="settings">settings</span>
+                Settings
+            </a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col md:ml-64 w-full h-full">
+<!-- TopAppBar (Desktop) -->
+<header class="hidden md:flex h-16 w-full sticky top-0 z-40 bg-surface-lowest text-primary items-center justify-between px-margin-desktop border-b border-outline-variant">
+<div class="flex items-center">
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary mr-8">Merdeka HR</h1>
+</div>
+<div class="flex items-center space-x-6">
+<button aria-label="Notifications" class="text-text-muted hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="Help" class="text-text-muted hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<img alt="Admin User Profile" class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A small, circular avatar portrait of an administrative user in a corporate setting. Clean lighting, minimalist white background. The image should be suitable for a high-end enterprise software UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuApKTvByTiT7jwXGdIExLPfwwEnvH7WvjbrP-g79-SYMP9y2dlFZlNYEq14_UFIL0PziShbeKWRyANFf7edrBfOXrxSYSFUdUz8QUUyCGNf4TtsXz1iw6_DuEm97KE41UVMRkOR5RDesIPqqXeU8pFc-umKZUXGrqajSFtQbGlODwiTR60WRiLWpPgDAkELovwQJX6lT-qRcLNZRUg_HGCVkVNF2xmkEyLqJfMU3wOEEbLM_FU6XTPo"/>
+</div>
+</header>
+<!-- Main Workspace -->
+<main class="flex-1 overflow-y-auto bg-surface-low p-margin-mobile md:p-margin-desktop relative">
+<div class="max-w-7xl mx-auto">
+<!-- Page Header & Actions -->
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+<div>
+<p class="font-label-caps text-label-caps text-text-muted mb-1">PAYROLL CYCLE</p>
+<h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-primary">October 2023</h2>
+</div>
+<div class="flex gap-3">
+<button class="h-10 px-4 flex items-center justify-center border border-outline-variant rounded bg-surface-lowest text-primary font-body-md text-body-md hover:bg-surface-low transition-colors">
+<span class="material-symbols-outlined mr-2 text-[18px]" data-icon="download">download</span>
+                            Export
+                        </button>
+<button class="h-10 px-6 flex items-center justify-center bg-primary rounded text-on-primary font-body-md text-body-md hover:bg-primary/90 transition-colors">
+                            Execute Run
+                        </button>
+</div>
+</div>
+<!-- Financial Summary Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter-desktop mb-8">
+<div class="bg-surface-lowest border border-outline-variant rounded p-6">
+<p class="font-label-caps text-label-caps text-text-muted mb-2">TOTAL GROSS PAY</p>
+<div class="font-headline-md text-headline-md text-primary font-numeric-data tabular-nums">MYR 142,500.00</div>
+</div>
+<div class="bg-surface-lowest border border-outline-variant rounded p-6">
+<p class="font-label-caps text-label-caps text-text-muted mb-2">TOTAL DEDUCTIONS</p>
+<div class="font-headline-md text-headline-md text-error font-numeric-data tabular-nums">MYR 18,245.50</div>
+</div>
+<div class="bg-surface-lowest border border-outline-variant rounded p-6">
+<p class="font-label-caps text-label-caps text-text-muted mb-2">EMPLOYER CONTRIB.</p>
+<div class="font-headline-md text-headline-md text-text-muted font-numeric-data tabular-nums">MYR 16,300.00</div>
+</div>
+<div class="bg-primary-container border border-primary-container rounded p-6">
+<p class="font-label-caps text-label-caps text-on-primary-container mb-2">TOTAL NET PAY</p>
+<div class="font-headline-md text-headline-md text-on-primary font-numeric-data tabular-nums">MYR 124,254.50</div>
+</div>
+</div>
+<!-- Payroll Table -->
+<div class="bg-surface-lowest border border-outline-variant rounded flex flex-col">
+<div class="flex items-center justify-between p-4 border-b border-outline-variant bg-surface-lowest">
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[18px]" data-icon="search">search</span>
+<input class="w-full h-9 pl-9 pr-3 bg-surface-lowest border border-outline-variant rounded font-body-sm text-body-sm text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" placeholder="Search employees..." type="text"/>
+</div>
+<div class="font-body-sm text-body-sm text-text-muted">
+                            42 Employees in run
+                        </div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-low border-b border-outline-variant">
+<th class="py-3 px-6 font-label-caps text-label-caps text-text-muted font-normal w-1/4">EMPLOYEE</th>
+<th class="py-3 px-6 font-label-caps text-label-caps text-text-muted font-normal text-right w-1/4">GROSS PAY (MYR)</th>
+<th class="py-3 px-6 font-label-caps text-label-caps text-text-muted font-normal text-right w-1/4">DEDUCTIONS (MYR)</th>
+<th class="py-3 px-6 font-label-caps text-label-caps text-primary font-bold text-right w-1/4 pr-12">NET PAY (MYR)</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm">
+<tr class="border-b border-outline-variant hover:bg-surface-low cursor-pointer transition-colors" onclick="toggleDrawer(true)">
+<td class="py-4 px-6 flex items-center">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary font-bold mr-3">AS</div>
+<div>
+<div class="font-medium text-primary">Ahmad Sulaiman</div>
+<div class="text-text-muted text-xs">EMP-001 • Engineering</div>
+</div>
+</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-primary">8,500.00</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-error">935.00</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-primary font-medium pr-12 relative group">
+                                        7,565.00
+                                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-text-muted transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-low cursor-pointer transition-colors" onclick="toggleDrawer(true)">
+<td class="py-4 px-6 flex items-center">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary font-bold mr-3">LT</div>
+<div>
+<div class="font-medium text-primary">Lim Wei Ting</div>
+<div class="text-text-muted text-xs">EMP-002 • Marketing</div>
+</div>
+</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-primary">6,200.00</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-error">682.00</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-primary font-medium pr-12 relative group">
+                                        5,518.00
+                                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-text-muted transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-low cursor-pointer transition-colors" onclick="toggleDrawer(true)">
+<td class="py-4 px-6 flex items-center">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary font-bold mr-3">SN</div>
+<div>
+<div class="font-medium text-primary">Siti Nurhaliza</div>
+<div class="text-text-muted text-xs">EMP-015 • HR</div>
+</div>
+</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-primary">5,800.00</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-error">638.00</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-primary font-medium pr-12 relative group">
+                                        5,162.00
+                                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-text-muted transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-low cursor-pointer transition-colors" onclick="toggleDrawer(true)">
+<td class="py-4 px-6 flex items-center">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary font-bold mr-3">RM</div>
+<div>
+<div class="font-medium text-primary">Rajesh Muthu</div>
+<div class="text-text-muted text-xs">EMP-022 • Operations</div>
+</div>
+</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-primary">4,500.00</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-error">495.00</td>
+<td class="py-4 px-6 text-right font-numeric-data tabular-nums text-primary font-medium pr-12 relative group">
+                                        4,005.00
+                                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-text-muted transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-outline-variant bg-surface-lowest flex justify-between items-center text-body-sm text-text-muted">
+<div>Showing 1 to 4 of 42 entries</div>
+<div class="flex gap-2">
+<button class="px-3 py-1 border border-outline-variant rounded hover:bg-surface-low disabled:opacity-50" disabled="">Prev</button>
+<button class="px-3 py-1 border border-outline-variant rounded hover:bg-surface-low">Next</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 h-16 bg-surface-lowest flex justify-around items-center px-margin-mobile pb-safe border-t border-outline-variant">
+<a class="flex flex-col items-center justify-center text-text-muted active:bg-surface-low touch-manipulation w-1/4 h-full" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-label-caps text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary font-bold active:bg-surface-low touch-manipulation w-1/4 h-full" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-caps text-[10px]">Payslips</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-muted active:bg-surface-low touch-manipulation w-1/4 h-full" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1" data-icon="calendar_today">calendar_today</span>
+<span class="font-label-caps text-[10px]">Leave</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-muted active:bg-surface-low touch-manipulation w-1/4 h-full" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-label-caps text-[10px]">Profile</span>
+</a>
+</nav>
+<!-- Slide-out Drawer for Employee Details -->
+<div class="fixed inset-y-0 right-0 w-full md:w-[480px] bg-surface-lowest border-l border-outline-variant transform translate-x-full transition-transform duration-300 ease-in-out z-50 flex flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.05)]" id="detailDrawer">
+<!-- Drawer Header -->
+<div class="h-16 border-b border-outline-variant flex items-center justify-between px-6 bg-surface-lowest shrink-0">
+<h3 class="font-headline-sm text-headline-sm font-bold text-primary">Payslip Details</h3>
+<button class="text-text-muted hover:text-primary transition-colors" onclick="toggleDrawer(false)">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Drawer Content -->
+<div class="flex-1 overflow-y-auto p-6 bg-surface-lowest">
+<!-- Employee Header -->
+<div class="flex items-center mb-8 pb-6 border-b border-outline-variant">
+<div class="w-12 h-12 rounded bg-surface-container-high flex items-center justify-center text-primary font-bold text-lg mr-4">AS</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-primary">Ahmad Sulaiman</h4>
+<p class="font-body-sm text-body-sm text-text-muted">EMP-001 • Senior Software Engineer</p>
+</div>
+</div>
+<!-- Detail Sections -->
+<div class="space-y-6">
+<!-- Earnings -->
+<div>
+<h5 class="font-label-caps text-label-caps text-text-muted mb-3 flex items-center">
+<span class="material-symbols-outlined mr-2 text-[16px]" data-icon="add_circle">add_circle</span>
+                         EARNINGS
+                    </h5>
+<div class="border border-outline-variant rounded">
+<div class="flex justify-between items-center p-3 border-b border-outline-variant last:border-0 font-body-sm text-body-sm">
+<span class="text-primary">Basic Salary</span>
+<span class="font-numeric-data tabular-nums text-primary">8,000.00</span>
+</div>
+<div class="flex justify-between items-center p-3 border-b border-outline-variant last:border-0 font-body-sm text-body-sm">
+<span class="text-primary">Transport Allowance</span>
+<span class="font-numeric-data tabular-nums text-primary">500.00</span>
+</div>
+<div class="flex justify-between items-center p-3 bg-surface-low font-body-sm text-body-sm font-medium">
+<span class="text-primary">Total Gross Pay</span>
+<span class="font-numeric-data tabular-nums text-primary">8,500.00</span>
+</div>
+</div>
+</div>
+<!-- Deductions -->
+<div>
+<h5 class="font-label-caps text-label-caps text-text-muted mb-3 flex items-center">
+<span class="material-symbols-outlined mr-2 text-[16px]" data-icon="do_not_disturb_on">do_not_disturb_on</span>
+                         DEDUCTIONS
+                    </h5>
+<div class="border border-outline-variant rounded">
+<div class="flex justify-between items-center p-3 border-b border-outline-variant last:border-0 font-body-sm text-body-sm">
+<span class="text-primary">EPF (11%)</span>
+<span class="font-numeric-data tabular-nums text-error">935.00</span>
+</div>
+<div class="flex justify-between items-center p-3 border-b border-outline-variant last:border-0 font-body-sm text-body-sm">
+<span class="text-primary">SOCSO</span>
+<span class="font-numeric-data tabular-nums text-error">19.75</span>
+</div>
+<div class="flex justify-between items-center p-3 border-b border-outline-variant last:border-0 font-body-sm text-body-sm">
+<span class="text-primary">EIS</span>
+<span class="font-numeric-data tabular-nums text-error">7.90</span>
+</div>
+<div class="flex justify-between items-center p-3 bg-surface-low font-body-sm text-body-sm font-medium">
+<span class="text-primary">Total Deductions</span>
+<span class="font-numeric-data tabular-nums text-error">962.65</span>
+</div>
+</div>
+</div>
+<!-- Net Pay Summary -->
+<div class="mt-8 pt-6 border-t border-primary/20">
+<div class="flex justify-between items-end">
+<span class="font-body-lg text-body-lg text-primary font-medium">Net Pay</span>
+<span class="font-headline-md text-headline-md text-primary font-numeric-data tabular-nums">MYR 7,537.35</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Drawer Footer -->
+<div class="p-6 border-t border-outline-variant bg-surface-low shrink-0 flex gap-3">
+<button class="flex-1 h-10 border border-outline-variant rounded bg-surface-lowest text-primary font-body-md text-body-md hover:bg-surface-low transition-colors">
+                View PDF
+            </button>
+<button class="flex-1 h-10 bg-primary rounded text-on-primary font-body-md text-body-md hover:bg-primary/90 transition-colors">
+                Edit Payslip
+            </button>
+</div>
+</div>
+<!-- Overlay for Drawer -->
+<div class="fixed inset-0 bg-primary/20 z-40 hidden opacity-0 transition-opacity duration-300" id="drawerOverlay" onclick="toggleDrawer(false)"></div>
+<script>
+        function toggleDrawer(show) {
+            const drawer = document.getElementById('detailDrawer');
+            const overlay = document.getElementById('drawerOverlay');
+            
+            if (show) {
+                overlay.classList.remove('hidden');
+                // Small delay to allow display:block to apply before animating opacity
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-0');
+                    drawer.classList.remove('translate-x-full');
+                }, 10);
+            } else {
+                overlay.classList.add('opacity-0');
+                drawer.classList.add('translate-x-full');
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                }, 300); // match transition duration
+            }
+        }
+    </script>
+</body></html>

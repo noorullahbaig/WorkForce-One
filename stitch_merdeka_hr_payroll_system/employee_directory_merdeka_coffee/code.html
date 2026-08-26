@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Employee Directory</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#ffffff",
+                      "surface-low": "#eff4ff",
+                      "on-secondary-container": "#0c714d",
+                      "surface-container": "#eceef3",
+                      "primary-fixed-dim": "#bec6e0",
+                      "on-tertiary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "primary-fixed": "#dae2fd",
+                      "surface-variant": "#e1e2e8",
+                      "on-tertiary-container": "#98805d",
+                      "tertiary-fixed-dim": "#dec29a",
+                      "primary-container": "#131b2e",
+                      "error": "#ba1a1a",
+                      "border-outline-variant": "#c6c6cd",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed-dim": "#81d8ad",
+                      "surface-container-high": "#e7e8ee",
+                      "outline-variant": "#c6c6cd",
+                      "outline": "#76777d",
+                      "secondary": "#006c49",
+                      "on-surface-variant": "#45464d",
+                      "surface-lowest": "#ffffff",
+                      "surface-bright": "#f8f9ff",
+                      "inverse-on-surface": "#eff0f6",
+                      "secondary-container": "#9af2c5",
+                      "on-secondary": "#ffffff",
+                      "text-muted": "#45464d",
+                      "on-tertiary-fixed-variant": "#574425",
+                      "on-primary": "#ffffff",
+                      "on-background": "#191c20",
+                      "primary": "#000000",
+                      "inverse-surface": "#2e3135",
+                      "on-surface": "#191c20",
+                      "secondary-fixed": "#9df4c8",
+                      "surface-tint": "#565e74",
+                      "tertiary-fixed": "#fcdeb5",
+                      "surface-container-highest": "#e1e2e8",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed": "#131b2e",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "tertiary-container": "#271901",
+                      "surface-container-low": "#f2f3f9",
+                      "inverse-primary": "#bec6e0",
+                      "surface": "#f8f9ff",
+                      "on-secondary-fixed": "#002113",
+                      "background": "#f8f9ff",
+                      "tertiary": "#000000",
+                      "on-primary-container": "#7c839b",
+                      "on-secondary-fixed-variant": "#005236",
+                      "on-tertiary-fixed": "#271901",
+                      "surface-dim": "#d8dae0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "gutter-mobile": "16px",
+                      "base": "4px",
+                      "table-row-compact": "8px",
+                      "margin-desktop": "32px",
+                      "table-row-standard": "12px",
+                      "gutter-desktop": "24px"
+              },
+              "fontFamily": {
+                      "display-lg-mobile": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "label-caps": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "numeric-data": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "display-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "36px",
+                              {
+                                      "lineHeight": "44px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "numeric-data": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+      </style>
+</head>
+<body class="bg-surface-low text-on-surface font-body-md text-body-md antialiased min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-surface-lowest dark:bg-surface-dim h-16 w-full sticky top-0 z-40 border-b border-outline-variant flex items-center justify-between px-margin-mobile md:px-margin-desktop md:ml-64 md:max-w-[calc(100%-16rem)] hidden md:flex">
+<div class="flex items-center gap-4">
+<span class="font-headline-sm text-headline-sm font-bold text-primary dark:text-on-surface">Merdeka HR</span>
+</div>
+<div class="flex-1 flex justify-center items-center px-4 max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant rounded-DEFAULT focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-body-sm text-body-sm transition-colors" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-text-muted hover:text-primary transition-colors cursor-pointer flex items-center justify-center p-2 rounded-full hover:bg-surface-low">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-text-muted hover:text-primary transition-colors cursor-pointer flex items-center justify-center p-2 rounded-full hover:bg-surface-low">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant ml-2">
+<img alt="Admin User Profile" class="w-full h-full object-cover" data-alt="A clean, professional headshot of an administrative user in a corporate setting. High-key lighting, bright minimal background, sharp focus, corporate modernism aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-JWzQZn1oLr8wYfWhpdZ9z7MnYtqUJrtl3gt0y0kiPfArQuzElwlOALwkqBGt1Os3oRLC6YZCF54sBgWD6js4K7jwn4zgPkK5LqXF7SNvMjoo0vBwsRXoZjnj40-4RgYy2VOG728fh6XmubgbBDDlGPhieNRQuOtgjbmHClIbKy8eC-j1hcg3dR_2YZE0JBO-A2-F9zw0HI2QMYr1WTUGX4AUyCs9d48DqTOCb4WL6TsDN6ZoHGGB"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="bg-primary-container dark:bg-primary-container w-64 h-screen fixed left-0 top-0 border-r border-outline-variant hidden md:flex flex-col py-base transition-all duration-200 ease-in-out z-50">
+<div class="px-6 py-6 border-b border-outline-variant/30 flex items-center gap-3">
+<div class="w-10 h-10 rounded-DEFAULT bg-surface-lowest flex items-center justify-center font-headline-sm text-primary">
+                MC
+             </div>
+<div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-primary dark:text-on-primary-fixed">Merdeka Coffee</h2>
+<p class="font-body-sm text-body-sm text-on-primary-container">HR Admin</p>
+</div>
+</div>
+<ul class="flex-1 flex flex-col gap-1 py-4 mt-2">
+<li>
+<a class="flex items-center gap-3 py-3 text-on-primary-container hover:text-on-primary pl-4 hover:bg-primary-fixed-dim/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md font-medium">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-3 text-secondary-container font-bold border-l-4 border-secondary-container pl-3 hover:bg-primary-fixed-dim/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-body-md text-body-md font-medium">Employees</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-3 text-on-primary-container hover:text-on-primary pl-4 hover:bg-primary-fixed-dim/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-body-md text-body-md font-medium">Payroll</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-3 text-on-primary-container hover:text-on-primary pl-4 hover:bg-primary-fixed-dim/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="card_giftcard">card_giftcard</span>
+<span class="font-body-md text-body-md font-medium">Benefits</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-3 text-on-primary-container hover:text-on-primary pl-4 hover:bg-primary-fixed-dim/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-body-md text-body-md font-medium">Reports</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-3 text-on-primary-container hover:text-on-primary pl-4 hover:bg-primary-fixed-dim/10 transition-colors mt-auto" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md font-medium">Settings</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="md:ml-64 p-margin-mobile md:p-margin-desktop min-h-[calc(100vh-4rem)] pb-24 md:pb-margin-desktop">
+<!-- Header & Actions -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+<div>
+<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg text-primary">Employees</h1>
+<p class="text-text-muted mt-1 font-body-sm text-body-sm">Manage company workforce directory.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 border border-outline-variant rounded-DEFAULT text-primary hover:bg-surface-lowest transition-colors font-body-md text-body-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Export
+                </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-DEFAULT hover:bg-primary/90 transition-colors font-body-md text-body-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    Add Employee
+                </button>
+</div>
+</div>
+<!-- Filters Section -->
+<div class="bg-surface-lowest p-6 border border-outline-variant mb-6 flex flex-col md:flex-row gap-4 items-end">
+<div class="flex-1 w-full md:w-auto">
+<label class="block font-label-caps text-label-caps text-text-muted mb-2 uppercase">Search</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 border border-outline-variant rounded-DEFAULT focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-body-sm text-body-sm" placeholder="Name, ID, or Email..." type="text"/>
+</div>
+</div>
+<div class="w-full md:w-48">
+<label class="block font-label-caps text-label-caps text-text-muted mb-2 uppercase">Department</label>
+<select class="w-full px-3 py-2 border border-outline-variant rounded-DEFAULT focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-body-sm text-body-sm appearance-none bg-white">
+<option>All Departments</option>
+<option>Engineering</option>
+<option>Design</option>
+<option>Marketing</option>
+<option>Sales</option>
+</select>
+</div>
+<div class="w-full md:w-48">
+<label class="block font-label-caps text-label-caps text-text-muted mb-2 uppercase">Status</label>
+<select class="w-full px-3 py-2 border border-outline-variant rounded-DEFAULT focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-body-sm text-body-sm appearance-none bg-white">
+<option>All Statuses</option>
+<option>Active</option>
+<option>On Leave</option>
+<option>Terminated</option>
+</select>
+</div>
+<button class="w-full md:w-auto px-4 py-2 border border-outline-variant rounded-DEFAULT text-primary hover:bg-surface-low transition-colors font-body-sm text-body-sm h-[38px] flex items-center justify-center">
+                Clear
+            </button>
+</div>
+<!-- Data Table -->
+<div class="w-full overflow-x-auto border-t border-outline-variant bg-surface-lowest">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead>
+<tr class="bg-surface-low border-b border-outline-variant">
+<th class="py-3 px-4 font-label-caps text-label-caps text-text-muted uppercase tracking-wider font-semibold">Employee</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-text-muted uppercase tracking-wider font-semibold">ID</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-text-muted uppercase tracking-wider font-semibold">Department</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-text-muted uppercase tracking-wider font-semibold">Job Title</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-text-muted uppercase tracking-wider font-semibold">Type</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-text-muted uppercase tracking-wider font-semibold">Status</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-text-muted uppercase tracking-wider font-semibold text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface">
+<!-- Row 1 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-low/50 transition-colors group">
+<td class="py-table-row-standard px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed-dim text-on-primary-fixed flex items-center justify-center font-medium text-xs">
+                                    JS
+                                </div>
+<div>
+<div class="font-medium text-primary">John Smith</div>
+<div class="text-text-muted text-xs">john.smith@merdekacoffee.com</div>
+</div>
+</div>
+</td>
+<td class="py-table-row-standard px-4 font-numeric-data text-numeric-data tabular-nums text-text-muted">MC-1042</td>
+<td class="py-table-row-standard px-4">Engineering</td>
+<td class="py-table-row-standard px-4">Senior Developer</td>
+<td class="py-table-row-standard px-4 text-text-muted">Full-time</td>
+<td class="py-table-row-standard px-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-secondary/30 bg-secondary-container/20 text-secondary text-xs font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Active
+                            </span>
+</td>
+<td class="py-table-row-standard px-4 text-right">
+<button class="text-text-muted hover:text-primary p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-low/50 transition-colors group">
+<td class="py-table-row-standard px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed-dim text-on-tertiary-fixed flex items-center justify-center font-medium text-xs">
+                                    ED
+                                </div>
+<div>
+<div class="font-medium text-primary">Emma Davis</div>
+<div class="text-text-muted text-xs">emma.davis@merdekacoffee.com</div>
+</div>
+</div>
+</td>
+<td class="py-table-row-standard px-4 font-numeric-data text-numeric-data tabular-nums text-text-muted">MC-1089</td>
+<td class="py-table-row-standard px-4">Design</td>
+<td class="py-table-row-standard px-4">Product Designer</td>
+<td class="py-table-row-standard px-4 text-text-muted">Full-time</td>
+<td class="py-table-row-standard px-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-secondary/30 bg-secondary-container/20 text-secondary text-xs font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Active
+                            </span>
+</td>
+<td class="py-table-row-standard px-4 text-right">
+<button class="text-text-muted hover:text-primary p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-low/50 transition-colors group">
+<td class="py-table-row-standard px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-medium text-xs overflow-hidden">
+<img alt="Michael Chen Profile" class="w-full h-full object-cover" data-alt="Professional headshot of a diverse employee in a brightly lit modern office setting. Crisp focus, clean background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxqtmJpthqBgDAycJgM3fybeAeeTURkhh1SplfKrqZJ4M1aUqa920hk7cefIYLDmEmKFPi_3M1Y_sbbCRvYs3_f9ciV8WjZUIitZwf6mbhFrCRVhC5oGRbYySDgdLE0pbedMB1NBB8CLCE6jKbqdayF6lGBVAFVgqmQGqc1vsi9kpcLM524m7KjKN0ZYZTutjJhrYyLbORRPp76v2WQvt2eVXaZZbzFqLb4Uu6CEkfzJcP6z6WKnKN"/>
+</div>
+<div>
+<div class="font-medium text-primary">Michael Chen</div>
+<div class="text-text-muted text-xs">m.chen@merdekacoffee.com</div>
+</div>
+</div>
+</td>
+<td class="py-table-row-standard px-4 font-numeric-data text-numeric-data tabular-nums text-text-muted">MC-1102</td>
+<td class="py-table-row-standard px-4">Marketing</td>
+<td class="py-table-row-standard px-4">Marketing Manager</td>
+<td class="py-table-row-standard px-4 text-text-muted">Contract</td>
+<td class="py-table-row-standard px-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-outline-variant bg-surface-variant/50 text-text-muted text-xs font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span> On Leave
+                            </span>
+</td>
+<td class="py-table-row-standard px-4 text-right">
+<button class="text-text-muted hover:text-primary p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-low/50 transition-colors group">
+<td class="py-table-row-standard px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-dim text-on-surface flex items-center justify-center font-medium text-xs">
+                                    SJ
+                                </div>
+<div>
+<div class="font-medium text-primary">Sarah Jenkins</div>
+<div class="text-text-muted text-xs">s.jenkins@merdekacoffee.com</div>
+</div>
+</div>
+</td>
+<td class="py-table-row-standard px-4 font-numeric-data text-numeric-data tabular-nums text-text-muted">MC-1245</td>
+<td class="py-table-row-standard px-4">Sales</td>
+<td class="py-table-row-standard px-4">Account Executive</td>
+<td class="py-table-row-standard px-4 text-text-muted">Full-time</td>
+<td class="py-table-row-standard px-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-secondary/30 bg-secondary-container/20 text-secondary text-xs font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Active
+                            </span>
+</td>
+<td class="py-table-row-standard px-4 text-right">
+<button class="text-text-muted hover:text-primary p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination Footer -->
+<div class="px-4 py-3 border-t border-outline-variant flex items-center justify-between text-body-sm text-text-muted">
+<div>Showing 1 to 4 of 42 entries</div>
+<div class="flex items-center gap-2">
+<button class="p-1 border border-outline-variant rounded-DEFAULT hover:bg-surface-low disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-DEFAULT bg-primary text-on-primary font-medium">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-DEFAULT hover:bg-surface-low border border-transparent">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-DEFAULT hover:bg-surface-low border border-transparent">3</button>
+<span class="px-1">...</span>
+<button class="p-1 border border-outline-variant rounded-DEFAULT hover:bg-surface-low">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="bg-surface-lowest dark:bg-surface-dim fixed bottom-0 w-full z-50 h-16 border-t border-outline-variant flex justify-around items-center px-margin-mobile pb-safe md:hidden">
+<a class="flex flex-col items-center justify-center text-text-muted active:bg-surface-low touch-manipulation p-2 w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-label-caps-mobile text-label-caps-mobile text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary font-bold active:bg-surface-low touch-manipulation p-2 w-16" href="#">
+<span class="material-symbols-outlined fill mb-1" data-icon="groups">groups</span>
+<span class="font-label-caps-mobile text-label-caps-mobile text-[10px]">Employees</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-muted active:bg-surface-low touch-manipulation p-2 w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-caps-mobile text-label-caps-mobile text-[10px]">Payslips</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-muted active:bg-surface-low touch-manipulation p-2 w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="calendar_today">calendar_today</span>
+<span class="font-label-caps-mobile text-label-caps-mobile text-[10px]">Leave</span>
+</a>
+</nav>
+</body></html>

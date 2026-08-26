@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin Dashboard - Merdeka HR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "surface-low": "#eff4ff",
+                        "on-secondary-container": "#0c714d",
+                        "surface-container": "#eceef3",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#dae2fd",
+                        "surface-variant": "#e1e2e8",
+                        "on-tertiary-container": "#98805d",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "primary-container": "#131b2e",
+                        "error": "#ba1a1a",
+                        "border-outline-variant": "#c6c6cd",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#81d8ad",
+                        "surface-container-high": "#e7e8ee",
+                        "outline-variant": "#c6c6cd",
+                        "outline": "#76777d",
+                        "secondary": "#006c49",
+                        "on-surface-variant": "#45464d",
+                        "surface-lowest": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "inverse-on-surface": "#eff0f6",
+                        "secondary-container": "#9af2c5",
+                        "on-secondary": "#ffffff",
+                        "text-muted": "#45464d",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c20",
+                        "primary": "#000000",
+                        "inverse-surface": "#2e3135",
+                        "on-surface": "#191c20",
+                        "secondary-fixed": "#9df4c8",
+                        "surface-tint": "#565e74",
+                        "tertiary-fixed": "#fcdeb5",
+                        "surface-container-highest": "#e1e2e8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#131b2e",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "tertiary-container": "#271901",
+                        "surface-container-low": "#f2f3f9",
+                        "inverse-primary": "#bec6e0",
+                        "surface": "#f8f9ff",
+                        "on-secondary-fixed": "#002113",
+                        "background": "#f8f9ff",
+                        "tertiary": "#000000",
+                        "on-primary-container": "#7c839b",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-tertiary-fixed": "#271901",
+                        "surface-dim": "#d8dae0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter-mobile": "16px",
+                        "base": "4px",
+                        "table-row-compact": "8px",
+                        "margin-desktop": "32px",
+                        "table-row-standard": "12px",
+                        "gutter-desktop": "24px"
+                    },
+                    "fontFamily": {
+                        "display-lg-mobile": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "numeric-data": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-sm": ["18px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "numeric-data": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface-low text-on-surface antialiased min-h-screen">
+<!-- Top Navigation Container for Mobile -->
+<header class="md:hidden sticky top-0 z-40 bg-surface-lowest border-b border-outline-variant h-16 w-full flex items-center justify-between px-margin-mobile">
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">Merdeka HR</h1>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary cursor-pointer" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-primary cursor-pointer" data-icon="help_outline">help_outline</span>
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A small, professional headshot portrait of a corporate administrator in a light-mode modern office setting. Sharp focus, bright lighting, neutral corporate background. The image should convey authority and efficiency. The lighting is soft and even." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDs2VIVNfcJq-7FCG9mm04z4rswZFacxUx1KaQ9OxmbP0L_MgHks65jlbHU4-FUPA_UPJyKmXgCp0NdxvOOO7FAnLrJ-A_1YmW9CiAfTgs9SFHj7Kx6ULGLtvBPYA-BFj8HPHamxsEOF7Kh_ejwILQ-vvGJMmWz-oJj051Gu39Eyetdyv39MIDFUtbD8g0FOR2w1ZEIViFVRrs_XYBbIBE6Ok4TfMhhlSNrvl6Lk5qCL1NiE0IHfsJq"/>
+</div>
+</div>
+</header>
+<!-- Desktop Side Navigation -->
+<nav class="hidden md:flex w-64 h-screen fixed left-0 top-0 bg-primary-container flex-col py-base border-r border-outline-variant z-50">
+<div class="px-6 py-6 mb-4 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-lowest overflow-hidden flex items-center justify-center">
+<img class="w-8 h-8 object-contain" data-alt="A clean, minimalist coffee cup logo on a pristine white background. The logo uses stark black and white contrast. The design is geometric and modern, fitting for a premium corporate brand. Sharp vector style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfBwRpKUsv2RWjXgMuG1dzMNIF2sxy2Yan4p1SNPrSGvfONEzQKYpXX7fz-BDO6c7xnWvEzN-7RAKNB4nD0veZ69Yls60lsFw2q8-YKu7leN8yviQDXIMoIAa4AUidfxrA1hzkbAt80jXHwm23ssLH_8E14D_ytnC42H2g21Yy4ft1BZxWH75TYrOzVhshZD3TLxqr6zoOILv2npv53aLpX-H33vo6filC6MZeVukQh2luuNzohq-d"/>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-primary">Merdeka Coffee</h2>
+<p class="font-body-sm text-body-sm text-on-primary-container">HR Admin</p>
+</div>
+</div>
+<ul class="flex-1 px-4 space-y-1">
+<li>
+<a class="flex items-center gap-3 py-2 px-3 text-secondary-container font-bold border-l-4 border-secondary-container bg-primary-fixed-dim/10 transition-colors font-body-md text-body-md transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-2 pl-4 text-on-primary-container hover:text-on-primary hover:bg-primary-fixed-dim/10 transition-colors font-body-md text-body-md font-medium transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+                    Employees
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-2 pl-4 text-on-primary-container hover:text-on-primary hover:bg-primary-fixed-dim/10 transition-colors font-body-md text-body-md font-medium transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                    Payroll
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-2 pl-4 text-on-primary-container hover:text-on-primary hover:bg-primary-fixed-dim/10 transition-colors font-body-md text-body-md font-medium transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="card_giftcard">card_giftcard</span>
+                    Benefits
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-2 pl-4 text-on-primary-container hover:text-on-primary hover:bg-primary-fixed-dim/10 transition-colors font-body-md text-body-md font-medium transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+                    Reports
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-2 pl-4 text-on-primary-container hover:text-on-primary hover:bg-primary-fixed-dim/10 transition-colors font-body-md text-body-md font-medium transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                    Settings
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="md:ml-64 min-h-screen flex flex-col">
+<!-- Desktop Top App Bar -->
+<header class="hidden md:flex h-16 w-full sticky top-0 z-40 bg-surface-lowest border-b border-outline-variant items-center justify-between px-margin-desktop">
+<div class="flex-1 flex items-center gap-4">
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm" data-icon="search">search</span>
+<input class="w-full pl-9 pr-3 py-1.5 bg-surface-lowest border border-outline-variant rounded-DEFAULT font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-0 placeholder:text-text-muted" placeholder="Search employees, payroll..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined text-text-muted hover:text-primary transition-colors cursor-pointer" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-text-muted hover:text-primary transition-colors cursor-pointer" data-icon="help_outline">help_outline</span>
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A clean, sharp professional headshot of a corporate administrator in a modern office. The lighting is bright and even, highlighting a minimalist, light-mode aesthetic. The individual looks confident and professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuClSl_QkTuFENJ9NnrkmN_swYZZ5cAJAFxqOyJobFJxfq1x-OsppmByV-cGobPNwHasg86K2h8tuUN-BkeS-Wr3IWLszRlu-n7HjXW3G8cj3r7TRGKWl0RGDQc0M_hisGbrTfMmhv7hX6KquN3P1wvwxKQWg9LpaHMR0Y0MC3V1DguNdXTA3VrEC46xPn8vE6jF3tRyZbhuObIuiqC1OSHAgii5kQ0FFPwJBzN5mwN69fHmvLh7OYV_"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Canvas -->
+<div class="flex-1 p-margin-mobile md:p-margin-desktop max-w-7xl w-full mx-auto space-y-gutter-desktop">
+<!-- Greeting Section -->
+<section class="border border-outline-variant bg-surface-lowest p-6 md:p-8 rounded-none">
+<h1 class="font-display-lg-mobile text-display-lg-mobile md:font-display-lg md:text-display-lg text-primary mb-2">Good morning, Admin.</h1>
+<p class="font-body-lg text-body-lg text-text-muted">Here is the overview for today, October 24, 2023.</p>
+</section>
+<!-- Metrics Grid -->
+<section class="border border-outline-variant bg-surface-lowest">
+<div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-outline-variant">
+<!-- Total Employees -->
+<div class="p-6">
+<p class="font-label-caps text-label-caps text-text-muted mb-4 uppercase">Total Employees</p>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-primary">142</span>
+<span class="font-body-sm text-body-sm text-on-secondary-container bg-secondary-container px-2 py-0.5 rounded-DEFAULT">+2 this month</span>
+</div>
+</div>
+<!-- Present Today -->
+<div class="p-6">
+<p class="font-label-caps text-label-caps text-text-muted mb-4 uppercase">Present Today</p>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-primary">135</span>
+<span class="font-body-sm text-body-sm text-text-muted">/ 142</span>
+</div>
+</div>
+<!-- On Leave -->
+<div class="p-6">
+<p class="font-label-caps text-label-caps text-text-muted mb-4 uppercase">On Leave</p>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-primary">7</span>
+<span class="font-body-sm text-body-sm text-text-muted">Approved</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Lower Grid Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter-desktop">
+<!-- Pending Requests -->
+<section class="border border-outline-variant bg-surface-lowest flex flex-col">
+<div class="p-6 border-b border-outline-variant bg-surface-low flex justify-between items-center">
+<h2 class="font-label-caps text-label-caps text-primary uppercase">Pending Requests</h2>
+<a class="font-body-sm text-body-sm text-primary hover:underline" href="#">View All</a>
+</div>
+<div class="flex-1 p-0">
+<table class="w-full text-left border-collapse">
+<tbody>
+<tr class="border-b border-outline-variant hover:bg-surface-low transition-colors">
+<td class="p-4 py-3">
+<p class="font-body-md text-body-md text-primary font-medium">Annual Leave</p>
+<p class="font-body-sm text-body-sm text-text-muted">Sarah Jenkins</p>
+</td>
+<td class="p-4 py-3 text-right">
+<span class="font-body-sm text-body-sm text-on-surface-variant bg-surface-variant px-2 py-1 rounded-DEFAULT">Pending</span>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-low transition-colors">
+<td class="p-4 py-3">
+<p class="font-body-md text-body-md text-primary font-medium">Expense Claim</p>
+<p class="font-body-sm text-body-sm text-text-muted">David Chen</p>
+</td>
+<td class="p-4 py-3 text-right">
+<span class="font-body-sm text-body-sm text-on-surface-variant bg-surface-variant px-2 py-1 rounded-DEFAULT">Pending</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-low transition-colors">
+<td class="p-4 py-3">
+<p class="font-body-md text-body-md text-primary font-medium">Sick Leave</p>
+<p class="font-body-sm text-body-sm text-text-muted">Amanda Lee</p>
+</td>
+<td class="p-4 py-3 text-right">
+<span class="font-body-sm text-body-sm text-on-surface-variant bg-surface-variant px-2 py-1 rounded-DEFAULT">Pending</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Payroll Cycle -->
+<section class="border border-outline-variant bg-surface-lowest flex flex-col">
+<div class="p-6 border-b border-outline-variant bg-surface-low flex justify-between items-center">
+<h2 class="font-label-caps text-label-caps text-primary uppercase">Payroll Cycle (Draft)</h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-DEFAULT">Oct 2023</span>
+</div>
+<div class="p-6 flex-1 flex flex-col justify-center gap-6">
+<div class="flex justify-between items-baseline">
+<span class="font-body-md text-body-md text-text-muted">Estimated Total</span>
+<span class="font-numeric-data text-numeric-data text-primary font-semibold text-lg">MYR 124,500.00</span>
+</div>
+<div class="flex justify-between items-baseline">
+<span class="font-body-md text-body-md text-text-muted">Processed Employees</span>
+<span class="font-numeric-data text-numeric-data text-primary font-semibold">142 / 142</span>
+</div>
+<div class="pt-4 mt-auto">
+<button class="w-full bg-primary text-on-primary font-body-md text-body-md py-2 rounded-DEFAULT hover:bg-inverse-surface transition-colors">Review Draft</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Mobile Bottom Navigation -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 h-16 bg-surface-lowest border-t border-outline-variant flex justify-around items-center px-margin-mobile pb-safe">
+<a class="flex flex-col items-center justify-center text-secondary font-bold font-label-caps-mobile text-label-caps-mobile active:bg-surface-low touch-manipulation" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+            Home
+        </a>
+<a class="flex flex-col items-center justify-center text-text-muted font-label-caps-mobile text-label-caps-mobile active:bg-surface-low touch-manipulation" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="receipt_long">receipt_long</span>
+            Payslips
+        </a>
+<a class="flex flex-col items-center justify-center text-text-muted font-label-caps-mobile text-label-caps-mobile active:bg-surface-low touch-manipulation" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="calendar_today">calendar_today</span>
+            Leave
+        </a>
+<a class="flex flex-col items-center justify-center text-text-muted font-label-caps-mobile text-label-caps-mobile active:bg-surface-low touch-manipulation" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+            Profile
+        </a>
+</nav>
+</body></html>

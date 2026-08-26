@@ -1,0 +1,77 @@
+{
+	"name": "workforce-one-hrms-demo",
+	"description": "A responsive Malaysian HR and payroll demo on Cloudflare Workers.",
+	"cloudflare": {
+		"label": "React Router Framework Starter",
+		"products": [
+			"Workers"
+		],
+		"categories": [
+			"storage"
+		],
+		"preview_icon_url": "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/36a99c4a-8919-4e6e-ac9e-e55974407200/public",
+		"preview_image_url": "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/65455e96-7992-425f-44e4-30f3e7d7f900/preview",
+		"publish": true
+	},
+	"dependencies": {
+		"@radix-ui/react-dialog": "^1.1.23",
+		"@radix-ui/react-dropdown-menu": "^2.1.24",
+		"@radix-ui/react-slot": "^1.3.3",
+		"@radix-ui/react-tooltip": "^1.2.16",
+		"clsx": "^2.1.1",
+		"drizzle-orm": "^0.45.2",
+		"isbot": "5.1.32",
+		"lucide-react": "^1.34.0",
+		"motion": "^13.1.1",
+		"pdf-lib": "^1.17.1",
+		"react": "19.2.7",
+		"react-dom": "19.2.7",
+		"react-router": "8.3.0",
+		"zod": "^4.4.3"
+	},
+	"devDependencies": {
+		"@axe-core/playwright": "^4.13.0",
+		"@cloudflare/vite-plugin": "^1.54.0",
+		"@cloudflare/vitest-pool-workers": "^0.22.0",
+		"@cloudflare/workers-types": "^5.20260826.1",
+		"@eslint/js": "^10.0.1",
+		"@playwright/test": "^1.62.1",
+		"@react-router/dev": "8.3.0",
+		"@tailwindcss/vite": "4.1.17",
+		"@testing-library/jest-dom": "^7.0.1",
+		"@testing-library/react": "^16.3.2",
+		"@testing-library/user-event": "^14.6.6",
+		"@types/node": "24.10.1",
+		"@types/react": "19.2.7",
+		"@types/react-dom": "19.2.3",
+		"drizzle-kit": "^0.31.10",
+		"eslint": "^10.9.1",
+		"jsdom": "^30.0.1",
+		"tailwindcss": "4.1.17",
+		"typescript": "5.9.3",
+		"typescript-eslint": "^8.68.0",
+		"vite": "^7.0.0",
+		"vite-tsconfig-paths": "5.1.4",
+		"vitest": "^4.1.11",
+		"wrangler": "^4.126.0"
+	},
+	"private": true,
+	"scripts": {
+		"build": "react-router build",
+		"cf-typegen": "wrangler types && react-router typegen",
+		"typegen": "wrangler types && react-router typegen",
+		"check": "npm run typecheck && npm run test:run && npm run build && wrangler deploy --dry-run",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate:local": "wrangler d1 migrations apply workforce-one-demo --local",
+		"db:seed:local": "wrangler d1 execute workforce-one-demo --local --file=./drizzle/seed.sql",
+		"deploy": "wrangler deploy",
+		"dev": "react-router dev",
+		"lint": "eslint app workers tests",
+		"preview": "npm run build && vite preview",
+		"test": "vitest",
+		"test:e2e": "playwright test",
+		"test:run": "vitest run",
+		"typecheck": "npm run typegen && tsc -b"
+	},
+	"type": "module"
+}
