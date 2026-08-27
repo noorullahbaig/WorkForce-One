@@ -8,15 +8,18 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigate, useSearchParams } from "react-router";
 import {
-  calculateLeaveDurationHalfDays,
-  calculateProjectedBalance,
-  getCoverageSummary,
-  rangesOverlap,
-  type LeaveDayPart,
+	calculateLeaveDurationHalfDays,
+	calculateProjectedBalance,
+	getEarliestLeaveDate,
+	getCoverageSummary,
+	getLeaveDatePolicyError,
+	rangesOverlap,
+	type LeaveDayPart,
 } from "../../domain/leave";
+import { addCalendarDays, todayInTimeZone } from "../../lib/date";
 import { date, initials } from "../../lib/format";
 
 export type LeaveRecord = {
@@ -70,20 +73,35 @@ type CalendarEvent = {
 };
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const TODAY = new Date().toISOString().slice(0, 10);
 const halfDays = (value: number) =>
   Number.isInteger(value / 2) ? String(value / 2) : (value / 2).toFixed(1);
-const validMonth = (value: string | null) =>
-  value && /^\d{4}-\d{2}$/.test(value) ? value : "2026-08";
+const validMonth = (value: string | null, today: string) =>
+  value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value) ? value : today.slice(0, 7);
+function daysInMonth(month: string) {
+  const current = new Date(`${month}-01T00:00:00Z`);
+  current.setUTCMonth(current.getUTCMonth() + 1, 0);
+  return current.getUTCDate();
+}
+function isCalendarDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const current = new Date(`${value}T00:00:00Z`);
+  return current.toISOString().slice(0, 10) === value;
+}
+function selectedDateForMonth(month: string, selectedDate: string | null, today: string) {
+  if (!selectedDate || !isCalendarDate(selectedDate)) {
+    return month === today.slice(0, 7) ? today : `${month}-01`;
+  }
+  if (selectedDate.startsWith(month)) return selectedDate;
+  const day = Math.min(Number(selectedDate.slice(8)), daysInMonth(month));
+  return `${month}-${String(day).padStart(2, "0")}`;
+}
 function shiftMonth(month: string, delta: number) {
   const current = new Date(`${month}-01T00:00:00Z`);
   current.setUTCMonth(current.getUTCMonth() + delta);
   return current.toISOString().slice(0, 7);
 }
 function shiftDate(day: string, delta: number) {
-  const current = new Date(`${day}T00:00:00Z`);
-  current.setUTCDate(current.getUTCDate() + delta);
-  return current.toISOString().slice(0, 10);
+  return addCalendarDays(day, delta);
 }
 function monthDays(month: string) {
   const first = new Date(`${month}-01T00:00:00Z`);
@@ -100,20 +118,34 @@ function monthDays(month: string) {
 function CalendarToolbar({
   month,
   basePath,
+  today,
+  requestOpen = false,
   admin = false,
 }: {
   month: string;
   basePath: string;
+  today: string;
+  requestOpen?: boolean;
   admin?: boolean;
 }) {
   const [params] = useSearchParams();
   const makeHref = (nextMonth: string, view?: string) => {
     const next = new URLSearchParams(params);
     next.set("month", nextMonth);
+    next.set("date", selectedDateForMonth(nextMonth, params.get("date"), today));
     if (view) next.set("view", view);
     else next.delete("view");
+    if (requestOpen) next.set("request", "new");
+    else if (params.get("request") === "new") next.delete("request");
+    next.delete("notice");
     return `${basePath}?${next.toString()}`;
   };
+  const todayParams = new URLSearchParams(params);
+  todayParams.set("month", today.slice(0, 7));
+  todayParams.set("date", today);
+  if (requestOpen) todayParams.set("request", "new");
+  else if (params.get("request") === "new") todayParams.delete("request");
+  todayParams.delete("notice");
   return (
     <div className="leave-toolbar">
       <div className="month-control">
@@ -121,6 +153,7 @@ function CalendarToolbar({
           className="calendar-nav"
           aria-label="Previous month"
           to={makeHref(shiftMonth(month, -1))}
+          preventScrollReset
         >
           <ChevronLeft />
         </Link>
@@ -129,12 +162,14 @@ function CalendarToolbar({
           className="calendar-nav"
           aria-label="Next month"
           to={makeHref(shiftMonth(month, 1))}
+          preventScrollReset
         >
           <ChevronRight />
         </Link>
         <Link
           className="button secondary compact-button"
-          to={`${basePath}?month=${TODAY.slice(0, 7)}&date=${TODAY}`}
+          to={`${basePath}?${todayParams.toString()}`}
+          preventScrollReset
         >
           Today
         </Link>
@@ -147,12 +182,14 @@ function CalendarToolbar({
               : ""
           }
           to={makeHref(month)}
+          preventScrollReset
         >
           Calendar
         </Link>
         <Link
           className={params.get("view") === "agenda" ? "active" : ""}
           to={makeHref(month, "agenda")}
+          preventScrollReset
         >
           Agenda
         </Link>
@@ -170,16 +207,25 @@ function SharedCalendar({
   events,
   basePath,
   selectedDate,
+  today,
 }: {
   month: string;
   events: CalendarEvent[];
   basePath: string;
   selectedDate: string;
+  today: string;
 }) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const mounted = useRef(false);
   const label = `${date(`${month}-01`, { month: "long", year: "numeric" })} shared leave calendar`;
   const days = monthDays(month);
+  useEffect(() => {
+    if (mounted.current) {
+      document.querySelector<HTMLElement>(`[data-calendar-date="${selectedDate}"]`)?.focus();
+    }
+    mounted.current = true;
+  }, [selectedDate]);
   const moveSelection = (day: string, key: string) => {
     const delta =
       key === "ArrowLeft"
@@ -196,7 +242,8 @@ function SharedCalendar({
     const next = new URLSearchParams(params);
     next.set("month", nextDay.slice(0, 7));
     next.set("date", nextDay);
-    navigate(`${basePath}?${next.toString()}`);
+    next.delete("notice");
+    navigate(`${basePath}?${next.toString()}`, { preventScrollReset: true });
   };
   return (
     <div className="leave-calendar" role="grid" aria-label={label}>
@@ -213,10 +260,17 @@ function SharedCalendar({
             const dayEvents = events.filter((event) =>
               rangesOverlap(day, day, event.startDate, event.endDate),
             );
+            const isToday = day === today;
+            const isSelected = day === selectedDate;
+            const next = new URLSearchParams(params);
+            next.set("month", day.slice(0, 7));
+            next.set("date", day);
+            next.delete("notice");
             return (
               <div
-                className={`calendar-day${day.slice(0, 7) !== month ? " outside" : ""}${day === selectedDate ? " selected" : ""}`}
+                className={`calendar-day${day.slice(0, 7) !== month ? " outside" : ""}${isToday ? " today" : ""}${isSelected ? " selected" : ""}`}
                 role="gridcell"
+                aria-selected={isSelected}
                 aria-label={date(day, {
                   weekday: "long",
                   day: "numeric",
@@ -226,8 +280,11 @@ function SharedCalendar({
               >
                 <Link
                   className="calendar-date"
-                  to={`${basePath}?month=${day.slice(0, 7)}&date=${day}`}
-                  tabIndex={day === selectedDate ? 0 : -1}
+                  to={`${basePath}?${next.toString()}`}
+                  data-calendar-date={day}
+                  aria-current={isToday ? "date" : undefined}
+                  tabIndex={isSelected ? 0 : -1}
+                  preventScrollReset
                   onKeyDown={(event) => {
                     if (event.key.startsWith("Arrow")) event.preventDefault();
                     moveSelection(day, event.key);
@@ -240,6 +297,7 @@ function SharedCalendar({
                     <span
                       className={`calendar-event ${event.kind}`}
                       title={event.meta ?? event.label}
+                      aria-label={event.meta ? `${event.label}, ${event.meta}` : event.label}
                       key={`${day}-${event.id}`}
                     >
                       <i>
@@ -310,17 +368,25 @@ export function EmployeeLeaveWorkspace({
   sharedRecords,
   balances,
   holidays,
+  today,
+  backdateDays = 3,
 }: {
   employeeId: string;
   ownRecords: LeaveRecord[];
   sharedRecords: SharedLeaveRecord[];
   balances: LeaveBalanceSummary[];
   holidays: HolidayRecord[];
+  today?: string;
+  backdateDays?: number;
 }) {
   const [params] = useSearchParams();
-  const month = validMonth(params.get("month"));
-  const selectedDate =
-    params.get("date") ?? (month === TODAY.slice(0, 7) ? TODAY : `${month}-01`);
+  const resolvedToday = today ?? todayInTimeZone(new Date(), "Asia/Kuala_Lumpur");
+  const month = validMonth(params.get("month"), resolvedToday);
+  const selectedDate = selectedDateForMonth(
+    month,
+    params.get("date"),
+    resolvedToday,
+  );
   const requestOpen = params.get("request") === "new";
   const agenda = params.get("view") === "agenda";
   const events: CalendarEvent[] = [
@@ -377,7 +443,11 @@ export function EmployeeLeaveWorkspace({
           Request leave
         </Link>
       </header>
-      <section className="leave-balance-rail" aria-label="Leave balances">
+      <section
+        className="leave-balance-rail"
+        aria-label="Leave balances"
+        tabIndex={0}
+      >
         {balances.map((balance) => {
           const summary = calculateProjectedBalance(balance);
           return (
@@ -397,9 +467,20 @@ export function EmployeeLeaveWorkspace({
           );
         })}
       </section>
+      {params.get("notice") === "leave-submitted" ? (
+        <div className="alert success" role="status">
+          <Check />
+          <span>Leave request sent for approval.</span>
+        </div>
+      ) : null}
       <section className="leave-workspace">
         <div className="calendar-canvas surface">
-          <CalendarToolbar month={month} basePath="/employee/leave" />
+          <CalendarToolbar
+            month={month}
+            basePath="/employee/leave"
+            today={resolvedToday}
+            requestOpen={requestOpen}
+          />
           {agenda ? (
             <Agenda events={events} month={month} />
           ) : (
@@ -408,6 +489,7 @@ export function EmployeeLeaveWorkspace({
               events={events}
               basePath="/employee/leave"
               selectedDate={selectedDate}
+              today={resolvedToday}
             />
           )}
         </div>
@@ -420,6 +502,8 @@ export function EmployeeLeaveWorkspace({
               balances={balances}
               selectedDate={selectedDate}
               holidays={holidays}
+              today={resolvedToday}
+              backdateDays={backdateDays}
             />
           ) : (
             <DayPanel selectedDate={selectedDate} events={selectedEvents} />
@@ -527,38 +611,58 @@ function RequestPanel({
   balances,
   selectedDate,
   holidays,
+  today,
+  backdateDays,
 }: {
   balances: LeaveBalanceSummary[];
   selectedDate: string;
   holidays: HolidayRecord[];
+  today: string;
+  backdateDays: number;
 }) {
   const [leaveTypeId, setLeaveTypeId] = useState("leave-annual");
   const [startDate, setStartDate] = useState(selectedDate);
   const [endDate, setEndDate] = useState(selectedDate);
   const [dayPart, setDayPart] = useState<LeaveDayPart>("full");
+  const requestHeadingRef = useRef<HTMLHeadingElement>(null);
+  const earliestDate = getEarliestLeaveDate(today, backdateDays);
+  const policyError = getLeaveDatePolicyError(
+    startDate,
+    today,
+    backdateDays,
+  );
+  useEffect(() => {
+    setStartDate(selectedDate);
+    setEndDate(selectedDate);
+  }, [selectedDate]);
+  useEffect(() => {
+    requestHeadingRef.current?.focus();
+  }, []);
   const balance = balances.find((item) => item.leaveTypeId === leaveTypeId);
   const projected = balance
     ? calculateProjectedBalance(balance).projectedHalfDays
     : null;
   let preview: { durationHalfDays: number; excludedDates: string[] } | null =
     null;
-  let previewError = "";
-  try {
-    preview = calculateLeaveDurationHalfDays({
-      startDate,
-      endDate,
-      dayPart,
-      holidayDates: holidays.filter((h) => h.active).map((h) => h.date),
-    });
-  } catch (error) {
-    previewError =
-      error instanceof Error ? error.message : "Choose valid dates.";
+  let previewError = policyError ?? "";
+  if (!policyError) {
+    try {
+      preview = calculateLeaveDurationHalfDays({
+        startDate,
+        endDate,
+        dayPart,
+        holidayDates: holidays.filter((h) => h.active).map((h) => h.date),
+      });
+    } catch (error) {
+      previewError =
+        error instanceof Error ? error.message : "Choose valid dates.";
+    }
   }
   return (
     <Form method="post" className="leave-request-form">
       <div className="inspector-heading">
         <p className="eyebrow">New request</p>
-        <h2>Request leave</h2>
+        <h2 ref={requestHeadingRef} tabIndex={-1}>Request leave</h2>
         <p>Weekends and Penang holidays are excluded automatically.</p>
       </div>
       <input type="hidden" name="intent" value="apply-leave" />
@@ -582,6 +686,7 @@ function RequestPanel({
             type="date"
             name="startDate"
             value={startDate}
+            min={earliestDate}
             onChange={(event) => setStartDate(event.currentTarget.value)}
             required
           />
@@ -592,6 +697,7 @@ function RequestPanel({
             type="date"
             name="endDate"
             value={endDate}
+            min={startDate > earliestDate ? startDate : earliestDate}
             onChange={(event) => setEndDate(event.currentTarget.value)}
             required
           />
@@ -659,14 +765,24 @@ export function AdminLeaveWorkspace({
   employees,
   holidays,
   balances,
+  today,
+  backdateDays = 3,
 }: {
   records: LeaveRecord[];
   employees: Array<{ id: string; fullName: string; department: string }>;
   holidays: HolidayRecord[];
   balances: LeaveBalanceSummary[];
+  today?: string;
+  backdateDays?: number;
 }) {
   const [params] = useSearchParams();
-  const month = validMonth(params.get("month"));
+  const resolvedToday = today ?? todayInTimeZone(new Date(), "Asia/Kuala_Lumpur");
+  const month = validMonth(params.get("month"), resolvedToday);
+  const selectedDate = selectedDateForMonth(
+    month,
+    params.get("date"),
+    resolvedToday,
+  );
   const selectedId = params.get("request");
   const departmentFilter = params.get("department") ?? "all";
   const employeeFilter = params.get("employee") ?? "all";
@@ -738,7 +854,11 @@ export function AdminLeaveWorkspace({
           </Link>
         </div>
       </header>
-      <div className="admin-leave-summary">
+      <div
+        className="admin-leave-summary"
+        tabIndex={0}
+        aria-label="Leave calendar summary"
+      >
         <span>
           <b>{pending.length}</b> awaiting review
         </span>
@@ -762,6 +882,34 @@ export function AdminLeaveWorkspace({
           Penang holidays
         </span>
       </div>
+      <section className="leave-policy-card surface" aria-label="Leave policy">
+        <div>
+          <p className="eyebrow">Company policy</p>
+          <h2>Backdated leave requests</h2>
+          <p>
+            Employees can request leave from today back through this many
+            calendar days. The rule is enforced in the browser and on submit.
+          </p>
+        </div>
+        <Form method="post" className="inline-policy-form">
+          <input type="hidden" name="intent" value="update-leave-policy" />
+          <label>
+            Allowed days
+            <input
+              type="number"
+              name="leaveBackdateDays"
+              min="0"
+              max="365"
+              step="1"
+              defaultValue={backdateDays}
+              required
+            />
+          </label>
+          <button className="button secondary" type="submit">
+            Save policy
+          </button>
+        </Form>
+      </section>
       <nav className="admin-mobile-tabs" aria-label="Admin leave workspace">
         <Link
           className={mobilePanel === "calendar" ? "active" : ""}
@@ -778,7 +926,12 @@ export function AdminLeaveWorkspace({
       </nav>
       <section className={`admin-leave-workspace mobile-${mobilePanel}`}>
         <div className="calendar-canvas surface">
-          <CalendarToolbar month={month} basePath="/admin/leave" admin />
+          <CalendarToolbar
+            month={month}
+            basePath="/admin/leave"
+            today={resolvedToday}
+            admin
+          />
           <Form method="get" className="leave-filters">
             <input type="hidden" name="month" value={month} />
             {agenda ? <input type="hidden" name="view" value="agenda" /> : null}
@@ -859,10 +1012,8 @@ export function AdminLeaveWorkspace({
               month={month}
               events={events}
               basePath="/admin/leave"
-              selectedDate={
-                params.get("date") ??
-                (month === TODAY.slice(0, 7) ? TODAY : `${month}-01`)
-              }
+              selectedDate={selectedDate}
+              today={resolvedToday}
             />
           )}
         </div>
@@ -1058,7 +1209,8 @@ function ReviewInspector({
   );
 }
 
-export function HolidayAdmin({ holidays }: { holidays: HolidayRecord[] }) {
+export function HolidayAdmin({ holidays, today }: { holidays: HolidayRecord[]; today?: string }) {
+  const resolvedToday = today ?? todayInTimeZone(new Date(), "Asia/Kuala_Lumpur");
   return (
     <>
       <header className="leave-page-header">
@@ -1085,7 +1237,7 @@ export function HolidayAdmin({ holidays }: { holidays: HolidayRecord[] }) {
           </label>
           <label>
             Date
-            <input type="date" name="date" min="2026-08-27" required />
+            <input type="date" name="date" min={addCalendarDays(resolvedToday, 1)} required />
           </label>
           <button className="button primary">Add holiday</button>
         </Form>
@@ -1109,7 +1261,7 @@ export function HolidayAdmin({ holidays }: { holidays: HolidayRecord[] }) {
                     {h.observed ? " · observed" : ""}
                   </small>
                 </div>
-                {h.category === "company" && h.date > "2026-08-26" ? (
+                {h.category === "company" && h.date > resolvedToday ? (
                   <Form method="post">
                     <input
                       type="hidden"

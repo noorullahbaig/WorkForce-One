@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, describe, expect, test } from "vitest";
@@ -58,7 +59,7 @@ describe("employee leave workspace", () => {
         balances={balances}
         holidays={holidays}
       />,
-      "/employee/leave?month=2026-08",
+	      "/employee/leave?month=2026-08&date=2026-08-26",
     );
 
     expect(
@@ -88,6 +89,85 @@ describe("employee leave workspace", () => {
     expect(
       screen.getByRole("button", { name: "Submit leave request" }),
     ).not.toBeNull();
+    expect(screen.getByLabelText("From")).toHaveValue("2026-08-28");
+    expect(screen.getByLabelText("To")).toHaveValue("2026-08-28");
+  });
+
+  test("keeps the current date marked after another date is selected", async () => {
+    const user = userEvent.setup();
+    renderRoute(
+      <EmployeeLeaveWorkspace
+        employeeId="emp-001"
+        ownRecords={[]}
+        sharedRecords={[]}
+        balances={balances}
+        holidays={holidays}
+        today="2026-08-27"
+      />,
+      "/employee/leave?month=2026-08&date=2026-08-28",
+    );
+
+    await user.click(
+      within(
+        screen.getByRole("gridcell", { name: "Saturday, 29 August" }),
+      ).getByRole("link", { name: "29" }),
+    );
+    expect(
+      within(
+        screen.getByRole("gridcell", { name: "Thursday, 27 August" }),
+      ).getByRole("link", { name: "27" }),
+    ).toHaveAttribute("aria-current", "date");
+    expect(
+      screen.getByRole("heading", { name: "Saturday, 29 August" }),
+    ).not.toBeNull();
+  });
+
+  test("updates the request dates when the calendar selection changes", async () => {
+    const user = userEvent.setup();
+    renderRoute(
+      <EmployeeLeaveWorkspace
+        employeeId="emp-001"
+        ownRecords={[]}
+        sharedRecords={[]}
+        balances={balances}
+        holidays={holidays}
+        today="2026-08-27"
+        backdateDays={3}
+      />,
+      "/employee/leave?month=2026-08&request=new&date=2026-08-28",
+    );
+
+    await user.click(
+      within(
+        screen.getByRole("gridcell", { name: "Saturday, 29 August" }),
+      ).getByRole("link", { name: "29" }),
+    );
+    expect(screen.getByRole("complementary", { name: "Request leave" })).not.toBeNull();
+    expect(screen.getByLabelText("From")).toHaveValue("2026-08-29");
+    expect(screen.getByLabelText("To")).toHaveValue("2026-08-29");
+  });
+
+  test("blocks requests earlier than the configured backdate window", async () => {
+    const user = userEvent.setup();
+    renderRoute(
+      <EmployeeLeaveWorkspace
+        employeeId="emp-001"
+        ownRecords={[]}
+        sharedRecords={[]}
+        balances={balances}
+        holidays={holidays}
+        today="2026-08-27"
+        backdateDays={3}
+      />,
+      "/employee/leave?month=2026-08&request=new&date=2026-08-27",
+    );
+
+    const from = screen.getByLabelText("From");
+    expect(from).toHaveAttribute("min", "2026-08-24");
+    await user.clear(from);
+    await user.type(from, "2026-08-23");
+    expect(screen.getByRole("button", { name: "Submit leave request" })).toBeDisabled();
+    expect(screen.getByText("Leave cannot start before 24 August 2026.")).not.toBeNull();
   });
 
   test("previews working duration, excluded days, and balance impact", async () => {

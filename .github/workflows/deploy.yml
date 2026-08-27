@@ -1,24 +1,30 @@
 name: Deploy
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["verify"]
+    types: [completed]
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npx wrangler d1 migrations apply workforce-one-demo --remote
+      - name: Verify Cloudflare deploy credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - run: npx wrangler d1 execute workforce-one-demo --remote --file=./drizzle/seed.sql
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID repository secret"; exit 1; }
+      - run: npx wrangler d1 migrations apply workforce-one-demo --remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

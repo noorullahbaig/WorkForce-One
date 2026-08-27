@@ -1,0 +1,1 @@
+ALTER TABLE `companies` ADD `leave_backdate_days` integer DEFAULT 3 NOT NULL;

@@ -1,15 +1,16 @@
 import {
-	Form, Link, NavLink, useActionData, useLoaderData, useLocation, useNavigation,
+	Form, Link, NavLink, redirect, useActionData, useLoaderData, useLocation, useNavigation,
 } from "react-router";
 import {
 	Bell, CalendarDays, Check, ChevronRight, Clock3, Coffee, Download,
 	FileText, Fingerprint, Home, Landmark, LayoutDashboard, LogOut, Menu, Play, Plus, QrCode,
 	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Square, Trash2, UserCheck,
-	UserMinus, UserRound, Users, WalletCards, X,
+	UserMinus, UserRound, Users, WalletCards,
 } from "lucide-react";
 import { useState } from "react";
 import { calculateAttendance } from "../domain/attendance";
-import { calculateLeaveDurationHalfDays, calculateProjectedBalance, rangesOverlap, type LeaveDayPart } from "../domain/leave";
+import { calculateLeaveDurationHalfDays, calculateProjectedBalance, type LeaveDayPart } from "../domain/leave";
+import { getLeaveDatePolicyError } from "../domain/leave";
 import { cloudflareContext } from "../context";
 import { calculatePayroll, type PayrollBreakdown } from "../domain/payroll";
 import {
@@ -23,6 +24,7 @@ import {
 	type SharedLeaveRecord,
 } from "../features/leave/leave-ui";
 import { date, initials, money, time } from "../lib/format";
+import { todayInTimeZone } from "../lib/date";
 import { assertSameOrigin, requireUser, type DemoUser } from "../services/auth.server";
 import { resetDemoData } from "../services/reset.server";
 import type { Route } from "./+types/portal";
@@ -38,7 +40,7 @@ type Notification = { id:string; title:string; body:string; href:string|null; re
 type Balance = LeaveBalanceSummary;
 type PayrollAdjustment = { id:string; payrollRunId:string; employeeId:string; fullName:string; type:"allowance"|"bonus"|"deduction"|"pcb"; description:string; amountSen:number; reason:string|null; createdAt:string };
 type PolicyRecord = { id:string; name:string; effectiveFrom:string; verificationDate:string; normalDayMinutes:number; overtimeMultiplierBasisPoints:number; active:number };
-type CompanyInfo = { id:string; name:string; registrationNumber:string; timezone:string };
+type CompanyInfo = { id:string; name:string; registrationNumber:string; timezone:string; leaveBackdateDays:number };
 
 export const meta = () => [{ title: "Workforce One · Merdeka Coffee" }];
 
@@ -62,11 +64,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 		all<Balance>(bind(env.DB.prepare(`SELECT b.employee_id employeeId,b.leave_type_id leaveTypeId,t.name,t.paid,b.allocated_half_days allocatedHalfDays,COALESCE((SELECT SUM(a.delta_half_days) FROM leave_balance_adjustments a WHERE a.employee_id=b.employee_id AND a.leave_type_id=b.leave_type_id),0) adjustmentHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='approved'),0) approvedHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='pending'),0) pendingHalfDays FROM leave_balances b JOIN leave_types t ON t.id=b.leave_type_id JOIN employees e ON e.id=b.employee_id${employeeScope} ORDER BY e.full_name,t.name`))),
 		all<PayrollAdjustment>(bind(env.DB.prepare(`SELECT a.id, a.payroll_run_id payrollRunId, a.employee_id employeeId, e.full_name fullName, a.type, a.description, a.amount_sen amountSen, a.reason, a.created_at createdAt FROM payroll_adjustments a JOIN employees e ON e.id=a.employee_id${employeeScope} ORDER BY a.created_at DESC`))),
 		all<PolicyRecord>(env.DB.prepare(`SELECT id, name, effective_from effectiveFrom, verification_date verificationDate, normal_day_minutes normalDayMinutes, overtime_multiplier_basis_points overtimeMultiplierBasisPoints, active FROM payroll_policies ORDER BY created_at DESC`)),
-		env.DB.prepare("SELECT id, name, registration_number registrationNumber, timezone FROM companies WHERE id=?").bind(user.companyId).first<CompanyInfo>(),
+		env.DB.prepare("SELECT id, name, registration_number registrationNumber, timezone, leave_backdate_days leaveBackdateDays FROM companies WHERE id=?").bind(user.companyId).first<CompanyInfo>(),
 	]);
+	const resolvedCompanyInfo = companyInfo ?? { id: "company-merdeka", name: "Merdeka Coffee Sdn. Bhd.", registrationNumber: "202001028884", timezone: "Asia/Kuala_Lumpur", leaveBackdateDays: 3 };
 	return {
 		user, admin, company: "Merdeka Coffee",
-		companyInfo: companyInfo ?? { id: "company-merdeka", name: "Merdeka Coffee Sdn. Bhd.", registrationNumber: "202001028884", timezone: "Asia/Kuala_Lumpur" },
+		companyInfo: resolvedCompanyInfo,
+		today: todayInTimeZone(new Date(), resolvedCompanyInfo.timezone),
 		employees, attendance, leave, sharedLeave, holidays, payrolls, payslips, notifications, balances, adjustments, policies,
 	};
 }
@@ -79,6 +83,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 	const data = Object.fromEntries(await request.formData());
 	const intent = String(data.intent ?? "");
 	const now = new Date().toISOString();
+	const companySettings = await env.DB.prepare("SELECT timezone, leave_backdate_days leaveBackdateDays FROM companies WHERE id=?").bind(user.companyId).first<{timezone:string;leaveBackdateDays:number}>();
+	const today = todayInTimeZone(new Date(), companySettings?.timezone ?? "Asia/Kuala_Lumpur");
+	const leaveBackdateDays = Math.max(0, Math.floor(companySettings?.leaveBackdateDays ?? 3));
 
 	if (intent === "read-notification") {
 		await env.DB.prepare("UPDATE notifications SET read_at=? WHERE id=? AND user_id=?").bind(now, data.id, user.id).run();
@@ -92,6 +99,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 		const start = String(data.startDate); const end = String(data.endDate); const reason = String(data.reason ?? "").trim();
 		const dayPart:LeaveDayPart = data.dayPart === "morning" || data.dayPart === "afternoon" ? data.dayPart : "full";
 		if (!reason) return { error: "Choose valid dates and add a reason." };
+		const policyError = getLeaveDatePolicyError(start, today, leaveBackdateDays);
+		if (policyError) return { error: policyError };
 		const leaveType = await env.DB.prepare("SELECT id,paid FROM leave_types WHERE id=? AND company_id=?").bind(data.leaveTypeId,user.companyId).first<{id:string;paid:number}>();
 		if (!leaveType) return { error: "Choose a valid leave type." };
 		const holidayRows = await all<{date:string}>(env.DB.prepare("SELECT date FROM holidays WHERE company_id=? AND active=1 AND date BETWEEN ? AND ?").bind(user.companyId,start,end));
@@ -129,7 +138,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 			env.DB.prepare("INSERT INTO notifications (id,user_id,title,body,href,created_at) VALUES (?,'user-admin','Leave request needs review',?,'/admin/leave',?)").bind(crypto.randomUUID(),`${user.name} requested ${duration.durationHalfDays/2} day${duration.durationHalfDays===2?"":"s"} of leave.`,now),
 			env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.submitted','leave_request',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,requestId,JSON.stringify({durationHalfDays:duration.durationHalfDays,excludedDates:duration.excludedDates}),now),
 		]);
-		return { ok: "Leave request sent for approval." };
+		return redirect(`/employee/leave?month=${start.slice(0, 7)}&date=${start}&notice=leave-submitted`);
 	}
 	if (intent === "withdraw-leave" && user.employeeId) {
 		const result=await env.DB.prepare("UPDATE leave_requests SET status='withdrawn',cancelled_by=?,cancelled_at=?,updated_at=? WHERE id=? AND employee_id=? AND status='pending'").bind(user.id,now,now,data.id,user.employeeId).run();
@@ -138,7 +147,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 		return { ok:"Leave request withdrawn." };
 	}
 	if (intent === "employee-clock" && user.employeeId) {
-		const todayDate = "2026-08-26";
+		const todayDate = today;
 		const actionType = String(data.actionType ?? "");
 		const method = data.method === "qr" ? "qr" : "fingerprint";
 		
@@ -179,6 +188,16 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 	if (!adminPath) throw new Response("Forbidden", { status: 403 });
 
+	if (intent === "update-leave-policy") {
+		const days = Number(data.leaveBackdateDays);
+		if (!Number.isInteger(days) || days < 0 || days > 365) return { error: "Enter a whole number of days from 0 to 365." };
+		await env.DB.batch([
+			env.DB.prepare("UPDATE companies SET leave_backdate_days=?, updated_at=? WHERE id=?").bind(days, now, user.companyId),
+			env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'company.leave_policy_updated','company',?,?,?)").bind(crypto.randomUUID(), user.companyId, user.id, user.companyId, JSON.stringify({ leaveBackdateDays: days }), now),
+		]);
+		return { ok: "Leave policy updated." };
+	}
+
 	if (intent === "review-leave") {
 		const decision = data.decision === "approved" ? "approved" : "rejected";
 		const reviewNote=String(data.reviewNote??"").trim();
@@ -203,12 +222,12 @@ export async function action({ request, context }: Route.ActionArgs) {
 		return {ok:"Approved leave cancelled and balance restored."};
 	}
 	if(intent==="save-holiday"){
-		const name=String(data.name??"").trim(),holidayDate=String(data.date??"");if(!name||!/^\d{4}-\d{2}-\d{2}$/.test(holidayDate)||holidayDate<="2026-08-26")return {error:"Add a future holiday date and name."};
+		const name=String(data.name??"").trim(),holidayDate=String(data.date??"");if(!name||!/^(\d{4})-(\d{2})-(\d{2})$/.test(holidayDate)||holidayDate<=today)return {error:"Add a future holiday date and name."};
 		const overlap=await env.DB.prepare("SELECT id FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status IN ('pending','approved') AND l.start_date<=? AND l.end_date>=? LIMIT 1").bind(user.companyId,holidayDate,holidayDate).first();if(overlap)return {error:"This date already affects a pending or approved leave request."};
 		const id=crypto.randomUUID();await env.DB.batch([env.DB.prepare("INSERT INTO holidays (id,company_id,name,date,category,region,observed,active,created_at,updated_at) VALUES (?,?,?,?,'company','MY-PENANG',0,1,?,?)").bind(id,user.companyId,name,holidayDate,now,now),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'holiday.created','holiday',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,id,JSON.stringify({name,date:holidayDate}),now)]);return {ok:"Company holiday added."};
 	}
 	if(intent==="archive-holiday"){
-		const holiday=await env.DB.prepare("SELECT id,date,category,active FROM holidays WHERE id=? AND company_id=?").bind(data.id,user.companyId).first<{id:string;date:string;category:string;active:number}>();if(!holiday||holiday.category!=="company"||!holiday.active||holiday.date<="2026-08-26")return {error:"Only future company holidays can be archived."};const overlap=await env.DB.prepare("SELECT id FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status IN ('pending','approved') AND l.start_date<=? AND l.end_date>=? LIMIT 1").bind(user.companyId,holiday.date,holiday.date).first();if(overlap)return {error:"This holiday affects an existing leave request and cannot be archived."};await env.DB.batch([env.DB.prepare("UPDATE holidays SET active=0,updated_at=? WHERE id=? AND active=1").bind(now,holiday.id),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'holiday.archived','holiday',?,'{}',?)").bind(crypto.randomUUID(),user.companyId,user.id,holiday.id,now)]);return {ok:"Company holiday archived."};
+		const holiday=await env.DB.prepare("SELECT id,date,category,active FROM holidays WHERE id=? AND company_id=?").bind(data.id,user.companyId).first<{id:string;date:string;category:string;active:number}>();if(!holiday||holiday.category!=="company"||!holiday.active||holiday.date<=today)return {error:"Only future company holidays can be archived."};const overlap=await env.DB.prepare("SELECT id FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status IN ('pending','approved') AND l.start_date<=? AND l.end_date>=? LIMIT 1").bind(user.companyId,holiday.date,holiday.date).first();if(overlap)return {error:"This holiday affects an existing leave request and cannot be archived."};await env.DB.batch([env.DB.prepare("UPDATE holidays SET active=0,updated_at=? WHERE id=? AND active=1").bind(now,holiday.id),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'holiday.archived','holiday',?,'{}',?)").bind(crypto.randomUUID(),user.companyId,user.id,holiday.id,now)]);return {ok:"Company holiday archived."};
 	}
 	if(intent==="adjust-leave-balance"){
 		const employeeId=String(data.employeeId),leaveTypeId=String(data.leaveTypeId),deltaHalfDays=Number(data.deltaHalfDays),reason=String(data.reason??"").trim();if(!reason||!Number.isInteger(deltaHalfDays)||deltaHalfDays===0||Math.abs(deltaHalfDays)>20)return {error:"Choose a valid adjustment and add a reason."};const balance=await env.DB.prepare("SELECT b.allocated_half_days allocatedHalfDays,COALESCE((SELECT SUM(a.delta_half_days) FROM leave_balance_adjustments a WHERE a.employee_id=b.employee_id AND a.leave_type_id=b.leave_type_id),0) adjustmentHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='approved'),0) approvedHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='pending'),0) pendingHalfDays FROM leave_balances b JOIN employees e ON e.id=b.employee_id WHERE b.employee_id=? AND b.leave_type_id=? AND e.company_id=?").bind(employeeId,leaveTypeId,user.companyId).first<{allocatedHalfDays:number;adjustmentHalfDays:number;approvedHalfDays:number;pendingHalfDays:number}>();if(!balance)return {error:"Leave balance not found."};if(calculateProjectedBalance(balance).projectedHalfDays+deltaHalfDays<0)return {error:"This adjustment would make the projected balance negative."};const id=crypto.randomUUID();await env.DB.batch([env.DB.prepare("INSERT INTO leave_balance_adjustments (id,employee_id,leave_type_id,delta_half_days,reason,actor_user_id,created_at) VALUES (?,?,?,?,?,?,?)").bind(id,employeeId,leaveTypeId,deltaHalfDays,reason,user.id,now),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.balance_adjusted','leave_balance',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,`${employeeId}:${leaveTypeId}`,JSON.stringify({deltaHalfDays,reason}),now)]);return {ok:"Leave balance adjusted."};
@@ -222,7 +241,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 			await env.DB.prepare("UPDATE attendance_records SET clock_out=?,clock_out_method=?,worked_minutes=?,overtime_minutes=?,status='present',updated_at=? WHERE id=?").bind(clockOut,method,result.workedMinutes,result.overtimeMinutes,now,existing.id).run();
 			return { ok: `Clock-out captured · ${result.workedMinutes! / 60} hours worked.` };
 		}
-		await env.DB.prepare("INSERT INTO attendance_records (id,employee_id,work_date,clock_in,clock_in_method,status,created_at,updated_at) VALUES (?,?,'2026-08-26','2026-08-26T01:00:00.000Z',?,'missing_clock_out',?,?)").bind(crypto.randomUUID(),employeeId,method,now,now).run();
+		await env.DB.prepare("INSERT INTO attendance_records (id,employee_id,work_date,clock_in,clock_in_method,status,created_at,updated_at) VALUES (?,?,?, ?,?,'missing_clock_out',?,?)").bind(crypto.randomUUID(),employeeId,today,`${today}T01:00:00.000Z`,method,now,now).run();
 		return { ok: "Clock-in captured at 9:00 AM MYT." };
 	}
 	if (intent === "save-employee") {
@@ -304,7 +323,7 @@ async function finalisePayroll(id: string, user: DemoUser, env: Env) {
 		try {
 			const dur = calculateLeaveDurationHalfDays({ startDate: start, endDate: end, dayPart: req.dayPart as LeaveDayPart, holidayDates });
 			unpaidDaysByEmployee.set(req.employeeId, (unpaidDaysByEmployee.get(req.employeeId) || 0) + (dur.durationHalfDays / 2.0));
-		} catch (e) { /* skip if bound creates invalid range */ }
+		} catch { /* skip if bound creates invalid range */ }
 	}
 
 	let gross=0,deductions=0,net=0,employer=0; const statements:D1PreparedStatement[]=[]; const timestamp=new Date().toISOString();
@@ -420,11 +439,11 @@ function Empty({title,body}:{title:string;body:string}) { return <div className=
 function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}) {
 	if(path.includes("/employees/")) return <EmployeeInspector employee={data.employees.find((e)=>path.endsWith(e.id))}/>;
 	if(path==="/admin/employees") return <People data={data}/>;
-	if(path==="/admin/attendance/simulate") return <Simulator employees={data.employees} attendance={data.attendance}/>;
+	if(path==="/admin/attendance/simulate") return <Simulator employees={data.employees} attendance={data.attendance} today={data.today}/>;
 	if(path==="/admin/attendance") return <AttendancePage records={data.attendance}/>;
-	if(path==="/admin/leave/holidays") return <HolidayAdmin holidays={data.holidays}/>;
+	if(path==="/admin/leave/holidays") return <HolidayAdmin holidays={data.holidays} today={data.today}/>;
 	if(path==="/admin/leave/balances") return <BalanceAdmin balances={data.balances} employees={data.employees}/>;
-	if(path==="/admin/leave") return <AdminLeaveWorkspace records={data.leave} employees={data.employees} holidays={data.holidays} balances={data.balances}/>;
+	if(path==="/admin/leave") return <AdminLeaveWorkspace records={data.leave} employees={data.employees} holidays={data.holidays} balances={data.balances} today={data.today} backdateDays={data.companyInfo.leaveBackdateDays}/>;
 	if(path==="/admin/payroll/policies") return <Policy policies={data.policies}/>;
 	if(path.includes("/admin/payroll/")) return <PayrollDetail run={data.payrolls.find((r)=>path.endsWith(r.id))} employees={data.employees} attendance={data.attendance} adjustments={data.adjustments}/>;
 	if(path==="/admin/payroll") return <PayrollList runs={data.payrolls}/>;
@@ -435,8 +454,9 @@ function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loa
 
 function AdminHome({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	const pending=data.leave.filter((r)=>r.status==="pending").length, missing=data.attendance.filter((r)=>r.status==="missing_clock_out").length, draft=data.payrolls.find((r)=>r.status==="draft");
-	return <><PageHeader eyebrow="Wednesday · 26 August" title={`Good morning, ${data.user.name.split(" ")[0]}`} description="Here’s what needs attention across Merdeka Coffee." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Attendance terminal</Link>}/>
-		<section className="metric-strip"><article><span>Active people</span><strong>{data.employees.filter((e)=>e.status!=="inactive").length}</strong><small>Across {new Set(data.employees.map((e)=>e.department)).size} teams</small></article><article><span>Present today</span><strong>{data.attendance.filter((r)=>r.workDate==="2026-08-26"&&r.status!=="absent").length}<em> / {data.employees.length}</em></strong><small>{missing} missing clock-out{missing===1?"":"s"}</small></article><article><span>Leave requests</span><strong>{pending}</strong><small>Awaiting review</small></article><article><span>August payroll</span><strong>{draft?"Draft":"Finalised"}</strong><small>Pay day · 31 Aug</small></article></section>
+	const todayLabel=`${date(data.today,{weekday:"long"})} · ${date(data.today,{day:"numeric",month:"long"})}`;
+	return <><PageHeader eyebrow={todayLabel} title={`Good morning, ${data.user.name.split(" ")[0]}`} description="Here’s what needs attention across Merdeka Coffee." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Attendance terminal</Link>}/>
+		<section className="metric-strip"><article><span>Active people</span><strong>{data.employees.filter((e)=>e.status!=="inactive").length}</strong><small>Across {new Set(data.employees.map((e)=>e.department)).size} teams</small></article><article><span>Present today</span><strong>{data.attendance.filter((r)=>r.workDate===data.today&&r.status!=="absent").length}<em> / {data.employees.length}</em></strong><small>{missing} missing clock-out{missing===1?"":"s"}</small></article><article><span>Leave requests</span><strong>{pending}</strong><small>Awaiting review</small></article><article><span>August payroll</span><strong>{draft?"Draft":"Finalised"}</strong><small>Pay day · 31 Aug</small></article></section>
 		<div className="dashboard-grid"><section className="surface"><div className="section-head"><div><p className="eyebrow">Action queue</p><h2>Needs your attention</h2></div><span className="count">{pending+missing}</span></div>
 			{missing>0&&<Link className="action-row" to="/admin/attendance"><span className="action-icon warning"><Clock3/></span><span><strong>Complete missing clock-outs</strong><small>{missing} records can block payroll finalisation</small></span><ChevronRight/></Link>}
 			{pending>0&&<Link className="action-row" to="/admin/leave"><span className="action-icon emerald"><CalendarDays/></span><span><strong>Review leave requests</strong><small>{pending} request waiting for a decision</small></span><ChevronRight/></Link>}
@@ -647,9 +667,9 @@ function AttendancePage({records}:{records:Attendance[]}) {
 	</>;
 }
 
-function Simulator({employees, attendance}:{employees:Employee[]; attendance:Attendance[]}) {
+function Simulator({employees, attendance, today}:{employees:Employee[]; attendance:Attendance[]; today:string}) {
 	const [selectedId, setSelectedId] = useState(employees[0]?.id ?? "emp-001");
-	const empAttendance = attendance.filter((r) => r.employeeId === selectedId && r.workDate === "2026-08-26");
+	const empAttendance = attendance.filter((r) => r.employeeId === selectedId && r.workDate === today);
 	const openShift = empAttendance.find((r) => !r.clockOut);
 	const selectedEmp = employees.find((e) => e.id === selectedId);
 
@@ -906,18 +926,18 @@ function Notifications({items}:{items:Notification[]}){
 	</>;
 }
 
-function EmployeeRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}){const employee=data.employees[0];if(path==="/employee/attendance")return <EmployeeAttendance records={data.attendance} employee={employee}/>;if(path==="/employee/leave")return <EmployeeLeaveWorkspace employeeId={employee.id} ownRecords={data.leave} sharedRecords={data.sharedLeave} balances={data.balances} holidays={data.holidays}/>;if(path.includes("/employee/payslips/"))return <PayslipDetail slip={data.payslips.find((p)=>path.endsWith(p.id))}/>;if(path==="/employee/payslips")return <Payslips slips={data.payslips}/>;if(path==="/employee/notifications")return <Notifications items={data.notifications}/>;if(path==="/employee/profile")return <EmployeeProfile employee={employee}/>;return <EmployeeHome data={data} employee={employee}/>}
+function EmployeeRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}){const employee=data.employees[0];if(path==="/employee/attendance")return <EmployeeAttendance records={data.attendance} employee={employee} today={data.today}/>;if(path==="/employee/leave")return <EmployeeLeaveWorkspace employeeId={employee.id} ownRecords={data.leave} sharedRecords={data.sharedLeave} balances={data.balances} holidays={data.holidays} today={data.today} backdateDays={data.companyInfo.leaveBackdateDays}/>;if(path.includes("/employee/payslips/"))return <PayslipDetail slip={data.payslips.find((p)=>path.endsWith(p.id))}/>;if(path==="/employee/payslips")return <Payslips slips={data.payslips}/>;if(path==="/employee/notifications")return <Notifications items={data.notifications}/>;if(path==="/employee/profile")return <EmployeeProfile employee={employee}/>;return <EmployeeHome data={data} employee={employee}/>}
 
 function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;employee:Employee}){
-	const todayRecords=data.attendance.filter((r)=>r.workDate==="2026-08-26");
+	const todayRecords=data.attendance.filter((r)=>r.workDate===data.today);
 	const activeShift=todayRecords.find((r)=>!r.clockOut);
 	const totalMins=todayRecords.reduce((sum,r)=>sum+(r.workedMinutes??0),0);
 	const annual=data.balances.find((b)=>b.leaveTypeId==="leave-annual");
 	const annualAvailable=annual?calculateProjectedBalance(annual).availableHalfDays/2:0;
-	return <><div className="employee-hello"><div><p>Wednesday, 26 August</p><h1>Good morning, {employee.fullName.split(" ")[0]}</h1></div><div className="avatar large">{initials(employee.fullName)}</div></div><section className="employee-hero"><div><p className="eyebrow light">Today’s attendance</p><h2>{activeShift?"You’re clocked in":todayRecords.length>0?`${(totalMins/60).toFixed(1)}h worked today`:"Ready when you are"}</h2><p>{activeShift?`Since ${time(activeShift.clockIn)} · ${activeShift.clockInMethod === "qr" ? "QR" : "Fingerprint"} scan`:todayRecords.length>0?`Completed ${todayRecords.length} shift session${todayRecords.length===1?"":"s"} today`:"Start your workday with a secure scan."}</p></div><Link className="button paper" to="/employee/attendance">View activity <ChevronRight/></Link><span className="hero-orbit"><Clock3/></span></section><div className="employee-stats"><Link to="/employee/leave"><span><CalendarDays/></span><div><small>Annual leave</small><strong>{annualAvailable} days</strong></div><ChevronRight/></Link><Link to="/employee/payslips"><span><WalletCards/></span><div><small>Latest net pay</small><strong>{money(data.payslips[0]?.netPaySen)}</strong></div><ChevronRight/></Link></div><section className="employee-section"><div className="section-head"><div><p className="eyebrow">For you</p><h2>Recent updates</h2></div><Link to="/employee/notifications">View all</Link></div>{data.notifications.slice(0,3).map((n)=><Link className="update-row" to={n.href??"/employee/notifications"} key={n.id}><span className="action-icon emerald"><Bell/></span><span><strong>{n.title}</strong><small>{n.body}</small></span><ChevronRight/></Link>)}</section></>}
+	return <><div className="employee-hello"><div><p>{date(data.today,{weekday:"long",day:"numeric",month:"long"})}</p><h1>Good morning, {employee.fullName.split(" ")[0]}</h1></div><div className="avatar large">{initials(employee.fullName)}</div></div><section className="employee-hero"><div><p className="eyebrow light">Today’s attendance</p><h2>{activeShift?"You’re clocked in":todayRecords.length>0?`${(totalMins/60).toFixed(1)}h worked today`:"Ready when you are"}</h2><p>{activeShift?`Since ${time(activeShift.clockIn)} · ${activeShift.clockInMethod === "qr" ? "QR" : "Fingerprint"} scan`:todayRecords.length>0?`Completed ${todayRecords.length} shift session${todayRecords.length===1?"":"s"} today`:"Start your workday with a secure scan."}</p></div><Link className="button paper" to="/employee/attendance">View activity <ChevronRight/></Link><span className="hero-orbit"><Clock3/></span></section><div className="employee-stats"><Link to="/employee/leave"><span><CalendarDays/></span><div><small>Annual leave</small><strong>{annualAvailable} days</strong></div><ChevronRight/></Link><Link to="/employee/payslips"><span><WalletCards/></span><div><small>Latest net pay</small><strong>{money(data.payslips[0]?.netPaySen)}</strong></div><ChevronRight/></Link></div><section className="employee-section"><div className="section-head"><div><p className="eyebrow">For you</p><h2>Recent updates</h2></div><Link to="/employee/notifications">View all</Link></div>{data.notifications.slice(0,3).map((n)=><Link className="update-row" to={n.href??"/employee/notifications"} key={n.id}><span className="action-icon emerald"><Bell/></span><span><strong>{n.title}</strong><small>{n.body}</small></span><ChevronRight/></Link>)}</section></>}
 
-function EmployeeAttendance({records,employee}:{records:Attendance[];employee:Employee}){
-	const todayRecords=records.filter((r)=>r.workDate==="2026-08-26");
+function EmployeeAttendance({records,employee,today}:{records:Attendance[];employee:Employee;today:string}){
+	const todayRecords=records.filter((r)=>r.workDate===today);
 	const openSession=todayRecords.find((r)=>!r.clockOut);
 	const totalWorkedMins=todayRecords.reduce((sum,r)=>sum+(r.workedMinutes??0),0);
 	const completedCount=todayRecords.filter((r)=>r.clockOut).length;
@@ -972,7 +992,7 @@ function EmployeeAttendance({records,employee}:{records:Attendance[];employee:Em
 
 		<section className="attendance-today">
 			<div>
-				<p className="eyebrow light">Today’s Summary · 26 Aug</p>
+				<p className="eyebrow light">Today’s Summary · {date(today,{day:"numeric",month:"short"})}</p>
 				<h2>{openSession ? "Shift in progress" : todayRecords.length > 0 ? `${(totalWorkedMins/60).toFixed(1)} hours recorded` : "No activity recorded"}</h2>
 				<p>{todayRecords.length > 0 ? `${todayRecords.length} recorded session${todayRecords.length===1?"":"s"} · Cumulative daily total` : "Ready for next shift scan."}</p>
 			</div>
@@ -985,7 +1005,7 @@ function EmployeeAttendance({records,employee}:{records:Attendance[];employee:Em
 
 		<section className="surface history">
 			<div className="section-head"><h2>Activity history</h2><span>{employee.employeeCode}</span></div>
-			{records.map((r)=><div className="history-row" key={r.id}><div className="date-tile"><b>{new Date(`${r.workDate}T00:00:00`).getDate()}</b><small>Aug</small></div><span><strong>{r.clockIn?`${time(r.clockIn)} – ${time(r.clockOut)}`:"Leave"}</strong><small>{r.workedMinutes?`${Math.floor(r.workedMinutes/60)}h ${r.workedMinutes%60}m worked (${r.clockInMethod === "qr" ? "QR" : "Fingerprint"})`:r.status.replaceAll("_"," ")}</small></span><Status value={r.status}/></div>)}
+			{records.map((r)=><div className="history-row" key={r.id}><div className="date-tile"><b>{new Date(`${r.workDate}T00:00:00Z`).getUTCDate()}</b><small>{date(r.workDate,{month:"short"})}</small></div><span><strong>{r.clockIn?`${time(r.clockIn)} – ${time(r.clockOut)}`:"Leave"}</strong><small>{r.workedMinutes?`${Math.floor(r.workedMinutes/60)}h ${r.workedMinutes%60}m worked (${r.clockInMethod === "qr" ? "QR" : "Fingerprint"})`:r.status.replaceAll("_"," ")}</small></span><Status value={r.status}/></div>)}
 		</section>
 	</>;
 }

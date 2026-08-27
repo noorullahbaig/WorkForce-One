@@ -17,6 +17,7 @@ export const companies = sqliteTable("companies", {
 	name: text("name").notNull(),
 	registrationNumber: text("registration_number").notNull(),
 	timezone: text("timezone").notNull().default("Asia/Kuala_Lumpur"),
+	leaveBackdateDays: integer("leave_backdate_days").notNull().default(3),
 	...timestamps,
 });
 

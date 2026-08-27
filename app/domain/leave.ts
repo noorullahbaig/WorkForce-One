@@ -1,4 +1,27 @@
+import { addCalendarDays } from "../lib/date";
+
 export type LeaveDayPart = "full" | "morning" | "afternoon";
+
+export function getEarliestLeaveDate(today: string, backdateDays: number) {
+	return addCalendarDays(today, -Math.max(0, Math.floor(backdateDays)));
+}
+
+export function getLeaveDatePolicyError(
+	startDate: string,
+	today: string,
+	backdateDays: number,
+) {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return "Choose valid leave dates.";
+	const earliestDate = getEarliestLeaveDate(today, backdateDays);
+	if (startDate >= earliestDate) return null;
+	const formattedDate = new Intl.DateTimeFormat("en-MY", {
+		day: "numeric",
+		month: "long",
+		year: "numeric",
+		timeZone: "UTC",
+	}).format(new Date(`${earliestDate}T00:00:00Z`));
+	return `Leave cannot start before ${formattedDate}.`;
+}
 
 export function calculateLeaveDurationHalfDays(_input: {
 	startDate: string;

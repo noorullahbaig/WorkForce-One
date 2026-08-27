@@ -51,6 +51,7 @@ npm run check
 - Writes enforce same-origin checks. Login attempts are rate-limited. Admin/employee roles and payslip ownership are checked in loaders, actions and document resources.
 - Finalised payroll results contain immutable input and calculation snapshots. The finalisation key and D1 uniqueness constraints make repeat submissions safe.
 - Generated documents are returned from protected Worker routes and are never stored publicly.
+- `GET /healthz` reports migration and schema readiness without exposing application data.
 
 ## Malaysian payroll scope
 
@@ -79,3 +80,7 @@ npx wrangler deploy --env staging
 ```
 
 Repeat with the production database and environment after acceptance. Observability logs/traces and the nightly cron trigger are configured in `wrangler.jsonc`.
+
+Production deploys apply pending migrations only. The demo seed is intentionally not run during deployment because it resets the database; use it only for a disposable local or staging environment.
+
+The GitHub `Deploy` workflow requires repository secrets named `CLOUDFLARE_API_TOKEN` (with Workers and D1 permissions) and `CLOUDFLARE_ACCOUNT_ID`. Add them with `gh secret set` or in the repository settings before merging to `main`.

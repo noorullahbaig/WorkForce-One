@@ -72,3 +72,21 @@
 .calendar-row{display:contents}.calendar-weekday{color:#53625d}.calendar-day.outside{color:#596762}.approval-queue>a small,.coverage-context p,.coverage-context small{color:#596762}
 @media(max-width:1000px){.admin-mobile-tabs{display:grid;grid-template-columns:1fr 1fr;margin-bottom:12px;padding:3px;background:#eceee9;border-radius:9px}.admin-mobile-tabs a{padding:9px;text-align:center;border-radius:7px;color:var(--muted);font-size:.74rem;font-weight:700}.admin-mobile-tabs a.active{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(11,31,42,.08)}.admin-leave-workspace.mobile-calendar .approval-rail{display:none}.admin-leave-workspace.mobile-requests .calendar-canvas{display:none}}
 @media(max-width:700px){.leave-filters{display:grid;grid-template-columns:1fr 1fr}.leave-filters label{display:grid;gap:4px}.leave-filters select{width:100%}.leave-filters .legend{grid-column:1/-1;margin-left:0}}
+
+/* Leave calendar hardening: preserve a visible today marker and keep policy controls readable. */
+:root{--emerald:#08704f;--muted:#52615d}
+.calendar-day.today .calendar-date{box-shadow:inset 0 0 0 2px var(--emerald)}
+.calendar-day.today.selected .calendar-date{box-shadow:inset 0 0 0 2px #fff}
+.calendar-day.today:not(.selected) .calendar-date{background:transparent;color:var(--ink)}
+.leave-policy-card{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding:20px 22px;margin-bottom:18px}
+.leave-policy-card h2{margin:0 0 5px}
+.leave-policy-card p:not(.eyebrow){margin:0;color:var(--muted);font-size:.78rem;line-height:1.5;max-width:650px}
+.inline-policy-form{display:flex;align-items:flex-end;gap:10px;flex:0 0 auto}
+.inline-policy-form label{display:flex;flex-direction:column;gap:6px;font-size:.73rem;font-weight:700}
+.inline-policy-form input{width:130px;min-height:43px;border:1px solid #cbd2cd;border-radius:8px;background:#fff;padding:0 10px}
+.alert.success{background:var(--mint);border:1px solid #b8decf;color:var(--emerald-dark)}
+.alert.success svg{color:var(--emerald)}
+.admin-leave-summary{scrollbar-width:thin}
+@media(max-width:700px){.leave-policy-card{display:block}.inline-policy-form{margin-top:15px;align-items:flex-end}.inline-policy-form input{width:100%}.inline-policy-form label{flex:1}}
+@media(max-width:700px){.leave-inspector.open{position:static;inset:auto;max-height:none;box-shadow:none;overflow:visible}}
+.nav-label{color:#9fb3b1}.sidebar .account small{color:#9fb3b1}.bottom-nav a{color:#52615d}

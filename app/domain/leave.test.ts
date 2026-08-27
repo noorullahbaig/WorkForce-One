@@ -3,6 +3,8 @@ import {
 	calculateLeaveDurationHalfDays,
 	calculateProjectedBalance,
 	getCoverageSummary,
+	getEarliestLeaveDate,
+	getLeaveDatePolicyError,
 	rangesOverlap,
 } from "./leave";
 
@@ -45,6 +47,19 @@ describe("leave duration", () => {
 });
 
 describe("leave planning", () => {
+	test("calculates an inclusive company backdate cutoff", () => {
+		expect(getEarliestLeaveDate("2026-08-27", 3)).toBe("2026-08-24");
+		expect(getEarliestLeaveDate("2026-08-27", 0)).toBe("2026-08-27");
+	});
+
+	test("rejects dates before the configured backdate window", () => {
+		expect(getLeaveDatePolicyError("2026-08-23", "2026-08-27", 3)).toBe(
+			"Leave cannot start before 24 August 2026.",
+		);
+		expect(getLeaveDatePolicyError("2026-08-24", "2026-08-27", 3)).toBeNull();
+		expect(getLeaveDatePolicyError("2026-08-30", "2026-08-27", 3)).toBeNull();
+	});
+
 	test("detects inclusive date overlaps", () => {
 		expect(rangesOverlap("2026-08-25", "2026-08-27", "2026-08-27", "2026-08-28")).toBe(true);
 		expect(rangesOverlap("2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28")).toBe(false);
