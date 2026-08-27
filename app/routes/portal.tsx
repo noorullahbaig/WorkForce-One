@@ -47,6 +47,7 @@ export const meta = () => [{ title: "Workforce One · Merdeka Coffee" }];
 async function all<T>(statement: D1PreparedStatement) { return (await statement.all<T>()).results; }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
+  try {
 	const env = context.get(cloudflareContext).env;
 	const admin = new URL(request.url).pathname.startsWith("/admin");
 	const user = await requireUser(request, env, admin ? "admin" : "employee");

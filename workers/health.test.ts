@@ -21,6 +21,7 @@ describe("database health", () => {
 			ok: false,
 			migration: "pending",
 			holidaysTable: "missing",
+			leaveBackdate: "present",
 		});
 	});
 
@@ -43,6 +44,7 @@ describe("database health", () => {
 			ok: true,
 			migration: "applied",
 			holidaysTable: "present",
+			leaveBackdate: "present",
 		});
 	});
 });
