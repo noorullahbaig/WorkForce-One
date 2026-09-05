@@ -87,6 +87,9 @@ test("admin can switch between calendar planning and the review queue", async ({
 	await signIn(page, "Admin");
 	await page.goto("/admin/leave?month=2026-08");
 
+	if (testInfo.project.name === "desktop") {
+		await page.getByRole("button", { name: "Filters" }).click();
+	}
 	await expect(page.getByRole("combobox", { name: "Department" })).toBeVisible();
 	await expect(page.getByRole("combobox", { name: "Employee" })).toBeVisible();
 	await expect(page.getByRole("combobox", { name: "Events" })).toBeVisible();
