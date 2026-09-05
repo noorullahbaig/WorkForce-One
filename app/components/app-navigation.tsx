@@ -112,18 +112,20 @@ export function AppNavigation({
       : "Expand navigation";
   const railToggleTooltipId = "navigation-tooltip-toggle";
   const signOutTooltipId = "navigation-tooltip-sign-out";
+  const navigationId = `navigation-rail-${role}`;
 
   return (
     <>
       <aside className={railClassName} aria-label={`${admin ? "Administrator" : "Employee"} workspace`}>
         <div className="navigation-rail-header">
-          <div className="wordmark inverse"><span>W1</span><span className="navigation-rail-copy">Workforce One</span></div>
+          <div className="wordmark inverse"><span>W1</span><strong className="navigation-rail-copy">Workforce One</strong></div>
           <button
             type="button"
             className="navigation-rail-toggle"
             aria-describedby={expanded ? undefined : railToggleTooltipId}
             aria-label={railControlLabel}
-            aria-pressed={!expanded}
+            aria-controls={navigationId}
+            aria-expanded={expanded}
             disabled={forceExpanded}
             onClick={() => updatePreference(expanded ? "collapsed" : "expanded")}
           >
@@ -132,7 +134,7 @@ export function AppNavigation({
           </button>
         </div>
         <p className="nav-label">Workspace</p>
-        <nav aria-label={admin ? "Administrator navigation" : "Employee navigation"}>
+        <nav id={navigationId} aria-label={admin ? "Administrator navigation" : "Employee navigation"}>
           {items.map(({ to, icon: Icon, label, tour }) => {
             const tooltipId = `navigation-tooltip-${tour}`;
             return (

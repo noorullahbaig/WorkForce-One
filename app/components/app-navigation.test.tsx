@@ -33,6 +33,22 @@ beforeEach(() => localStorage.clear());
 afterEach(cleanup);
 
 describe("AppNavigation", () => {
+  test("exposes the desktop navigation state through its controlling button", async () => {
+    const user = userEvent.setup();
+    renderNavigation();
+
+    const control = screen.getByRole("button", { name: "Collapse navigation" });
+    const navigation = screen.getByRole("navigation", { name: "Administrator navigation" });
+    expect(control).toHaveAttribute("aria-expanded", "true");
+    expect(control).toHaveAttribute("aria-controls", navigation.id);
+
+    await user.click(control);
+    expect(screen.getByRole("button", { name: "Expand navigation" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
   test("persists a collapsed desktop rail independently for each role", async () => {
     const user = userEvent.setup();
     const { unmount } = renderNavigation();
