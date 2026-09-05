@@ -1,16 +1,16 @@
 import {
+  BadgeDollarSign,
   Bell,
-  CalendarDays,
-  Clock3,
-  FileText,
+  CalendarRange,
+  ChartNoAxesCombined,
+  ChevronLeft,
+  ChevronRight,
+  Fingerprint,
   Home,
-  LayoutDashboard,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ReceiptText,
   UserRound,
-  Users,
-  WalletCards,
+  UsersRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -31,19 +31,19 @@ type NavigationItem = {
 const navigationStorageVersion = "v1";
 
 const adminItems: NavigationItem[] = [
-  { to: "/admin", icon: LayoutDashboard, label: "Home", tour: "admin-home" },
-  { to: "/admin/employees", icon: Users, label: "People", tour: "admin-people" },
-  { to: "/admin/attendance", icon: Clock3, label: "Attendance", tour: "admin-attendance" },
-  { to: "/admin/leave", icon: CalendarDays, label: "Leave", tour: "admin-leave" },
-  { to: "/admin/payroll", icon: WalletCards, label: "Payroll", tour: "admin-payroll" },
-  { to: "/admin/reports", icon: FileText, label: "Reports", tour: "admin-reports" },
+  { to: "/admin", icon: Home, label: "Home", tour: "admin-home" },
+  { to: "/admin/employees", icon: UsersRound, label: "People", tour: "admin-people" },
+  { to: "/admin/attendance", icon: Fingerprint, label: "Attendance", tour: "admin-attendance" },
+  { to: "/admin/leave", icon: CalendarRange, label: "Leave", tour: "admin-leave" },
+  { to: "/admin/payroll", icon: BadgeDollarSign, label: "Payroll", tour: "admin-payroll" },
+  { to: "/admin/reports", icon: ChartNoAxesCombined, label: "Reports", tour: "admin-reports" },
 ];
 
 const employeeItems: NavigationItem[] = [
   { to: "/employee", icon: Home, label: "Home", tour: "employee-home" },
-  { to: "/employee/attendance", icon: Clock3, label: "Attendance", tour: "employee-attendance" },
-  { to: "/employee/leave", icon: CalendarDays, label: "Leave", tour: "employee-leave" },
-  { to: "/employee/payslips", icon: WalletCards, label: "Payslips", tour: "employee-payslips" },
+  { to: "/employee/attendance", icon: Fingerprint, label: "Attendance", tour: "employee-attendance" },
+  { to: "/employee/leave", icon: CalendarRange, label: "Leave", tour: "employee-leave" },
+  { to: "/employee/payslips", icon: ReceiptText, label: "Payslips", tour: "employee-payslips" },
   { to: "/employee/profile", icon: UserRound, label: "Profile", tour: "employee-profile" },
 ];
 
@@ -129,7 +129,7 @@ export function AppNavigation({
             disabled={forceExpanded}
             onClick={() => updatePreference(expanded ? "collapsed" : "expanded")}
           >
-            {expanded ? <PanelLeftClose aria-hidden="true" /> : <PanelLeftOpen aria-hidden="true" />}
+            {expanded ? <ChevronLeft aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
             {!expanded && <NavigationTooltip id={railToggleTooltipId} label="Expand navigation" />}
           </button>
         </div>

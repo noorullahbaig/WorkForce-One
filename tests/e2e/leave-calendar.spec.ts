@@ -87,6 +87,7 @@ test("admin can switch between calendar planning and the review queue", async ({
 	await signIn(page, "Admin");
 	await page.goto("/admin/leave?month=2026-08");
 
+	await page.getByRole("button", { name: "Filters" }).click();
 	await expect(page.getByRole("combobox", { name: "Department" })).toBeVisible();
 	await expect(page.getByRole("combobox", { name: "Employee" })).toBeVisible();
 	await expect(page.getByRole("combobox", { name: "Events" })).toBeVisible();
@@ -99,4 +100,18 @@ test("admin can switch between calendar planning and the review queue", async ({
 
 	const accessibility = await new AxeBuilder({ page }).analyze();
 	expect(accessibility.violations.map(({ id, nodes }) => ({ id, targets: nodes.map((node) => node.target.join(" ")) }))).toEqual([]);
+});
+
+test("admin calendar fits the initial laptop viewport", async ({ page }, testInfo) => {
+	test.skip(testInfo.project.name !== "desktop", "Laptop viewport assertion runs once.");
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await signIn(page, "Admin");
+	await page.goto("/admin/leave?month=2026-08");
+
+	const calendar = page.getByRole("grid", { name: "August 2026 shared leave calendar" });
+	await expect(calendar).toBeVisible();
+	const calendarBox = await calendar.boundingBox();
+	expect(calendarBox).not.toBeNull();
+	expect(calendarBox!.y + calendarBox!.height).toBeLessThanOrEqual(768);
+	expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(768);
 });
