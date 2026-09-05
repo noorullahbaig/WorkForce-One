@@ -53,6 +53,27 @@ test("administrator task workspaces fit the laptop viewport", async ({ page }, t
 	}
 });
 
+test("desktop rail and workspace stay aligned while collapsing", async ({ page }, testInfo) => {
+	test.skip(testInfo.project.name !== "desktop", "Desktop rail is hidden at smaller breakpoints.");
+	await chooseRole(page, "Admin");
+	const skipTour = page.getByRole("button", { name: "Skip tour" });
+	await expect(skipTour).toBeVisible();
+	await skipTour.click();
+
+	await page.getByRole("button", { name: "Collapse navigation" }).click();
+	await page.waitForTimeout(70);
+	const transitionGap = await page.evaluate(() => {
+		const rail = document.querySelector(".navigation-rail")!.getBoundingClientRect();
+		const workspace = document.querySelector(".workspace")!.getBoundingClientRect();
+		return Math.abs(rail.right - workspace.left);
+	});
+	expect(transitionGap).toBeLessThan(1);
+
+	await expect(page.getByRole("button", { name: "Expand navigation" })).toBeVisible();
+	await page.reload();
+	await expect(page.locator(".navigation-rail")).toHaveClass(/is-collapsed/);
+});
+
 test("payroll review controls and coach mark fit the mobile viewport", async ({ page }, testInfo) => {
 	test.skip(testInfo.project.name !== "mobile", "Responsive layout is covered by the mobile project.");
 	await chooseRole(page, "Admin");
