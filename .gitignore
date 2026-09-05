@@ -206,3 +206,10 @@ dist
 /test-results/
 /playwright-report/
 .playwright-cli/
+
+# Local deployment and patch scratch files
+/cookie.txt
+/patch.js
+/patch.cjs
+/patch_tests.cjs
+/test-cf.js
