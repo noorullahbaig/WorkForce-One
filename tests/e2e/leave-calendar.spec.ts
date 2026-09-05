@@ -19,7 +19,7 @@ async function signIn(page: import("@playwright/test").Page, role: "Admin" | "Em
 	await expect(page.getByRole("grid", { name: "January 2099 shared leave calendar" })).toBeVisible();
 	await expect(page.getByRole("complementary", { name: "Request leave" })).toBeVisible();
 
-	await page.getByLabel("To").fill("2099-01-05");
+	await page.getByLabel("To", { exact: true }).fill("2099-01-05");
 	await expect(page.getByText("2 working days")).toBeVisible();
 	await expect(page.getByText("2 non-working days excluded")).toBeVisible();
 
