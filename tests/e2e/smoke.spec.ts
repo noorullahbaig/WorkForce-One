@@ -5,6 +5,7 @@ test("admin can sign in and reach live people and payroll data", async ({ page }
 	await page.goto("/login");
 	await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
 	await page.getByRole("button", { name: /Admin/ }).click();
+	await expect(page.getByRole("button", { name: /Admin/ })).toHaveAttribute("aria-pressed", "true");
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await page.getByRole("button", { name: "Skip tour" }).click();
 	await expect(page.getByRole("heading", { name: /Good morning/ })).toBeVisible();

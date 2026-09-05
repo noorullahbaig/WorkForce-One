@@ -1,6 +1,6 @@
 import { finalisePayroll } from '../features/payroll/finalise.server';
 import { attendanceClockAction } from '../features/attendance/clock.server';
-import { PageHeader, Status, Empty } from '../components/portal-ui';
+import { ActionToast, Empty, NavigationFeedback, PageHeader, Status } from '../components/portal-ui';
 import { AttendancePage, Simulator, EmployeeAttendance } from '../features/attendance/attendance-ui';
 import { AdminCorrections } from '../features/attendance/correction-ui';
 import { listCorrections, submitCorrection, reviewCorrection } from '../features/attendance/corrections.server';
@@ -282,9 +282,10 @@ export default function Portal() {
 	const data=useLoaderData<typeof loader>(); const location=useLocation(); const actionData=useActionData<typeof action>(); const navigation=useNavigation();
 	const [tourReplay, setTourReplay] = useState(0);
 	const path=location.pathname; const busy=navigation.state!=="idle";
-	return <div className={data.admin?"app-shell admin-shell":"app-shell employee-shell"}>
+	const intent = String(navigation.formData?.get("intent") ?? "");
+	return <div className={data.admin?"app-shell admin-shell":"app-shell employee-shell"} data-navigation={navigation.state}>
 		<AppNavigation admin={data.admin} user={data.user} unread={data.notifications.filter((item)=>!item.readAt).length}/>
-		<main className="workspace">
+		<main className={busy?"workspace is-navigating":"workspace"} aria-busy={busy}>
 			<header className="topbar">
 				<div>
 					<MobileMenu admin={data.admin}/>
@@ -296,8 +297,9 @@ export default function Portal() {
 				</div>
 			</header>
 			{busy&&<div className="route-progress"/>}
-			{actionData && ("ok" in actionData || "error" in actionData) && <div className={`toast ${"error" in actionData?"danger":"success"}`}>{"error" in actionData?actionData.error:actionData.ok}</div>}
-			<div className="page-wrap">{data.admin?<AdminRouter path={path} data={data}/>:<EmployeeRouter path={path} data={data}/>}</div>
+			{busy&&<NavigationFeedback state={navigation.state === "submitting" ? "submitting" : "loading"} intent={intent} destination={navigation.location?.pathname}/>}
+			{actionData && ("ok" in actionData || "error" in actionData) && <ActionToast key={"error" in actionData?actionData.error:actionData.ok} result={actionData}/>}
+			<div className={busy?"page-wrap":"page-wrap page-arrival"}>{data.admin?<AdminRouter path={path} data={data}/>:<EmployeeRouter path={path} data={data}/>}</div>
 		</main>
 		<ProductTour role={data.admin?"admin":"employee"} replayToken={tourReplay}/>
 	</div>;
@@ -363,11 +365,12 @@ function CompanyDropdown({companyInfo, employeeCount}:{companyInfo:CompanyInfo; 
 function MobileMenu({admin}:{admin:boolean}) { const links=admin?[["/admin","Home"],["/admin/employees","People"],["/admin/attendance","Attendance"],["/admin/leave","Leave"],["/admin/payroll","Payroll"],["/admin/payroll/policies","Policies"],["/admin/reports","Reports"],["/admin/notifications","Notifications"]]:[["/employee","Home"],["/employee/attendance","Attendance"],["/employee/leave","Leave"],["/employee/payslips","Payslips"],["/employee/notifications","Notifications"],["/employee/profile","Profile"]]; return <details className="mobile-menu"><summary aria-label="Open navigation"><Menu/></summary><div className="mobile-menu-sheet"><div><strong>Navigate</strong><span>Workforce One</span></div><nav>{links.map(([to,label])=><Link key={to} to={to}>{label}<ChevronRight/></Link>)}</nav><Form method="post" action="/logout"><button className="button secondary wide"><LogOut/>Sign out</button></Form></div></details> }
 
 function AppNavigation({admin,user,unread}:{admin:boolean;user:DemoUser;unread:number}) {
-	const adminItems=[["/admin",LayoutDashboard,"Home","admin-home"],["/admin/employees",Users,"People","admin-people"],["/admin/attendance",Clock3,"Time","admin-attendance"],["/admin/payroll",WalletCards,"Payroll","admin-payroll"],["/admin/reports",FileText,"Reports","admin-reports"]] as const;
+	const adminItems=[["/admin",LayoutDashboard,"Home","admin-home"],["/admin/employees",Users,"People","admin-people"],["/admin/attendance",Clock3,"Attendance","admin-attendance"],["/admin/leave",CalendarDays,"Leave","admin-leave"],["/admin/payroll",WalletCards,"Payroll","admin-payroll"],["/admin/reports",FileText,"Reports","admin-reports"]] as const;
 	const employeeItems=[["/employee",Home,"Home","employee-home"],["/employee/attendance",Clock3,"Attendance","employee-attendance"],["/employee/leave",CalendarDays,"Leave","employee-leave"],["/employee/payslips",WalletCards,"Payslips","employee-payslips"],["/employee/profile",UserRound,"Profile","employee-profile"]] as const;
 	const items=admin?adminItems:employeeItems;
-	return <><aside className="sidebar"><div className="wordmark inverse"><span>W1</span> Workforce One</div><p className="nav-label">Workspace</p><nav>{items.map(([to,Icon,label,tour])=><NavLink data-tour={tour} end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{label}</span>{label==="Home"&&unread>0?<b>{unread}</b>:null}</NavLink>)}</nav><div className="sidebar-foot"><Link data-tour={admin?undefined:"employee-notifications"} to={admin?"/admin/notifications":"/employee/notifications"}><Bell/>Notifications{unread?<b>{unread}</b>:null}</Link><Form method="post" action="/logout"><button><LogOut/>Sign out</button></Form><div className="account"><div className="avatar">{initials(user.name)}</div><span><strong>{user.name}</strong><small>{admin?"People administrator":"Employee"}</small></span></div></div></aside>
-	<nav className="bottom-nav">{items.slice(0,5).map(([to,Icon,label,tour],index)=><NavLink data-tour={tour} end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{admin&&index===4?"More":label}</span></NavLink>)}</nav></>;
+	const bottomItems=admin?adminItems.filter(([, , label])=>label!=="Reports"):employeeItems;
+	return <><aside className="sidebar"><div className="wordmark inverse"><span>W1</span> Workforce One</div><p className="nav-label">Workspace</p><nav aria-label={admin?"Administrator navigation":"Employee navigation"}>{items.map(([to,Icon,label,tour])=><NavLink data-tour={tour} end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{label}</span>{label==="Home"&&unread>0?<b>{unread}</b>:null}</NavLink>)}</nav><div className="sidebar-foot"><Link data-tour={admin?undefined:"employee-notifications"} to={admin?"/admin/notifications":"/employee/notifications"}><Bell/>Notifications{unread?<b>{unread}</b>:null}</Link><Form method="post" action="/logout"><button><LogOut/>Sign out</button></Form><div className="account"><div className="avatar">{initials(user.name)}</div><span><strong>{user.name}</strong><small>{admin?"People administrator":"Employee"}</small></span></div></div></aside>
+	<nav className="bottom-nav" aria-label="Primary navigation">{bottomItems.map(([to,Icon,label,tour])=><NavLink data-tour={tour} end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{label}</span></NavLink>)}</nav></>;
 }
 
 function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}) {

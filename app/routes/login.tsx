@@ -1,5 +1,6 @@
 import { Form, Link, redirect, useActionData, useNavigation, useSearchParams } from "react-router";
-import { ArrowRight, Lock, ShieldCheck, User } from "lucide-react";
+import { ArrowRight, CheckCircle2, Lock, ShieldCheck, User } from "lucide-react";
+import { useState } from "react";
 import { z } from "zod";
 import { assertSameOrigin, authenticate, createSession, getUser } from "../services/auth.server";
 import { cloudflareContext } from "../context";
@@ -32,6 +33,7 @@ export default function Login() {
 	const actionData = useActionData<typeof action>();
 	const navigation = useNavigation();
 	const [search] = useSearchParams();
+	const [selectedRole, setSelectedRole] = useState<"admin" | "employee" | null>(null);
 	return (
 		<main className="login-page">
 			<section className="login-story">
@@ -63,11 +65,11 @@ export default function Login() {
 						<input type="hidden" name="returnTo" value={search.get("returnTo") ?? ""} />
 						<label>
 							Email address
-							<input name="email" type="email" autoComplete="username" required />
+							<input name="email" type="email" autoComplete="username" required onInput={()=>setSelectedRole(null)} />
 						</label>
 						<label>
 							Password
-							<input name="password" type="password" autoComplete="current-password" required />
+							<input name="password" type="password" autoComplete="current-password" required onInput={()=>setSelectedRole(null)} />
 						</label>
 						<button className="button primary wide" disabled={navigation.state !== "idle"}>
 							{navigation.state !== "idle" ? "Signing in…" : <>Enter workspace <ArrowRight size={18} /></>}
@@ -75,15 +77,17 @@ export default function Login() {
 					</Form>
 					<div className="demo-divider">Choose a role</div>
 					<div className="demo-accounts">
-						<button type="button" onClick={() => fill("admin@workforceone.demo", "AdminDemo#2026")}>
+						<button type="button" className={selectedRole === "admin" ? "selected" : ""} aria-pressed={selectedRole === "admin"} onClick={() => { fill("admin@workforceone.demo", "AdminDemo#2026"); setSelectedRole("admin"); }}>
 							<span className="demo-icon"><ShieldCheck size={18} /></span>
 							<strong>Admin</strong>
 							<small>Payroll & HR</small>
+							{selectedRole === "admin" && <CheckCircle2 className="role-selected" aria-label="Selected"/>}
 						</button>
-						<button type="button" onClick={() => fill("employee@workforceone.demo", "EmployeeDemo#2026")}>
+						<button type="button" className={selectedRole === "employee" ? "selected" : ""} aria-pressed={selectedRole === "employee"} onClick={() => { fill("employee@workforceone.demo", "EmployeeDemo#2026"); setSelectedRole("employee"); }}>
 							<span className="demo-icon"><User size={18} /></span>
 							<strong>Employee</strong>
 							<small>Farah’s portal</small>
+							{selectedRole === "employee" && <CheckCircle2 className="role-selected" aria-label="Selected"/>}
 						</button>
 					</div>
 					<p className="login-session-note">
