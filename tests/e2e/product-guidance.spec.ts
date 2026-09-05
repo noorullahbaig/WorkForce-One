@@ -39,6 +39,20 @@ test("first-login tours are role-specific and can be replayed", async ({ page },
 	await expect(page.getByRole("dialog")).toContainText("Step 1 of 5");
 });
 
+test("administrator task workspaces fit the laptop viewport", async ({ page }, testInfo) => {
+	test.skip(testInfo.project.name !== "desktop", "Laptop viewport assertion runs once.");
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await chooseRole(page, "Admin");
+	const skipTour = page.getByRole("button", { name: "Skip tour" });
+	await expect(skipTour).toBeVisible();
+	await skipTour.click();
+
+	for (const path of ["/admin/employees", "/admin/attendance", "/admin/payroll", "/admin/reports"]) {
+		await page.goto(path);
+		await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(768);
+	}
+});
+
 test("payroll review controls and coach mark fit the mobile viewport", async ({ page }, testInfo) => {
 	test.skip(testInfo.project.name !== "mobile", "Responsive layout is covered by the mobile project.");
 	await chooseRole(page, "Admin");

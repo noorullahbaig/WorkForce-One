@@ -106,7 +106,7 @@ export function AppNavigation({
 
   const railClassName = `sidebar navigation-rail ${expanded ? "is-expanded" : "is-collapsed"}`;
   const railControlLabel = forceExpanded
-    ? "Navigation remains expanded during product tour"
+    ? "Navigation is expanded for this guide"
     : expanded
       ? "Collapse navigation"
       : "Expand navigation";

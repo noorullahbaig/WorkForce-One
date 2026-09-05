@@ -6,6 +6,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigation } from "react-router";
 
 type NavigationState = "idle" | "loading" | "submitting";
 
@@ -125,6 +126,103 @@ export function PageHeader({
     </div>
   );
 }
+
+export function TaskWorkspace({
+  label,
+  bounded = false,
+  children,
+  className = "",
+}: {
+  label: string;
+  bounded?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={`task-workspace${bounded ? " is-bounded" : ""}${className ? ` ${className}` : ""}`}
+      aria-label={label}
+    >
+      {children}
+    </section>
+  );
+}
+
+export function WorkspaceHeader({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <header className="workspace-header">
+      <div>
+        {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
+        <h1>{title}</h1>
+        {description ? <p>{description}</p> : null}
+      </div>
+      {action ? <div className="workspace-actions">{action}</div> : null}
+    </header>
+  );
+}
+
+export function WorkspaceToolbar({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`workspace-toolbar${className ? ` ${className}` : ""}`}
+      role="toolbar"
+      aria-label={label}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function PendingButton({
+  intent,
+  pendingLabel,
+  children,
+  disabled,
+  className = "button primary",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  intent: string;
+  pendingLabel: string;
+}) {
+  const navigation = useNavigation();
+  const pending =
+    navigation.state === "submitting" &&
+    String(navigation.formData?.get("intent") ?? "") === intent;
+  return (
+    <button
+      {...props}
+      className={className}
+      disabled={disabled || pending}
+      aria-busy={pending}
+    >
+      {pending ? (
+        <>
+          <LoaderCircle className="button-spinner" aria-hidden="true" />
+          {pendingLabel}
+        </>
+      ) : children}
+    </button>
+  );
+}
+
 export function Status({ value }: { value: string }) {
   return (
     <span className={`status ${value.replaceAll("_", "-")}`}>

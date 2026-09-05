@@ -8,7 +8,13 @@ import {
   RotateCcw,
   Square,
 } from "lucide-react";
-import { PageHeader, Status, Empty } from "../../components/portal-ui";
+import {
+  PageHeader,
+  Status,
+  Empty,
+  TaskWorkspace,
+  WorkspaceHeader,
+} from "../../components/portal-ui";
 import { date, time, initials } from "../../lib/format";
 import type { Attendance, CorrectionRequest } from "./types";
 import { EmployeeCorrectionHistory } from "./correction-ui";
@@ -27,8 +33,8 @@ export function AttendancePage({
   const displayRecords = tab === "exceptions" ? exceptions : records;
 
   return (
-    <>
-      <PageHeader
+    <TaskWorkspace label="Attendance records" bounded>
+      <WorkspaceHeader
         eyebrow="Time"
         title="Attendance"
         description="Live records from fingerprint, QR and manual corrections."
@@ -57,7 +63,7 @@ export function AttendancePage({
           Needs attention <b>{exceptions.length}</b>
         </button>
       </div>
-      <section className="table surface attendance-table">
+      <section className="table surface attendance-table task-scroll-surface">
         <div className="table-head">
           <span>Employee</span>
           <span>Date</span>
@@ -119,7 +125,7 @@ export function AttendancePage({
           />
         )}
       </section>
-    </>
+    </TaskWorkspace>
   );
 }
 

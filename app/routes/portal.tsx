@@ -1,6 +1,16 @@
 import { finalisePayroll } from '../features/payroll/finalise.server';
 import { attendanceClockAction } from '../features/attendance/clock.server';
-import { ActionToast, Empty, NavigationFeedback, PageHeader, Status } from '../components/portal-ui';
+import {
+	ActionToast,
+	Empty,
+	NavigationFeedback,
+	PageHeader,
+	PendingButton,
+	Status,
+	TaskWorkspace,
+	WorkspaceHeader,
+	WorkspaceToolbar,
+} from '../components/portal-ui';
 import { AttendancePage, Simulator, EmployeeAttendance } from '../features/attendance/attendance-ui';
 import { AdminCorrections } from '../features/attendance/correction-ui';
 import { listCorrections, submitCorrection, reviewCorrection } from '../features/attendance/corrections.server';
@@ -417,9 +427,9 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 		return matchesQuery && matchesDept && matchesType && matchesStatus;
 	});
 
-	return <>
-		<PageHeader eyebrow="People" title="Employee directory" description={`${data.employees.length} people · employment, pay and statutory profiles`} action={<button className="button primary" onClick={()=>setShowAddForm(true)}><Plus/>Add employee</button>}/>
-		<div className="toolbar">
+	return <TaskWorkspace label="Employee directory" bounded>
+		<WorkspaceHeader eyebrow="People" title="Employee directory" description={`${data.employees.length} people · employment, pay and statutory profiles`} action={<button className="button primary" onClick={()=>setShowAddForm(true)}><Plus/>Add employee</button>}/>
+		<WorkspaceToolbar label="Employee controls">
 			<div className="search">
 				<Search/>
 				<input aria-label="Search employees" placeholder="Search name, role or employee ID" value={query} onChange={(event)=>setQuery(event.target.value)}/>
@@ -427,7 +437,7 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 			<button className={`button ${showFilters || hasActiveFilters ? "primary" : "secondary"}`} onClick={()=>setShowFilters(!showFilters)}>
 				<SlidersHorizontal/>Filters {hasActiveFilters ? "(Active)" : ""}
 			</button>
-		</div>
+		</WorkspaceToolbar>
 
 		{showFilters && (
 			<div className="filter-panel">
@@ -468,12 +478,12 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 			</div>
 		)}
 
-		<section className="table surface">
+		<section className="table surface task-scroll-surface">
 			<div className="table-head"><span>Employee</span><span>Team & role</span><span>Pay profile</span><span>Status</span><span/></div>
 			{filtered.length ? filtered.map((e)=><Link className="table-row" to={`/admin/employees/${e.id}`} key={e.id}><span className="person"><i>{initials(e.fullName)}</i><span><strong>{e.fullName}</strong><small>{e.employeeCode} · {e.email}</small></span></span><span><strong>{e.department}</strong><small>{e.position}</small></span><span><strong>{e.salaryType==="monthly"?money(e.monthlySalarySen):`${money(e.hourlyRateSen)}/hr`}</strong><small>{e.employmentType.replace("_"," ")}</small></span><Status value={e.status}/><ChevronRight/></Link>) : <Empty title="No matching employees" body="Try adjusting your search or filters."/>}
 		</section>
 		<EmployeeForm open={showAddForm} onToggle={()=>setShowAddForm(!showAddForm)}/>
-	</>;
+	</TaskWorkspace>;
 }
 
 function EmployeeForm({employee, open, onToggle}:{employee?:Employee; open?:boolean; onToggle?:()=>void}) {
@@ -525,7 +535,9 @@ function EmployeeForm({employee, open, onToggle}:{employee?:Employee; open?:bool
 				<label>Bank Account Number<input name="bankAccountNumber" defaultValue={employee?.bankAccountNumber??""} placeholder="514012384910"/></label>
 				<div/>
 			</div>
-			<button className="button primary">{employee?"Save changes":"Add employee"}</button>
+			<PendingButton intent="save-employee" pendingLabel="Saving employee…">
+				{employee?"Save changes":"Add employee"}
+			</PendingButton>
 		</Form>
 	</details>;
 }
@@ -582,7 +594,15 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 	</>;
 }
 
-function PayrollList({runs}:{runs:Payroll[]}) { return <><PageHeader eyebrow="Payroll" title="Payroll runs" description="A traceable path from reviewed inputs to finalised payslips." action={<Link className="button secondary" to="/admin/payroll/policies"><ShieldCheck/>Statutory policy</Link>}/><section className="surface table payroll-table"><div className="table-head"><span>Pay period</span><span>Policy</span><span>Gross</span><span>Net pay</span><span>Status</span><span/></div>{runs.map((r)=><Link className="table-row" key={r.id} to={`/admin/payroll/${r.id}`}><span><strong>{date(r.periodStart,{month:"long",year:"numeric"})}</strong><small>Pay date · {date(r.payDate)}</small></span><span><strong>{r.policyName}</strong><small>Verified 26 Aug 2026</small></span><span>{r.status==="finalised"?money(r.grossTotalSen):"Calculated on review"}</span><span><strong>{r.status==="finalised"?money(r.netTotalSen):"—"}</strong></span><Status value={r.status}/><ChevronRight/></Link>)}</section></> }
+function PayrollList({runs}:{runs:Payroll[]}) {
+	return <TaskWorkspace label="Payroll runs" bounded>
+		<WorkspaceHeader eyebrow="Payroll" title="Payroll runs" description="Review calculation inputs and finalised payroll records." action={<Link className="button secondary" to="/admin/payroll/policies"><ShieldCheck/>Statutory policy</Link>}/>
+		<section className="surface table payroll-table task-scroll-surface">
+			<div className="table-head"><span>Pay period</span><span>Policy</span><span>Gross</span><span>Net pay</span><span>Status</span><span/></div>
+			{runs.map((r)=><Link className="table-row" key={r.id} to={`/admin/payroll/${r.id}`}><span><strong>{date(r.periodStart,{month:"long",year:"numeric"})}</strong><small>Pay date · {date(r.payDate)}</small></span><span><strong>{r.policyName}</strong><small>Verified 26 Aug 2026</small></span><span>{r.status==="finalised"?money(r.grossTotalSen):"Calculated on review"}</span><span><strong>{r.status==="finalised"?money(r.netTotalSen):"—"}</strong></span><Status value={r.status}/><ChevronRight/></Link>)}
+		</section>
+	</TaskWorkspace>;
+}
 
 function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:Payroll;employees:Employee[];attendance:Attendance[];adjustments:PayrollAdjustment[];corrections:CorrectionRequest[]}) {
 	if(!run) return <Empty title="Payroll not found" body="This run is not available."/>;
@@ -592,8 +612,8 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:
 	const runAdjustments = adjustments.filter((a)=>a.payrollRunId === run.id);
 	const hasBlockers = missing.length>0||pendingCorrections.length>0;
 
-	return <>
-		<PageHeader eyebrow="Payroll / Run" title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`} description={`Pay date ${date(run.payDate)} · ${run.policyName}`} action={run.status==="finalised"?<><a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download/>CSV</a><a className="button secondary" href={`/resources/payroll/${run.id}.bank.csv`}><Landmark size={16}/>Bank CSV</a><a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText/>PDF report</a></>:undefined}/>
+	return <TaskWorkspace label={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll review`}>
+		<WorkspaceHeader eyebrow="Payroll / Run" title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`} description={`Pay date ${date(run.payDate)} · ${run.policyName}`} action={run.status==="finalised"?<><a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download/>CSV</a><a className="button secondary" href={`/resources/payroll/${run.id}.bank.csv`}><Landmark size={16}/>Bank CSV</a><a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText/>PDF report</a></>:undefined}/>
 		<div className="payroll-steps"><span className="done"><i>1</i>Period</span><span className="done"><i>2</i>Inputs</span><span className={run.status==="finalised"?"done":"active"}><i>3</i>Review</span><span className={run.status==="finalised"?"done":""}><i>4</i>Finalise</span></div>
 		{run.status==="draft"&&missing.length>0&&<div className="alert warning"><Clock3/><div><strong>{missing.length} attendance exception{missing.length===1?"":"s"} block finalisation</strong><p>{missing.map((r)=>r.fullName).join(", ")} need a clock-out.</p></div><Link className="button secondary" to="/admin/attendance">Resolve now</Link></div>}
 
@@ -658,14 +678,16 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:
 						<label>Reason / Notes
 							<input name="reason" placeholder="Optional audit memo"/>
 						</label>
-						<button className="button primary">Add to draft run</button>
+						<PendingButton intent="add-adjustment" pendingLabel="Adding adjustment…">
+							Add to draft run
+						</PendingButton>
 					</Form>
 				</details>
 			</section>
 		)}
 
-		{run.status==="draft"?<div className="finalise-bar"><div><ShieldCheck/><span><strong>{hasBlockers?"Resolve outstanding items":"Ready to finalise"}</strong><small>{hasBlockers?"Finalisation becomes available after attendance exceptions and correction requests are resolved.":"Finalising locks payroll results and publishes employee payslips."}</small></span></div><Form method="post"><input type="hidden" name="intent" value="finalise-payroll"/><input type="hidden" name="id" value={run.id}/><button className="button primary" disabled={hasBlockers}>Finalise payroll</button></Form></div>:<div className="finalised-banner"><Check/><div><strong>Payroll finalised {date(run.finalisedAt)}</strong><span>Net pay {money(run.netTotalSen)} · calculation inputs retained for audit</span></div></div>}
-	</>;
+		{run.status==="draft"?<div className="finalise-bar"><div><ShieldCheck/><span><strong>{hasBlockers?"Resolve outstanding items":"Ready to finalise"}</strong><small>{hasBlockers?"Finalisation becomes available after attendance exceptions and correction requests are resolved.":"Finalising locks payroll results and publishes employee payslips."}</small></span></div><Form method="post"><input type="hidden" name="intent" value="finalise-payroll"/><input type="hidden" name="id" value={run.id}/><PendingButton intent="finalise-payroll" pendingLabel="Finalising payroll…" disabled={hasBlockers}>Finalise payroll</PendingButton></Form></div>:<div className="finalised-banner"><Check/><div><strong>Payroll finalised {date(run.finalisedAt)}</strong><span>Net pay {money(run.netTotalSen)} · calculation inputs retained for audit</span></div></div>}
+	</TaskWorkspace>;
 }
 
 function Policy({policies}:{policies:PolicyRecord[]}){
@@ -692,7 +714,7 @@ function Policy({policies}:{policies:PolicyRecord[]}){
 						<input name="effectiveFrom" type="date" defaultValue="2026-09-01" required/>
 					</label>
 				</div>
-				<button className="button primary">Save custom policy</button>
+				<PendingButton intent="clone-policy" pendingLabel="Saving policy…">Save custom policy</PendingButton>
 			</Form>
 		</details>
 
@@ -720,8 +742,8 @@ function Policy({policies}:{policies:PolicyRecord[]}){
 
 function Reports({runs}:{runs:Payroll[]}){
 	const final=runs.find((r)=>r.status==="finalised");
-	return <>
-		<PageHeader eyebrow="Reports" title="Payroll exports" description="Files generated directly from finalised payroll records."/>
+	return <TaskWorkspace label="Payroll exports">
+		<WorkspaceHeader eyebrow="Reports" title="Payroll exports" description="Download files generated from finalised payroll records."/>
 		<div className="report-grid">
 			<article className="surface report-card">
 				<FileText/>
@@ -748,7 +770,7 @@ function Reports({runs}:{runs:Payroll[]}){
 				{final?<a className="button secondary" href={`/resources/payroll/${final.id}.csv`}><Download/>Download CSV</a>:<button disabled>No final run</button>}
 			</article>
 		</div>
-	</>;
+	</TaskWorkspace>;
 }
 
 function Notifications({items}:{items:Notification[]}){

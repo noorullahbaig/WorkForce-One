@@ -24,6 +24,7 @@ import {
 } from "../../domain/leave";
 import { addCalendarDays, todayInTimeZone } from "../../lib/date";
 import { date, initials } from "../../lib/format";
+import { PendingButton } from "../../components/portal-ui";
 
 export type LeaveRecord = {
   id: string;
@@ -829,9 +830,14 @@ function RequestPanel({
           </>
         )}
       </div>
-      <button className="button primary wide" disabled={!preview}>
+      <PendingButton
+        className="button primary wide"
+        intent="apply-leave"
+        pendingLabel="Submitting request…"
+        disabled={!preview}
+      >
         Submit leave request
-      </button>
+      </PendingButton>
       <Link
         className="button ghost wide"
         to={`/employee/leave?month=${selectedDate.slice(0, 7)}&date=${selectedDate}`}
@@ -1272,9 +1278,9 @@ export function AdminLeaveWorkspace({
                   required
                 />
               </label>
-              <button className="button primary" type="submit">
+              <PendingButton intent="update-leave-policy" pendingLabel="Saving policy…" type="submit">
                 Save policy
-              </button>
+              </PendingButton>
             </Form>
           </Dialog.Content>
         </Dialog.Portal>
@@ -1456,7 +1462,7 @@ export function HolidayAdmin({ holidays, today }: { holidays: HolidayRecord[]; t
             Date
             <input type="date" name="date" min={addCalendarDays(resolvedToday, 1)} required />
           </label>
-          <button className="button primary">Add holiday</button>
+          <PendingButton intent="save-holiday" pendingLabel="Adding holiday…">Add holiday</PendingButton>
         </Form>
         <section className="surface holiday-list">
           <div className="section-head">
@@ -1558,7 +1564,7 @@ export function BalanceAdmin({
           Reason
           <input name="reason" required placeholder="Explain this correction" />
         </label>
-        <button className="button primary">Save adjustment</button>
+        <PendingButton intent="adjust-leave-balance" pendingLabel="Saving adjustment…">Save adjustment</PendingButton>
       </Form>
       <section className="surface balance-table">
         <div className="balance-row head">

@@ -6,7 +6,13 @@ import {
   useSearchParams,
 } from "react-router";
 import { useState } from "react";
-import { PageHeader, Status, Empty } from "../../components/portal-ui";
+import { LoaderCircle } from "lucide-react";
+import {
+  Status,
+  Empty,
+  TaskWorkspace,
+  WorkspaceHeader,
+} from "../../components/portal-ui";
 import { date } from "../../lib/format";
 import {
   calculateAttendance,
@@ -323,6 +329,11 @@ function Review({
 }) {
   const [note, setNote] = useState("");
   const navigation = useNavigation();
+  const pendingDecision =
+    navigation.state === "submitting" &&
+    navigation.formData?.get("intent") === "review-attendance-correction"
+      ? String(navigation.formData.get("decision") ?? "")
+      : "";
   const result = calculateAttendance({
     clockIn: request.proposedClockIn,
     clockOut: request.proposedClockOut,
@@ -441,6 +452,7 @@ function Review({
               rows={3}
               value={note}
               onChange={(e) => setNote(e.target.value)}
+              disabled={navigation.state !== "idle"}
             />
           </div>
           {action && "error" in action && (
@@ -455,7 +467,7 @@ function Review({
               value="approved"
               disabled={!!request.stale || navigation.state !== "idle"}
             >
-              Approve correction
+              {pendingDecision === "approved" ? <><LoaderCircle className="button-spinner" aria-hidden="true" />Approving correction…</> : "Approve correction"}
             </button>
             <button
               className="button secondary"
@@ -463,7 +475,7 @@ function Review({
               value="rejected"
               disabled={!note.trim() || navigation.state !== "idle"}
             >
-              Reject correction
+              {pendingDecision === "rejected" ? <><LoaderCircle className="button-spinner" aria-hidden="true" />Rejecting correction…</> : "Reject correction"}
             </button>
           </div>
         </Form>
@@ -485,8 +497,8 @@ export function AdminCorrections({
   const filtered = requests.filter((r) => r.status === status);
   const selected = requests.find((r) => r.id === params.get("request"));
   return (
-    <>
-      <PageHeader
+    <TaskWorkspace label="Attendance corrections">
+      <WorkspaceHeader
         eyebrow="Time / Review"
         title="Attendance corrections"
         description="Review requested changes before attendance flows into payroll."
@@ -544,6 +556,6 @@ export function AdminCorrections({
           />
         )}
       </section>
-    </>
+    </TaskWorkspace>
   );
 }
