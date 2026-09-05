@@ -8,12 +8,13 @@ import type { Attendance, CorrectionRequest } from '../features/attendance/types
 import { aggregateAttendance } from '../features/payroll/attendance-inputs';
 import { PayrollEmployeeReview } from '../features/payroll/payroll-employee-review';
 import { ProductTour } from '../features/onboarding/product-tour';
+import { AppNavigation } from '../components/app-navigation';
 import {
-	Form, Link, NavLink, redirect, useActionData, useLoaderData, useLocation, useNavigation,
+	Form, Link, redirect, useActionData, useLoaderData, useLocation, useNavigation,
 } from "react-router";
 import {
 	Bell, CalendarDays, Check, ChevronRight, Clock3, Coffee, Compass, Download,
-	FileText, Fingerprint, Home, Landmark, LayoutDashboard, LogOut, Menu, Plus,
+	FileText, Fingerprint, Landmark, LogOut, Menu, Plus,
 	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserCheck,
 	UserMinus, UserRound, Users, WalletCards,
 } from "lucide-react";
@@ -281,10 +282,12 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Portal() {
 	const data=useLoaderData<typeof loader>(); const location=useLocation(); const actionData=useActionData<typeof action>(); const navigation=useNavigation();
 	const [tourReplay, setTourReplay] = useState(0);
+	const [tourOpen, setTourOpen] = useState(false);
+	const [railCollapsed, setRailCollapsed] = useState(false);
 	const path=location.pathname; const busy=navigation.state!=="idle";
 	const intent = String(navigation.formData?.get("intent") ?? "");
-	return <div className={data.admin?"app-shell admin-shell":"app-shell employee-shell"} data-navigation={navigation.state}>
-		<AppNavigation admin={data.admin} user={data.user} unread={data.notifications.filter((item)=>!item.readAt).length}/>
+	return <div className={data.admin?"app-shell admin-shell":"app-shell employee-shell"} data-navigation={navigation.state} data-navigation-rail={railCollapsed?"collapsed":"expanded"}>
+		<AppNavigation admin={data.admin} user={data.user} unread={data.notifications.filter((item)=>!item.readAt).length} forceExpanded={tourOpen} onCollapsedChange={setRailCollapsed}/>
 		<main className={busy?"workspace is-navigating":"workspace"} aria-busy={busy}>
 			<header className="topbar">
 				<div>
@@ -301,7 +304,7 @@ export default function Portal() {
 			{actionData && ("ok" in actionData || "error" in actionData) && <ActionToast key={"error" in actionData?actionData.error:actionData.ok} result={actionData}/>}
 			<div className={busy?"page-wrap":"page-wrap page-arrival"}>{data.admin?<AdminRouter path={path} data={data}/>:<EmployeeRouter path={path} data={data}/>}</div>
 		</main>
-		<ProductTour role={data.admin?"admin":"employee"} replayToken={tourReplay}/>
+		<ProductTour role={data.admin?"admin":"employee"} replayToken={tourReplay} onOpenChange={setTourOpen}/>
 	</div>;
 }
 
@@ -363,15 +366,6 @@ function CompanyDropdown({companyInfo, employeeCount}:{companyInfo:CompanyInfo; 
 }
 
 function MobileMenu({admin}:{admin:boolean}) { const links=admin?[["/admin","Home"],["/admin/employees","People"],["/admin/attendance","Attendance"],["/admin/leave","Leave"],["/admin/payroll","Payroll"],["/admin/payroll/policies","Policies"],["/admin/reports","Reports"],["/admin/notifications","Notifications"]]:[["/employee","Home"],["/employee/attendance","Attendance"],["/employee/leave","Leave"],["/employee/payslips","Payslips"],["/employee/notifications","Notifications"],["/employee/profile","Profile"]]; return <details className="mobile-menu"><summary aria-label="Open navigation"><Menu/></summary><div className="mobile-menu-sheet"><div><strong>Navigate</strong><span>Workforce One</span></div><nav>{links.map(([to,label])=><Link key={to} to={to}>{label}<ChevronRight/></Link>)}</nav><Form method="post" action="/logout"><button className="button secondary wide"><LogOut/>Sign out</button></Form></div></details> }
-
-function AppNavigation({admin,user,unread}:{admin:boolean;user:DemoUser;unread:number}) {
-	const adminItems=[["/admin",LayoutDashboard,"Home","admin-home"],["/admin/employees",Users,"People","admin-people"],["/admin/attendance",Clock3,"Attendance","admin-attendance"],["/admin/leave",CalendarDays,"Leave","admin-leave"],["/admin/payroll",WalletCards,"Payroll","admin-payroll"],["/admin/reports",FileText,"Reports","admin-reports"]] as const;
-	const employeeItems=[["/employee",Home,"Home","employee-home"],["/employee/attendance",Clock3,"Attendance","employee-attendance"],["/employee/leave",CalendarDays,"Leave","employee-leave"],["/employee/payslips",WalletCards,"Payslips","employee-payslips"],["/employee/profile",UserRound,"Profile","employee-profile"]] as const;
-	const items=admin?adminItems:employeeItems;
-	const bottomItems=admin?adminItems.filter(([, , label])=>label!=="Reports"):employeeItems;
-	return <><aside className="sidebar"><div className="wordmark inverse"><span>W1</span> Workforce One</div><p className="nav-label">Workspace</p><nav aria-label={admin?"Administrator navigation":"Employee navigation"}>{items.map(([to,Icon,label,tour])=><NavLink data-tour={tour} end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{label}</span>{label==="Home"&&unread>0?<b>{unread}</b>:null}</NavLink>)}</nav><div className="sidebar-foot"><Link data-tour={admin?undefined:"employee-notifications"} to={admin?"/admin/notifications":"/employee/notifications"}><Bell/>Notifications{unread?<b>{unread}</b>:null}</Link><Form method="post" action="/logout"><button><LogOut/>Sign out</button></Form><div className="account"><div className="avatar">{initials(user.name)}</div><span><strong>{user.name}</strong><small>{admin?"People administrator":"Employee"}</small></span></div></div></aside>
-	<nav className="bottom-nav" aria-label="Primary navigation">{bottomItems.map(([to,Icon,label,tour])=><NavLink data-tour={tour} end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{label}</span></NavLink>)}</nav></>;
-}
 
 function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}) {
 	if(path.includes("/employees/")) return <EmployeeInspector employee={data.employees.find((e)=>path.endsWith(e.id))}/>;

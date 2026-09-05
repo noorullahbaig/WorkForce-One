@@ -73,9 +73,11 @@ export function tourStorageKey(role: ProductTourRole) {
 export function ProductTour({
   role,
   replayToken = 0,
+  onOpenChange,
 }: {
   role: ProductTourRole;
   replayToken?: number;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -94,6 +96,10 @@ export function ProductTour({
       setOpen(true);
     }
   }, [replayToken]);
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [onOpenChange, open]);
 
   useEffect(() => {
     document
