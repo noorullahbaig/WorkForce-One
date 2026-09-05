@@ -6,6 +6,11 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	await page.goto("/login");
 	await page.getByRole("button", { name: /Admin/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
+	const initialReset = await page.request.post("/admin", {
+		form: { intent: "reset-demo" },
+		headers: { Origin: "http://127.0.0.1:5173" },
+	});
+	expect(initialReset.ok()).toBeTruthy();
 
 	await page.getByRole("link", { name: "Attendance terminal" }).click();
 	await expect(page).toHaveURL(/\/admin\/attendance\/simulate$/);

@@ -1,18 +1,26 @@
+import { finalisePayroll } from '../features/payroll/finalise.server';
+import { attendanceClockAction } from '../features/attendance/clock.server';
+import { PageHeader, Status, Empty } from '../components/portal-ui';
+import { AttendancePage, Simulator, EmployeeAttendance } from '../features/attendance/attendance-ui';
+import { AdminCorrections } from '../features/attendance/correction-ui';
+import { listCorrections, submitCorrection, reviewCorrection } from '../features/attendance/corrections.server';
+import type { Attendance, CorrectionRequest } from '../features/attendance/types';
+import { aggregateAttendance } from '../features/payroll/attendance-inputs';
 import {
 	Form, Link, NavLink, redirect, useActionData, useLoaderData, useLocation, useNavigation,
 } from "react-router";
 import {
 	Bell, CalendarDays, Check, ChevronRight, Clock3, Coffee, Download,
-	FileText, Fingerprint, Home, Landmark, LayoutDashboard, LogOut, Menu, Play, Plus, QrCode,
-	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Square, Trash2, UserCheck,
+	FileText, Fingerprint, Home, Landmark, LayoutDashboard, LogOut, Menu, Plus,
+	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserCheck,
 	UserMinus, UserRound, Users, WalletCards,
 } from "lucide-react";
 import { useState } from "react";
-import { calculateAttendance } from "../domain/attendance";
+
 import { calculateLeaveDurationHalfDays, calculateProjectedBalance, type LeaveDayPart } from "../domain/leave";
 import { getLeaveDatePolicyError } from "../domain/leave";
 import { cloudflareContext } from "../context";
-import { calculatePayroll, type PayrollBreakdown } from "../domain/payroll";
+import { type PayrollBreakdown } from "../domain/payroll";
 import {
 	AdminLeaveWorkspace,
 	BalanceAdmin,
@@ -30,7 +38,6 @@ import { resetDemoData } from "../services/reset.server";
 import type { Route } from "./+types/portal";
 
 type Employee = { id:string; employeeCode:string; fullName:string; email:string; phone:string; department:string; position:string; employmentType:string; salaryType:"monthly"|"hourly"; monthlySalarySen:number|null; hourlyRateSen:number|null; startDate:string; status:string; icNumber:string|null; epfNumber:string|null; taxNumber:string|null; bankName:string|null; bankAccountNumber:string|null };
-type Attendance = { id:string; employeeId:string; fullName:string; employeeCode:string; workDate:string; clockIn:string|null; clockOut:string|null; clockInMethod:string|null; clockOutMethod:string|null; workedMinutes:number|null; overtimeMinutes:number|null; status:string };
 type Leave = LeaveRecord;
 type SharedLeave = SharedLeaveRecord;
 type Holiday = HolidayRecord;
@@ -47,32 +54,32 @@ export const meta = () => [{ title: "Workforce One · Merdeka Coffee" }];
 async function all<T>(statement: D1PreparedStatement) { return (await statement.all<T>()).results; }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  try {
 	const env = context.get(cloudflareContext).env;
 	const admin = new URL(request.url).pathname.startsWith("/admin");
 	const user = await requireUser(request, env, admin ? "admin" : "employee");
 	const employeeScope = admin ? " WHERE e.company_id = ?" : " WHERE e.id = ? AND e.company_id = ?";
 	const bind = <T extends D1PreparedStatement>(statement: T) => admin ? statement.bind(user.companyId) : statement.bind(user.employeeId,user.companyId);
-	const [employees, attendance, leave, sharedLeave, holidays, payrolls, payslips, notifications, balances, adjustments, policies, companyInfo] = await Promise.all([
+	const [employees, attendance, leave, sharedLeave, holidays, payrolls, payslips, notifications, balances, adjustments, policies, companyInfo, corrections] = await Promise.all([
 		all<Employee>(bind(env.DB.prepare(`SELECT e.id, e.employee_code employeeCode, e.full_name fullName, e.email, e.phone, e.department, e.position, e.employment_type employmentType, e.salary_type salaryType, e.monthly_salary_sen monthlySalarySen, e.hourly_rate_sen hourlyRateSen, e.start_date startDate, e.status, e.ic_number icNumber, e.epf_number epfNumber, e.tax_number taxNumber, e.bank_name bankName, e.bank_account_number bankAccountNumber FROM employees e${employeeScope} ORDER BY e.full_name`))),
-		all<Attendance>(bind(env.DB.prepare(`SELECT a.id, a.employee_id employeeId, e.full_name fullName, e.employee_code employeeCode, a.work_date workDate, a.clock_in clockIn, a.clock_out clockOut, a.clock_in_method clockInMethod, a.clock_out_method clockOutMethod, a.worked_minutes workedMinutes, a.overtime_minutes overtimeMinutes, a.status FROM attendance_records a JOIN employees e ON e.id=a.employee_id${employeeScope} ORDER BY a.work_date DESC, e.full_name`))),
+		all<Attendance>(bind(env.DB.prepare(`SELECT a.id, a.employee_id employeeId, e.full_name fullName, e.employee_code employeeCode, a.work_date workDate, a.clock_in clockIn, a.clock_out clockOut, a.clock_in_method clockInMethod, a.clock_out_method clockOutMethod, a.worked_minutes workedMinutes, a.overtime_minutes overtimeMinutes, a.status, a.updated_at updatedAt FROM attendance_records a JOIN employees e ON e.id=a.employee_id${employeeScope} ORDER BY a.work_date DESC, e.full_name`))),
 		all<Leave>(bind(env.DB.prepare(`SELECT l.id, l.employee_id employeeId, e.full_name fullName, e.department, l.leave_type_id leaveTypeId, t.name typeName, t.paid, l.start_date startDate, l.end_date endDate, l.duration_half_days durationHalfDays, l.day_part dayPart, l.reason, l.status, l.created_at createdAt, l.reviewed_at reviewedAt, l.review_note reviewNote FROM leave_requests l JOIN employees e ON e.id=l.employee_id JOIN leave_types t ON t.id=l.leave_type_id${employeeScope} ORDER BY l.created_at DESC`))),
 		all<SharedLeave>(env.DB.prepare("SELECT l.id,l.employee_id employeeId,e.full_name fullName,e.department,l.start_date startDate,l.end_date endDate FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status='approved' ORDER BY l.start_date,e.full_name").bind(user.companyId)),
 		all<Holiday>(env.DB.prepare("SELECT id,name,date,category,region,observed,active FROM holidays WHERE company_id=? ORDER BY date,name").bind(user.companyId)),
-		all<Payroll>(env.DB.prepare(`SELECT r.id, r.period, r.period_start periodStart, r.period_end periodEnd, r.pay_date payDate, r.status, r.gross_total_sen grossTotalSen, r.deduction_total_sen deductionTotalSen, r.net_total_sen netTotalSen, r.employer_contribution_total_sen employerContributionTotalSen, r.finalised_at finalisedAt, p.name policyName FROM payroll_runs r JOIN payroll_policies p ON p.id=r.policy_id ORDER BY r.period DESC`)),
+		all<Payroll>(env.DB.prepare(`SELECT r.id, r.period, r.period_start periodStart, r.period_end periodEnd, r.pay_date payDate, r.status, r.gross_total_sen grossTotalSen, r.deduction_total_sen deductionTotalSen, r.net_total_sen netTotalSen, r.employer_contribution_total_sen employerContributionTotalSen, r.finalised_at finalisedAt, p.name policyName FROM payroll_runs r JOIN payroll_policies p ON p.id=r.policy_id WHERE r.company_id=? ORDER BY r.period DESC`).bind(user.companyId)),
 		all<Payslip>(bind(env.DB.prepare(`SELECT p.id, p.employee_id employeeId, e.full_name fullName, r.period, r.pay_date payDate, pr.gross_pay_sen grossPaySen, pr.total_deductions_sen totalDeductionsSen, pr.net_pay_sen netPaySen, pr.breakdown_json breakdownJson FROM payslips p JOIN employees e ON e.id=p.employee_id JOIN payroll_runs r ON r.id=p.payroll_run_id JOIN payroll_results pr ON pr.id=p.payroll_result_id${employeeScope} ORDER BY r.period DESC`))),
 		all<Notification>(env.DB.prepare(`SELECT id,title,body,href,read_at readAt,created_at createdAt FROM notifications WHERE user_id=? ORDER BY created_at DESC`).bind(user.id)),
 		all<Balance>(bind(env.DB.prepare(`SELECT b.employee_id employeeId,b.leave_type_id leaveTypeId,t.name,t.paid,b.allocated_half_days allocatedHalfDays,COALESCE((SELECT SUM(a.delta_half_days) FROM leave_balance_adjustments a WHERE a.employee_id=b.employee_id AND a.leave_type_id=b.leave_type_id),0) adjustmentHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='approved'),0) approvedHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='pending'),0) pendingHalfDays FROM leave_balances b JOIN leave_types t ON t.id=b.leave_type_id JOIN employees e ON e.id=b.employee_id${employeeScope} ORDER BY e.full_name,t.name`))),
 		all<PayrollAdjustment>(bind(env.DB.prepare(`SELECT a.id, a.payroll_run_id payrollRunId, a.employee_id employeeId, e.full_name fullName, a.type, a.description, a.amount_sen amountSen, a.reason, a.created_at createdAt FROM payroll_adjustments a JOIN employees e ON e.id=a.employee_id${employeeScope} ORDER BY a.created_at DESC`))),
-		all<PolicyRecord>(env.DB.prepare(`SELECT id, name, effective_from effectiveFrom, verification_date verificationDate, normal_day_minutes normalDayMinutes, overtime_multiplier_basis_points overtimeMultiplierBasisPoints, active FROM payroll_policies ORDER BY created_at DESC`)),
+		all<PolicyRecord>(env.DB.prepare(`SELECT id, name, effective_from effectiveFrom, verification_date verificationDate, normal_day_minutes normalDayMinutes, overtime_multiplier_basis_points overtimeMultiplierBasisPoints, active FROM payroll_policies WHERE company_id=? ORDER BY created_at DESC`).bind(user.companyId)),
 		env.DB.prepare("SELECT id, name, registration_number registrationNumber, timezone, leave_backdate_days leaveBackdateDays FROM companies WHERE id=?").bind(user.companyId).first<CompanyInfo>(),
+		listCorrections(env.DB,user),
 	]);
 	const resolvedCompanyInfo = companyInfo ?? { id: "company-merdeka", name: "Merdeka Coffee Sdn. Bhd.", registrationNumber: "202001028884", timezone: "Asia/Kuala_Lumpur", leaveBackdateDays: 3 };
 	return {
 		user, admin, company: "Merdeka Coffee",
 		companyInfo: resolvedCompanyInfo,
 		today: todayInTimeZone(new Date(), resolvedCompanyInfo.timezone),
-		employees, attendance, leave, sharedLeave, holidays, payrolls, payslips, notifications, balances, adjustments, policies,
+		employees, attendance, leave, sharedLeave, holidays, payrolls, payslips, notifications, balances, adjustments, policies, corrections,
 	};
 }
 
@@ -83,7 +90,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 	const user = await requireUser(request, env, adminPath ? "admin" : "employee");
 	const data = Object.fromEntries(await request.formData());
 	const intent = String(data.intent ?? "");
-	const now = new Date().toISOString();
+	if(intent==='request-attendance-correction') return submitCorrection(env.DB,user,{attendanceId:String(data.attendanceId??''),clockIn:String(data.clockIn??''),clockOut:String(data.clockOut??''),reason:String(data.reason??'')});
+ if(intent==='review-attendance-correction') return reviewCorrection(env.DB,user,String(data.id??''),String(data.decision??''),String(data.rejectionReason??''));
+ const now = new Date().toISOString();
 	const companySettings = await env.DB.prepare("SELECT timezone, leave_backdate_days leaveBackdateDays FROM companies WHERE id=?").bind(user.companyId).first<{timezone:string;leaveBackdateDays:number}>();
 	const today = todayInTimeZone(new Date(), companySettings?.timezone ?? "Asia/Kuala_Lumpur");
 	const leaveBackdateDays = Math.max(0, Math.floor(companySettings?.leaveBackdateDays ?? 3));
@@ -147,33 +156,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 		await env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.withdrawn','leave_request',?,'{}',?)").bind(crypto.randomUUID(),user.companyId,user.id,data.id,now).run();
 		return { ok:"Leave request withdrawn." };
 	}
-	if (intent === "employee-clock" && user.employeeId) {
-		const todayDate = today;
-		const actionType = String(data.actionType ?? "");
-		const method = data.method === "qr" ? "qr" : "fingerprint";
-		
-		if (actionType === "reset") {
-			await env.DB.prepare("DELETE FROM attendance_records WHERE employee_id=? AND work_date=?").bind(user.employeeId, todayDate).run();
-			return { ok: "Today's shift records reset. Ready to clock in." };
-		}
-		
-		const openShift = await env.DB.prepare("SELECT id, clock_in clockIn, clock_out clockOut, status FROM attendance_records WHERE employee_id=? AND work_date=? AND status='missing_clock_out' ORDER BY clock_in DESC LIMIT 1").bind(user.employeeId, todayDate).first<{id:string;clockIn:string|null;clockOut:string|null;status:string}>();
-		
-		if (actionType === "clock-out" && openShift?.clockIn) {
-			const clockOutTime = now;
-			const res = calculateAttendance({ clockIn: openShift.clockIn, clockOut: clockOutTime, normalDayMinutes: 480 });
-			await env.DB.prepare("UPDATE attendance_records SET clock_out=?, clock_out_method=?, worked_minutes=?, overtime_minutes=?, status='present', updated_at=? WHERE id=?").bind(clockOutTime, method, res.workedMinutes, res.overtimeMinutes, now, openShift.id).run();
-			return { ok: `Clocked out successfully via ${method === "fingerprint" ? "Fingerprint" : "QR Code"} · ${(res.workedMinutes! / 60).toFixed(1)} hours worked.` };
-		}
-		
-		if (actionType === "clock-in" || !openShift) {
-			const recordId = crypto.randomUUID();
-			await env.DB.prepare("INSERT INTO attendance_records (id, employee_id, work_date, clock_in, clock_in_method, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'missing_clock_out', ?, ?)").bind(recordId, user.employeeId, todayDate, now, method, now, now).run();
-			return { ok: `Clocked in successfully via ${method === "fingerprint" ? "Fingerprint" : "QR Code"} at ${time(now)}.` };
-		}
-		
-		return { ok: "Attendance shift updated." };
-	}
+	if (intent === "employee-clock") return attendanceClockAction(env,user,intent,data,today,now);
 	if (intent === "update-self-profile" && user.employeeId) {
 		const phone = String(data.phone ?? "").trim();
 		const email = String(data.email ?? "").trim();
@@ -233,18 +216,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 	if(intent==="adjust-leave-balance"){
 		const employeeId=String(data.employeeId),leaveTypeId=String(data.leaveTypeId),deltaHalfDays=Number(data.deltaHalfDays),reason=String(data.reason??"").trim();if(!reason||!Number.isInteger(deltaHalfDays)||deltaHalfDays===0||Math.abs(deltaHalfDays)>20)return {error:"Choose a valid adjustment and add a reason."};const balance=await env.DB.prepare("SELECT b.allocated_half_days allocatedHalfDays,COALESCE((SELECT SUM(a.delta_half_days) FROM leave_balance_adjustments a WHERE a.employee_id=b.employee_id AND a.leave_type_id=b.leave_type_id),0) adjustmentHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='approved'),0) approvedHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='pending'),0) pendingHalfDays FROM leave_balances b JOIN employees e ON e.id=b.employee_id WHERE b.employee_id=? AND b.leave_type_id=? AND e.company_id=?").bind(employeeId,leaveTypeId,user.companyId).first<{allocatedHalfDays:number;adjustmentHalfDays:number;approvedHalfDays:number;pendingHalfDays:number}>();if(!balance)return {error:"Leave balance not found."};if(calculateProjectedBalance(balance).projectedHalfDays+deltaHalfDays<0)return {error:"This adjustment would make the projected balance negative."};const id=crypto.randomUUID();await env.DB.batch([env.DB.prepare("INSERT INTO leave_balance_adjustments (id,employee_id,leave_type_id,delta_half_days,reason,actor_user_id,created_at) VALUES (?,?,?,?,?,?,?)").bind(id,employeeId,leaveTypeId,deltaHalfDays,reason,user.id,now),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.balance_adjusted','leave_balance',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,`${employeeId}:${leaveTypeId}`,JSON.stringify({deltaHalfDays,reason}),now)]);return {ok:"Leave balance adjusted."};
 	}
-	if (intent === "simulate-attendance") {
-		const employeeId = String(data.employeeId); const method = data.method === "fingerprint" ? "fingerprint" : "qr";
-		const existing = await env.DB.prepare("SELECT id,work_date workDate,clock_in clockIn FROM attendance_records WHERE employee_id=? AND status='missing_clock_out' ORDER BY work_date ASC LIMIT 1").bind(employeeId).first<{id:string;workDate:string;clockIn:string|null}>();
-		if (existing?.clockIn) {
-			const clockOut = `${existing.workDate}T10:15:00.000Z`;
-			const result = calculateAttendance({ clockIn: existing.clockIn, clockOut, normalDayMinutes: 480 });
-			await env.DB.prepare("UPDATE attendance_records SET clock_out=?,clock_out_method=?,worked_minutes=?,overtime_minutes=?,status='present',updated_at=? WHERE id=?").bind(clockOut,method,result.workedMinutes,result.overtimeMinutes,now,existing.id).run();
-			return { ok: `Clock-out captured · ${result.workedMinutes! / 60} hours worked.` };
-		}
-		await env.DB.prepare("INSERT INTO attendance_records (id,employee_id,work_date,clock_in,clock_in_method,status,created_at,updated_at) VALUES (?,?,?, ?,?,'missing_clock_out',?,?)").bind(crypto.randomUUID(),employeeId,today,`${today}T01:00:00.000Z`,method,now,now).run();
-		return { ok: "Clock-in captured at 9:00 AM MYT." };
-	}
+	if (intent === "simulate-attendance") return attendanceClockAction(env,user,intent,data,today,now);
 	if (intent === "save-employee") {
 		const required = ["fullName","email","phone","department","position","employeeCode","startDate"] as const;
 		if (required.some((key)=>!String(data[key]??"").trim())) return { error: "Complete every required employee field." };
@@ -303,48 +275,6 @@ export async function action({ request, context }: Route.ActionArgs) {
 	return { error: "That action is not available." };
 }
 
-async function finalisePayroll(id: string, user: DemoUser, env: Env) {
-	const run = await env.DB.prepare("SELECT id,status,period,period_start periodStart,period_end periodEnd FROM payroll_runs WHERE id=?").bind(id).first<{id:string;status:string;period:string;periodStart:string;periodEnd:string}>();
-	if (!run) return { error: "Payroll run not found." };
-	if (run.status === "finalised") return { ok: "Payroll was already finalised safely." };
-	const missing = await all<{fullName:string}>(env.DB.prepare("SELECT e.full_name fullName FROM attendance_records a JOIN employees e ON e.id=a.employee_id WHERE a.status='missing_clock_out'"));
-	if (missing.length) return { error: `Resolve missing clock-outs before finalising: ${missing.map((row) => row.fullName).join(", ")}.` };
-	const employees = await all<Employee>(env.DB.prepare("SELECT id,employee_code employeeCode,full_name fullName,email,phone,department,position,employment_type employmentType,salary_type salaryType,monthly_salary_sen monthlySalarySen,hourly_rate_sen hourlyRateSen,start_date startDate,status FROM employees WHERE status!='inactive'"));
-	const adjustments = await all<{employeeId:string;type:string;amountSen:number}>(env.DB.prepare("SELECT employee_id employeeId,type,amount_sen amountSen FROM payroll_adjustments WHERE payroll_run_id=?").bind(id));
-	const attendance = await all<{employeeId:string;regularMinutes:number;overtimeMinutes:number}>(env.DB.prepare("SELECT employee_id employeeId,COALESCE(SUM(MIN(worked_minutes,480)),0) regularMinutes,COALESCE(SUM(overtime_minutes),0) overtimeMinutes FROM attendance_records WHERE work_date >= ? AND work_date <= ? GROUP BY employee_id").bind(run.periodStart, run.periodEnd));
-	
-	const holidays = await all<{date:string}>(env.DB.prepare("SELECT date FROM holidays WHERE company_id=? AND active=1 AND date >= ? AND date <= ?").bind(user.companyId, run.periodStart, run.periodEnd));
-	const holidayDates = holidays.map((h) => h.date);
-	const unpaidRequests = await all<{employeeId:string;startDate:string;endDate:string;dayPart:string}>(env.DB.prepare("SELECT l.employee_id employeeId, l.start_date startDate, l.end_date endDate, l.day_part dayPart FROM leave_requests l JOIN leave_types t ON t.id=l.leave_type_id WHERE l.status='approved' AND t.paid=0 AND l.start_date <= ? AND l.end_date >= ?").bind(run.periodEnd, run.periodStart));
-	
-	const unpaidDaysByEmployee = new Map<string, number>();
-	for (const req of unpaidRequests) {
-		const start = req.startDate < run.periodStart ? run.periodStart : req.startDate;
-		const end = req.endDate > run.periodEnd ? run.periodEnd : req.endDate;
-		try {
-			const dur = calculateLeaveDurationHalfDays({ startDate: start, endDate: end, dayPart: req.dayPart as LeaveDayPart, holidayDates });
-			unpaidDaysByEmployee.set(req.employeeId, (unpaidDaysByEmployee.get(req.employeeId) || 0) + (dur.durationHalfDays / 2.0));
-		} catch { /* skip if bound creates invalid range */ }
-	}
-
-	let gross=0,deductions=0,net=0,employer=0; const statements:D1PreparedStatement[]=[]; const timestamp=new Date().toISOString();
-	for (const employee of employees) {
-		const att=attendance.find((row)=>row.employeeId===employee.id); const adjs=adjustments.filter((row)=>row.employeeId===employee.id);
-		const sum=(type:string)=>adjs.filter((row)=>row.type===type).reduce((total,row)=>total+row.amountSen,0);
-		const input={salaryType:employee.salaryType,monthlySalarySen:employee.monthlySalarySen,hourlyRateSen:employee.hourlyRateSen,regularMinutes:att?.regularMinutes ?? (employee.salaryType==="monthly"?0:0),overtimeMinutes:att?.overtimeMinutes??0,unpaidLeaveDays:unpaidDaysByEmployee.get(employee.id)??0,wagePeriodDays:31,allowanceSen:sum("allowance"),bonusSen:sum("bonus"),otherDeductionSen:sum("deduction"),pcbSen:sum("pcb"),overtimeMultiplier:1.5,normalDayMinutes:480};
-		let breakdown:PayrollBreakdown; try { breakdown=calculatePayroll(input); } catch { return { error:`${employee.fullName} has an incomplete pay profile.` }; }
-		gross+=breakdown.grossPaySen;deductions+=breakdown.totalDeductionsSen;net+=breakdown.netPaySen;employer+=breakdown.totalEmployerContributionsSen;
-		const resultId=`result-${run.period}-${employee.id}`; const payslipId=`payslip-${run.period}-${employee.id}`;
-		statements.push(env.DB.prepare("INSERT INTO payroll_results (id,payroll_run_id,employee_id,input_snapshot_json,breakdown_json,gross_pay_sen,total_deductions_sen,net_pay_sen,employer_contributions_sen,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)").bind(resultId,id,employee.id,JSON.stringify({...input,policyId:"policy-my-2026"}),JSON.stringify(breakdown),breakdown.grossPaySen,breakdown.totalDeductionsSen,breakdown.netPaySen,breakdown.totalEmployerContributionsSen,timestamp));
-		statements.push(env.DB.prepare("INSERT INTO payslips (id,payroll_result_id,payroll_run_id,employee_id,created_at) VALUES (?,?,?,?,?)").bind(payslipId,resultId,id,employee.id,timestamp));
-		if(employee.id==="emp-001") statements.push(env.DB.prepare("INSERT INTO notifications (id,user_id,title,body,href,created_at) VALUES (?,'user-employee','August payslip is ready','Your August 2026 payslip is available.',?,?)").bind(crypto.randomUUID(),`/employee/payslips/${payslipId}`,timestamp));
-	}
-	const key=`finalise-${run.period}`;
-	statements.push(env.DB.prepare("UPDATE payroll_runs SET status='finalised',gross_total_sen=?,deduction_total_sen=?,net_total_sen=?,employer_contribution_total_sen=?,idempotency_key=?,finalised_at=?,updated_at=? WHERE id=? AND status='draft'").bind(gross,deductions,net,employer,key,timestamp,timestamp,id));
-	statements.push(env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,'company-merdeka',?,'payroll.finalised','payroll_run',?,?,?)").bind(crypto.randomUUID(),user.id,id,JSON.stringify({period:run.period,policyId:"policy-my-2026"}),timestamp));
-	await env.DB.batch(statements);
-	return { ok: "Payroll finalised. Snapshots and payslips are now immutable." };
-}
 
 export default function Portal() {
 	const data=useLoaderData<typeof loader>(); const location=useLocation(); const actionData=useActionData<typeof action>(); const navigation=useNavigation();
@@ -433,20 +363,17 @@ function AppNavigation({admin,user,unread}:{admin:boolean;user:DemoUser;unread:n
 	<nav className="bottom-nav">{items.slice(0,5).map(([to,Icon,label],index)=><NavLink end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{admin&&index===4?"More":label}</span></NavLink>)}</nav></>;
 }
 
-function PageHeader({eyebrow,title,description,action}:{eyebrow?:string;title:string;description?:string;action?:React.ReactNode}) { return <div className="page-header"><div>{eyebrow&&<p className="eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description&&<p>{description}</p>}</div>{action&&<div className="page-actions">{action}</div>}</div>; }
-function Status({value}:{value:string}) { return <span className={`status ${value.replaceAll("_","-")}`}><i/>{value.replaceAll("_"," ")}</span>; }
-function Empty({title,body}:{title:string;body:string}) { return <div className="empty"><FileText/><h3>{title}</h3><p>{body}</p></div>; }
-
 function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}) {
 	if(path.includes("/employees/")) return <EmployeeInspector employee={data.employees.find((e)=>path.endsWith(e.id))}/>;
 	if(path==="/admin/employees") return <People data={data}/>;
 	if(path==="/admin/attendance/simulate") return <Simulator employees={data.employees} attendance={data.attendance} today={data.today}/>;
-	if(path==="/admin/attendance") return <AttendancePage records={data.attendance}/>;
+	if(path==="/admin/attendance/corrections") return <AdminCorrections requests={data.corrections} periods={data.payrolls}/>;
+	if(path==="/admin/attendance") return <AttendancePage records={data.attendance} corrections={data.corrections}/>;
 	if(path==="/admin/leave/holidays") return <HolidayAdmin holidays={data.holidays} today={data.today}/>;
 	if(path==="/admin/leave/balances") return <BalanceAdmin balances={data.balances} employees={data.employees}/>;
 	if(path==="/admin/leave") return <AdminLeaveWorkspace records={data.leave} employees={data.employees} holidays={data.holidays} balances={data.balances} today={data.today} backdateDays={data.companyInfo.leaveBackdateDays}/>;
 	if(path==="/admin/payroll/policies") return <Policy policies={data.policies}/>;
-	if(path.includes("/admin/payroll/")) return <PayrollDetail run={data.payrolls.find((r)=>path.endsWith(r.id))} employees={data.employees} attendance={data.attendance} adjustments={data.adjustments}/>;
+	if(path.includes("/admin/payroll/")) return <PayrollDetail run={data.payrolls.find((r)=>path.endsWith(r.id))} employees={data.employees} attendance={data.attendance} adjustments={data.adjustments} corrections={data.corrections}/>;
 	if(path==="/admin/payroll") return <PayrollList runs={data.payrolls}/>;
 	if(path==="/admin/reports") return <Reports runs={data.payrolls}/>;
 	if(path==="/admin/notifications") return <Notifications items={data.notifications}/>;
@@ -459,6 +386,7 @@ function AdminHome({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	return <><PageHeader eyebrow={todayLabel} title={`Good morning, ${data.user.name.split(" ")[0]}`} description="Here’s what needs attention across Merdeka Coffee." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Attendance terminal</Link>}/>
 		<section className="metric-strip"><article><span>Active people</span><strong>{data.employees.filter((e)=>e.status!=="inactive").length}</strong><small>Across {new Set(data.employees.map((e)=>e.department)).size} teams</small></article><article><span>Present today</span><strong>{data.attendance.filter((r)=>r.workDate===data.today&&r.status!=="absent").length}<em> / {data.employees.length}</em></strong><small>{missing} missing clock-out{missing===1?"":"s"}</small></article><article><span>Leave requests</span><strong>{pending}</strong><small>Awaiting review</small></article><article><span>August payroll</span><strong>{draft?"Draft":"Finalised"}</strong><small>Pay day · 31 Aug</small></article></section>
 		<div className="dashboard-grid"><section className="surface"><div className="section-head"><div><p className="eyebrow">Action queue</p><h2>Needs your attention</h2></div><span className="count">{pending+missing}</span></div>
+			{data.corrections.some(c=>c.status==="pending")&&<Link className="action-row" to="/admin/attendance/corrections"><span className="action-icon warning"><Clock3/></span><span><strong>Review attendance corrections</strong><small>{data.corrections.filter(c=>c.status==="pending").length} requests awaiting a decision</small></span><ChevronRight/></Link>}
 			{missing>0&&<Link className="action-row" to="/admin/attendance"><span className="action-icon warning"><Clock3/></span><span><strong>Complete missing clock-outs</strong><small>{missing} records can block payroll finalisation</small></span><ChevronRight/></Link>}
 			{pending>0&&<Link className="action-row" to="/admin/leave"><span className="action-icon emerald"><CalendarDays/></span><span><strong>Review leave requests</strong><small>{pending} request waiting for a decision</small></span><ChevronRight/></Link>}
 			<Link className="action-row" to="/admin/payroll/payroll-2026-08"><span className="action-icon ink"><WalletCards/></span><span><strong>Review August payroll</strong><small>Inputs are ready for validation</small></span><ChevronRight/></Link>
@@ -650,98 +578,26 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 	</>;
 }
 
-function AttendancePage({records}:{records:Attendance[]}) {
-	const [tab, setTab] = useState<"all" | "exceptions">("all");
-	const exceptions = records.filter((r) => r.status === "missing_clock_out" || r.status === "late");
-	const displayRecords = tab === "exceptions" ? exceptions : records;
-
-	return <>
-		<PageHeader eyebrow="Time" title="Attendance" description="Live records from fingerprint, QR and manual corrections." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Open terminal</Link>}/>
-		<div className="tabs">
-			<button className={tab === "all" ? "active" : ""} onClick={()=>setTab("all")}>Daily records</button>
-			<button className={tab === "exceptions" ? "active" : ""} onClick={()=>setTab("exceptions")}>Exceptions <b>{exceptions.length}</b></button>
-		</div>
-		<section className="table surface attendance-table">
-			<div className="table-head"><span>Employee</span><span>Date</span><span>Clock in</span><span>Clock out</span><span>Worked</span><span>Status</span></div>
-			{displayRecords.length ? displayRecords.map((r)=><div className="table-row" key={r.id}><span className="person"><i>{initials(r.fullName)}</i><span><strong>{r.fullName}</strong><small>{r.employeeCode}</small></span></span><span>{date(r.workDate,{weekday:"short",day:"numeric",month:"short"})}</span><span><strong>{time(r.clockIn)}</strong><small>{r.clockInMethod??"—"}</small></span><span><strong>{time(r.clockOut)}</strong><small>{r.clockOutMethod??"Needs correction"}</small></span><span>{r.workedMinutes?`${Math.floor(r.workedMinutes/60)}h ${r.workedMinutes%60}m`:"—"}</span><Status value={r.status}/></div>) : <Empty title="No exceptions" body="All shifts are complete and reconciled."/>}
-		</section>
-	</>;
-}
-
-function Simulator({employees, attendance, today}:{employees:Employee[]; attendance:Attendance[]; today:string}) {
-	const [selectedId, setSelectedId] = useState(employees[0]?.id ?? "emp-001");
-	const empAttendance = attendance.filter((r) => r.employeeId === selectedId && r.workDate === today);
-	const openShift = empAttendance.find((r) => !r.clockOut);
-	const selectedEmp = employees.find((e) => e.id === selectedId);
-
-	return <>
-		<PageHeader eyebrow="Time / Terminal" title="Attendance terminal" description="Simulate biometric clock-in/out terminal events and verify time calculations." action={<Link className="button secondary" to="/admin/attendance">View records</Link>}/>
-		<div className="simulator-grid">
-			<section className="surface simulator">
-				<div className="sim-display">
-					<span className="live-dot">Terminal active</span>
-					<div className="scan-ring"><Fingerprint/></div>
-					<h2>{openShift ? "Clock-out capture" : "Clock-in capture"}</h2>
-					<p>{openShift ? `${selectedEmp?.fullName} clocked in at ${time(openShift.clockIn)}. Press capture to record shift departure at 6:15 PM MYT.` : `${selectedEmp?.fullName || "Employee"} is not on shift. Press capture to record morning arrival at 9:00 AM MYT.`}</p>
-				</div>
-				<Form method="post" className="form-stack">
-					<input type="hidden" name="intent" value="simulate-attendance"/>
-					<label>Employee
-						<select name="employeeId" value={selectedId} onChange={(e)=>setSelectedId(e.target.value)}>
-							{employees.map((e)=><option value={e.id} key={e.id}>{e.fullName} · {e.employeeCode}</option>)}
-						</select>
-					</label>
-					<div className="method-choice">
-						<label><input type="radio" name="method" value="fingerprint" defaultChecked/><span><Fingerprint/><strong>Fingerprint</strong><small>Front counter device</small></span></label>
-						<label><input type="radio" name="method" value="qr"/><span><QrCode/><strong>QR code</strong><small>Employee mobile scan</small></span></label>
-					</div>
-					<button className="button primary wide">
-						Capture attendance
-					</button>
-				</Form>
-			</section>
-			<aside className="surface sim-aside">
-				<p className="eyebrow">Terminal operation</p>
-				<h3>Device event processing</h3>
-				<ul>
-					<li><Check/>Creates or completes an attendance record</li>
-					<li><Check/>Stores the chosen device method</li>
-					<li><Check/>Calculates worked time and overtime</li>
-					<li><Check/>Updates payroll inputs instantly</li>
-				</ul>
-				{empAttendance.length > 0 && (
-					<div style={{marginTop:"20px",paddingTop:"16px",borderTop:"1px solid var(--line)"}}>
-						<p className="eyebrow" style={{marginBottom:"6px"}}>Today's events for {selectedEmp?.fullName.split(" ")[0]}</p>
-						{empAttendance.map((r)=>(
-							<div key={r.id} style={{fontSize:".8rem",display:"flex",justifyContent:"space-between",marginBottom:"6px"}}>
-								<span>{time(r.clockIn)} – {r.clockOut ? time(r.clockOut) : "Active"}</span>
-								<Status value={r.status}/>
-							</div>
-						))}
-					</div>
-				)}
-			</aside>
-		</div>
-	</>;
-}
-
 function PayrollList({runs}:{runs:Payroll[]}) { return <><PageHeader eyebrow="Payroll" title="Payroll runs" description="A traceable path from source inputs to immutable payslips." action={<Link className="button secondary" to="/admin/payroll/policies"><ShieldCheck/>Statutory policy</Link>}/><section className="surface table payroll-table"><div className="table-head"><span>Pay period</span><span>Policy</span><span>Gross</span><span>Net pay</span><span>Status</span><span/></div>{runs.map((r)=><Link className="table-row" key={r.id} to={`/admin/payroll/${r.id}`}><span><strong>{date(r.periodStart,{month:"long",year:"numeric"})}</strong><small>Pay date · {date(r.payDate)}</small></span><span><strong>{r.policyName}</strong><small>Verified 26 Aug 2026</small></span><span>{r.status==="finalised"?money(r.grossTotalSen):"Calculated on review"}</span><span><strong>{r.status==="finalised"?money(r.netTotalSen):"—"}</strong></span><Status value={r.status}/><ChevronRight/></Link>)}</section></> }
 
-function PayrollDetail({run,employees,attendance,adjustments}:{run?:Payroll;employees:Employee[];attendance:Attendance[];adjustments:PayrollAdjustment[]}) {
+function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:Payroll;employees:Employee[];attendance:Attendance[];adjustments:PayrollAdjustment[];corrections:CorrectionRequest[]}) {
 	if(!run) return <Empty title="Payroll not found" body="This run is not available."/>;
-	const missing = attendance.filter((r)=>r.status==="missing_clock_out");
+	const missing = attendance.filter((r)=>r.status==="missing_clock_out"&&r.workDate>=run.periodStart&&r.workDate<=run.periodEnd);
+ const pendingCorrections=corrections.filter(c=>c.status==="pending"&&c.workDate>=run.periodStart&&c.workDate<=run.periodEnd);
+ const attendanceTotals=aggregateAttendance(attendance,run.periodStart,run.periodEnd);
 	const runAdjustments = adjustments.filter((a)=>a.payrollRunId === run.id);
 
 	return <>
 		<PageHeader eyebrow="Payroll / Run" title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`} description={`Pay date ${date(run.payDate)} · ${run.policyName}`} action={run.status==="finalised"?<><a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download/>CSV</a><a className="button secondary" href={`/resources/payroll/${run.id}.bank.csv`}><Landmark size={16}/>Bank CSV</a><a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText/>PDF report</a></>:undefined}/>
 		<div className="payroll-steps"><span className="done"><i>1</i>Period</span><span className="done"><i>2</i>Inputs</span><span className={run.status==="finalised"?"done":"active"}><i>3</i>Review</span><span className={run.status==="finalised"?"done":""}><i>4</i>Finalise</span></div>
-		{run.status==="draft"&&missing.length>0&&<div className="alert warning"><Clock3/><div><strong>{missing.length} attendance exception{missing.length===1?"":"s"} block finalisation</strong><p>{missing.map((r)=>r.fullName).join(", ")} need a clock-out.</p></div><Link className="button secondary" to="/admin/attendance/simulate">Resolve now</Link></div>}
+		{run.status==="draft"&&missing.length>0&&<div className="alert warning"><Clock3/><div><strong>{missing.length} attendance exception{missing.length===1?"":"s"} block finalisation</strong><p>{missing.map((r)=>r.fullName).join(", ")} need a clock-out.</p></div><Link className="button secondary" to="/admin/attendance">Resolve now</Link></div>}
 
+		{run.status==="draft"&&pendingCorrections.length>0&&<div className="alert warning"><Clock3/><div><strong>{pendingCorrections.length} pending attendance corrections block finalisation</strong><p>Approve or reject the requests before freezing payroll.</p></div><Link className="button secondary" to="/admin/attendance/corrections">Review corrections</Link></div>}
 		<section className="surface payroll-review">
 			<div className="section-head"><div><p className="eyebrow">Calculation review</p><h2>{employees.length} employee snapshots</h2></div><span className="simulation-tag">Audit ready</span></div>
 			<div className="review-head"><span>Employee</span><span>Pay basis</span><span>Attendance input</span><span>Policy</span></div>
 			{employees.map((e)=>{
-				const att=attendance.find((r)=>r.employeeId===e.id);
+				const att=attendanceTotals.find((r)=>r.employeeId===e.id);
 				return <div className="review-row" key={e.id}>
 					<span className="person"><i>{initials(e.fullName)}</i><span><strong>{e.fullName}</strong><small>{e.employeeCode}</small></span></span>
 					<span><strong>{e.salaryType==="monthly"?money(e.monthlySalarySen):`${money(e.hourlyRateSen)}/hr`}</strong><small>{e.salaryType}</small></span>
@@ -815,7 +671,7 @@ function PayrollDetail({run,employees,attendance,adjustments}:{run?:Payroll;empl
 			</section>
 		)}
 
-		{run.status==="draft"?<div className="finalise-bar"><div><ShieldCheck/><span><strong>Ready for an immutable snapshot</strong><small>Finalising generates protected payslips and cannot be undone.</small></span></div><Form method="post"><input type="hidden" name="intent" value="finalise-payroll"/><input type="hidden" name="id" value={run.id}/><button className="button primary">Finalise payroll</button></Form></div>:<div className="finalised-banner"><Check/><div><strong>Finalised {date(run.finalisedAt)}</strong><span>Net pay {money(run.netTotalSen)} · source and policy snapshots preserved</span></div></div>}
+		{run.status==="draft"?<div className="finalise-bar"><div><ShieldCheck/><span><strong>Ready for an immutable snapshot</strong><small>Finalising generates protected payslips and cannot be undone.</small></span></div><Form method="post"><input type="hidden" name="intent" value="finalise-payroll"/><input type="hidden" name="id" value={run.id}/><button className="button primary" disabled={missing.length>0||pendingCorrections.length>0}>Finalise payroll</button></Form></div>:<div className="finalised-banner"><Check/><div><strong>Finalised {date(run.finalisedAt)}</strong><span>Net pay {money(run.netTotalSen)} · source and policy snapshots preserved</span></div></div>}
 	</>;
 }
 
@@ -927,7 +783,7 @@ function Notifications({items}:{items:Notification[]}){
 	</>;
 }
 
-function EmployeeRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}){const employee=data.employees[0];if(path==="/employee/attendance")return <EmployeeAttendance records={data.attendance} employee={employee} today={data.today}/>;if(path==="/employee/leave")return <EmployeeLeaveWorkspace employeeId={employee.id} ownRecords={data.leave} sharedRecords={data.sharedLeave} balances={data.balances} holidays={data.holidays} today={data.today} backdateDays={data.companyInfo.leaveBackdateDays}/>;if(path.includes("/employee/payslips/"))return <PayslipDetail slip={data.payslips.find((p)=>path.endsWith(p.id))}/>;if(path==="/employee/payslips")return <Payslips slips={data.payslips}/>;if(path==="/employee/notifications")return <Notifications items={data.notifications}/>;if(path==="/employee/profile")return <EmployeeProfile employee={employee}/>;return <EmployeeHome data={data} employee={employee}/>}
+function EmployeeRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}){const employee=data.employees[0];if(path==="/employee/attendance")return <EmployeeAttendance records={data.attendance} employee={employee} today={data.today} corrections={data.corrections}/>;if(path==="/employee/leave")return <EmployeeLeaveWorkspace employeeId={employee.id} ownRecords={data.leave} sharedRecords={data.sharedLeave} balances={data.balances} holidays={data.holidays} today={data.today} backdateDays={data.companyInfo.leaveBackdateDays}/>;if(path.includes("/employee/payslips/"))return <PayslipDetail slip={data.payslips.find((p)=>path.endsWith(p.id))}/>;if(path==="/employee/payslips")return <Payslips slips={data.payslips}/>;if(path==="/employee/notifications")return <Notifications items={data.notifications}/>;if(path==="/employee/profile")return <EmployeeProfile employee={employee}/>;return <EmployeeHome data={data} employee={employee}/>}
 
 function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;employee:Employee}){
 	const todayRecords=data.attendance.filter((r)=>r.workDate===data.today);
@@ -936,80 +792,6 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 	const annual=data.balances.find((b)=>b.leaveTypeId==="leave-annual");
 	const annualAvailable=annual?calculateProjectedBalance(annual).availableHalfDays/2:0;
 	return <><div className="employee-hello"><div><p>{date(data.today,{weekday:"long",day:"numeric",month:"long"})}</p><h1>Good morning, {employee.fullName.split(" ")[0]}</h1></div><div className="avatar large">{initials(employee.fullName)}</div></div><section className="employee-hero"><div><p className="eyebrow light">Today’s attendance</p><h2>{activeShift?"You’re clocked in":todayRecords.length>0?`${(totalMins/60).toFixed(1)}h worked today`:"Ready when you are"}</h2><p>{activeShift?`Since ${time(activeShift.clockIn)} · ${activeShift.clockInMethod === "qr" ? "QR" : "Fingerprint"} scan`:todayRecords.length>0?`Completed ${todayRecords.length} shift session${todayRecords.length===1?"":"s"} today`:"Start your workday with a secure scan."}</p></div><Link className="button paper" to="/employee/attendance">View activity <ChevronRight/></Link><span className="hero-orbit"><Clock3/></span></section><div className="employee-stats"><Link to="/employee/leave"><span><CalendarDays/></span><div><small>Annual leave</small><strong>{annualAvailable} days</strong></div><ChevronRight/></Link><Link to="/employee/payslips"><span><WalletCards/></span><div><small>Latest net pay</small><strong>{money(data.payslips[0]?.netPaySen)}</strong></div><ChevronRight/></Link></div><section className="employee-section"><div className="section-head"><div><p className="eyebrow">For you</p><h2>Recent updates</h2></div><Link to="/employee/notifications">View all</Link></div>{data.notifications.slice(0,3).map((n)=><Link className="update-row" to={n.href??"/employee/notifications"} key={n.id}><span className="action-icon emerald"><Bell/></span><span><strong>{n.title}</strong><small>{n.body}</small></span><ChevronRight/></Link>)}</section></>}
-
-function EmployeeAttendance({records,employee,today}:{records:Attendance[];employee:Employee;today:string}){
-	const todayRecords=records.filter((r)=>r.workDate===today);
-	const openSession=todayRecords.find((r)=>!r.clockOut);
-	const totalWorkedMins=todayRecords.reduce((sum,r)=>sum+(r.workedMinutes??0),0);
-	const completedCount=todayRecords.filter((r)=>r.clockOut).length;
-	const [method, setMethod] = useState<"fingerprint"|"qr">("fingerprint");
-
-	return <>
-		<PageHeader eyebrow="Self-service" title="Attendance" description="Your workday history in Malaysia time."/>
-		
-		<section className="employee-clock-card">
-			<div className="employee-clock-info">
-				<p className="eyebrow light">Shift Terminal</p>
-				<h2>{openSession ? "Currently on shift" : todayRecords.length > 0 ? `${(totalWorkedMins/60).toFixed(1)}h worked today` : "Ready to start shift"}</h2>
-				<p>{openSession ? `Active session started at ${time(openSession.clockIn)} (${openSession.clockInMethod === "qr" ? "QR Code" : "Fingerprint"} scan)` : todayRecords.length > 0 ? `Total cumulative time: ${(totalWorkedMins/60).toFixed(1)} hours across ${completedCount} completed shift${completedCount===1?"":"s"}.` : "Select biometric scan method and clock in with one click."}</p>
-				
-				<div className="clock-method-toggle" style={{display:"flex",gap:"8px",marginTop:"12px"}}>
-					<button type="button" onClick={()=>setMethod("fingerprint")} className={`button small ${method==="fingerprint"?"paper":"ghost"}`} style={{color:method==="fingerprint"?"var(--ink)":"#9fb3b1",borderColor:"#3a504d"}}>
-						<Fingerprint size={14}/> Fingerprint
-					</button>
-					<button type="button" onClick={()=>setMethod("qr")} className={`button small ${method==="qr"?"paper":"ghost"}`} style={{color:method==="qr"?"var(--ink)":"#9fb3b1",borderColor:"#3a504d"}}>
-						<QrCode size={14}/> QR Code
-					</button>
-				</div>
-			</div>
-
-			<div className="employee-clock-actions" style={{display:"flex",flexDirection:"column",gap:"8px",alignItems:"flex-end"}}>
-				{openSession ? (
-					<Form method="post" style={{margin:0}}>
-						<input type="hidden" name="intent" value="employee-clock"/>
-						<input type="hidden" name="actionType" value="clock-out"/>
-						<input type="hidden" name="method" value={method}/>
-						<button className="button paper"><Square size={16}/> Clock Out ({method === "fingerprint" ? "Fingerprint" : "QR"})</button>
-					</Form>
-				) : (
-					<div style={{display:"flex",gap:"8px",flexWrap:"wrap",justifyContent:"flex-end"}}>
-						<Form method="post" style={{margin:0}}>
-							<input type="hidden" name="intent" value="employee-clock"/>
-							<input type="hidden" name="actionType" value="clock-in"/>
-							<input type="hidden" name="method" value={method}/>
-							<button className="button paper"><Play size={16}/> {todayRecords.length > 0 ? "Clock In (Next Shift)" : "Clock In"} ({method === "fingerprint" ? "Fingerprint" : "QR"})</button>
-						</Form>
-						{todayRecords.length > 0 && (
-							<Form method="post" style={{margin:0}}>
-								<input type="hidden" name="intent" value="employee-clock"/>
-								<input type="hidden" name="actionType" value="reset"/>
-								<button className="button ghost" style={{color:"#9fb3b1",borderColor:"#3a504d"}}><RotateCcw size={14}/> Reset today</button>
-							</Form>
-						)}
-					</div>
-				)}
-			</div>
-		</section>
-
-		<section className="attendance-today">
-			<div>
-				<p className="eyebrow light">Today’s Summary · {date(today,{day:"numeric",month:"short"})}</p>
-				<h2>{openSession ? "Shift in progress" : todayRecords.length > 0 ? `${(totalWorkedMins/60).toFixed(1)} hours recorded` : "No activity recorded"}</h2>
-				<p>{todayRecords.length > 0 ? `${todayRecords.length} recorded session${todayRecords.length===1?"":"s"} · Cumulative daily total` : "Ready for next shift scan."}</p>
-			</div>
-			<div className="timeline">
-				<span className="active"><i/><small>{openSession ? "Latest in" : "First in"}</small><strong>{time(todayRecords[0]?.clockIn)}</strong></span>
-				<b/>
-				<span className={todayRecords.some((r)=>r.clockOut) ? "active" : ""}><i/><small>{openSession ? "Current" : "Latest out"}</small><strong>{openSession ? "On shift" : time(todayRecords[todayRecords.length-1]?.clockOut)}</strong></span>
-			</div>
-		</section>
-
-		<section className="surface history">
-			<div className="section-head"><h2>Activity history</h2><span>{employee.employeeCode}</span></div>
-			{records.map((r)=><div className="history-row" key={r.id}><div className="date-tile"><b>{new Date(`${r.workDate}T00:00:00Z`).getUTCDate()}</b><small>{date(r.workDate,{month:"short"})}</small></div><span><strong>{r.clockIn?`${time(r.clockIn)} – ${time(r.clockOut)}`:"Leave"}</strong><small>{r.workedMinutes?`${Math.floor(r.workedMinutes/60)}h ${r.workedMinutes%60}m worked (${r.clockInMethod === "qr" ? "QR" : "Fingerprint"})`:r.status.replaceAll("_"," ")}</small></span><Status value={r.status}/></div>)}
-		</section>
-	</>;
-}
 
 function Payslips({slips}:{slips:Payslip[]}){return <><PageHeader eyebrow="Self-service" title="Payslips" description="Your protected, finalised payroll records."/><section className="payslip-list">{slips.length?slips.map((s)=><Link className="surface payslip-row" to={`/employee/payslips/${s.id}`} key={s.id}><div className="document-icon"><FileText/></div><span><strong>{date(`${s.period}-01`,{month:"long",year:"numeric"})}</strong><small>Paid {date(s.payDate)}</small></span><span><small>Net pay</small><strong>{money(s.netPaySen)}</strong></span><Status value="finalised"/><ChevronRight/></Link>):<Empty title="No payslips yet" body="Finalised payroll records will appear here."/>}</section></>}
 

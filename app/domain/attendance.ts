@@ -1,3 +1,5 @@
+export const NORMAL_DAY_MINUTES = 480;
+
 export type AttendanceCalculation = {
 	workedMinutes: number | null;
 	overtimeMinutes: number | null;

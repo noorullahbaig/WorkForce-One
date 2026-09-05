@@ -44,6 +44,16 @@ npm run check
 5. Finalise the run to freeze employee inputs and policy breakdowns and create payslips.
 6. Export the protected payroll PDF/CSV, then switch to Farah’s employee account to view the new notification and protected payslip PDF.
 
+## Attendance corrections
+
+Employees can request a correction from Attendance history, compare original and proposed times in Malaysia time, and preview worked/overtime minutes before submitting a reason. Attendance changes only after approval. Request history includes pending, approved, and rejected decisions with rejection reasons.
+
+Admins review requests at `/admin/attendance/corrections`, linked from Attendance, the dashboard, notifications, and payroll blockers. Pending requests and missing clock-outs block only the matching company/payroll period. Approvals after finalisation update attendance while leaving payroll results, snapshots, payslips, and exports unchanged.
+
+The workflow uses migration `0005_attendance_corrections.sql`. Apply migrations before starting the updated app. The nightly/manual demo reset restores corrected source records and clears correction history. Employee “Reset today” cannot delete records linked to a correction.
+
+Database integration tests run against disposable Miniflare D1 instances; they do not use the local development database. The Playwright acceptance journeys use the local demo and reset it afterward.
+
 ## Data and security model
 
 - Money is stored as integer sen; time as integer minutes; timestamps as ISO UTC and displayed in `Asia/Kuala_Lumpur`.
@@ -69,18 +79,29 @@ This is a product demo, not statutory certification. It does not implement full 
 
 ## Cloudflare deployment
 
-Create separate staging and production D1 databases, replace the placeholder database ID in `wrangler.jsonc`, then apply migrations and seed each environment:
+`wrangler.jsonc` is the source of truth for the production Worker and its D1 binding. The configured database ID points to `workforce-one-demo`. Creating a D1 database in the Cloudflare dashboard or with `wrangler d1 create` produces the same resource; the binding's database ID determines which database the Worker uses.
+
+Database structure is changed only through numbered files in `drizzle/migrations`. Never run schema-changing SQL directly in the dashboard or a deploy workflow. Never edit an already-applied migration; add the next migration and commit its Drizzle journal/snapshot updates. Validate the chain locally with:
 
 ```bash
-npx wrangler login
-npx wrangler d1 create workforce-one-demo-staging
-npx wrangler d1 migrations apply workforce-one-demo-staging --remote
-npx wrangler d1 execute workforce-one-demo-staging --remote --file=./drizzle/seed.sql
-npx wrangler deploy --env staging
+npm run db:migrations:validate
+npm run check
 ```
 
-Repeat with the production database and environment after acceptance. Observability logs/traces and the nightly cron trigger are configured in `wrangler.jsonc`.
+Every pull request and push runs typechecking, lint, unit/integration tests, a production build, a Wrangler dry-run, and desktop/mobile browser journeys against a fresh local D1 database. A push to `main` deploys only after both verification jobs pass. The same workflow then:
 
-Production deploys apply pending migrations only. The demo seed is intentionally not run during deployment because it resets the database; use it only for a disposable local or staging environment.
+1. applies pending D1 migrations and stops on any error;
+2. deploys the exact tested commit;
+3. calls the deployed `/healthz` endpoint to confirm the Worker and required schema are live; and
+4. serializes production releases so two pushes cannot migrate/deploy concurrently.
 
-The GitHub `Deploy` workflow requires repository secrets named `CLOUDFLARE_API_TOKEN` (with Workers and D1 permissions) and `CLOUDFLARE_ACCOUNT_ID`. Add them with `gh secret set` or in the repository settings before merging to `main`.
+The production seed is intentionally never run during deployment because it resets business data. Use `npm run db:seed:local` only for local development. The nightly demo reset remains controlled by the configured Worker cron.
+
+GitHub Actions requires repository secrets named `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Create a narrowly scoped Cloudflare token that can deploy this Worker and edit its D1 database, then add the secrets in GitHub repository settings. You can also set them from an authenticated terminal without putting their values in shell history:
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN
+gh secret set CLOUDFLARE_ACCOUNT_ID
+```
+
+The workflow can be rerun from GitHub Actions with **Run workflow** after repairing credentials; no empty commit is needed. If a migration fails, inspect and reconcile the remote schema and `d1_migrations` ledger before rerunning. Do not bypass a failure with raw `ALTER TABLE` statements or `|| true`.

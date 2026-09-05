@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+	check,
 	index,
 	integer,
 	primaryKey,
@@ -387,3 +389,30 @@ export const loginAttempts = sqliteTable(
 		windowStartedAt: text("window_started_at").notNull(),
 	},
 );
+
+export const attendanceCorrectionRequests = sqliteTable("attendance_correction_requests", {
+ id: text("id").primaryKey(),
+ companyId: text("company_id").notNull().references(() => companies.id),
+ employeeId: text("employee_id").notNull().references(() => employees.id),
+ attendanceId: text("attendance_id").notNull().references(() => attendanceRecords.id),
+ requestedBy: text("requested_by").notNull().references(() => users.id),
+ workDate: text("work_date").notNull(),
+ originalClockIn: text("original_clock_in"), originalClockOut: text("original_clock_out"),
+ originalClockInMethod: text("original_clock_in_method"), originalClockOutMethod: text("original_clock_out_method"),
+ originalStatus: text("original_status").notNull(),
+ originalWorkedMinutes: integer("original_worked_minutes"), originalOvertimeMinutes: integer("original_overtime_minutes"),
+ originalUpdatedAt: text("original_updated_at").notNull(),
+ proposedClockIn: text("proposed_clock_in").notNull(), proposedClockOut: text("proposed_clock_out").notNull(),
+ reason: text("reason").notNull(),
+ status: text("status", { enum: ["pending", "approved", "rejected"] }).notNull().default("pending"),
+ reviewedBy: text("reviewed_by").references(() => users.id), reviewedAt: text("reviewed_at"), rejectionReason: text("rejection_reason"),
+ ...timestamps,
+}, t => [
+ uniqueIndex("attendance_correction_pending_unique").on(t.attendanceId).where(sql`${t.status} = 'pending'`),
+ index("attendance_correction_company_status_idx").on(t.companyId, t.status, t.createdAt),
+ index("attendance_correction_employee_idx").on(t.employeeId, t.createdAt),
+ check("attendance_correction_status_check", sql`${t.status} IN ('pending','approved','rejected')`),
+ check("attendance_correction_reason_check", sql`length(trim(${t.reason})) BETWEEN 1 AND 2000`),
+ check("attendance_correction_review_check", sql`(${t.status} = 'pending' AND ${t.reviewedBy} IS NULL AND ${t.reviewedAt} IS NULL) OR (${t.status} IN ('approved','rejected') AND ${t.reviewedBy} IS NOT NULL AND ${t.reviewedAt} IS NOT NULL)`),
+ check("attendance_correction_rejection_check", sql`${t.status} != 'rejected' OR (${t.rejectionReason} IS NOT NULL AND length(trim(${t.rejectionReason})) BETWEEN 1 AND 2000)`),
+]);

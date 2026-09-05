@@ -10,16 +10,16 @@ async function signIn(page: import("@playwright/test").Page, role: "Admin" | "Em
 	await page.waitForURL(role === "Admin" ? /\/admin$/ : /\/employee$/);
 }
 
-test("employee plans leave in the shared calendar", async ({ page }) => {
+	test("employee plans leave in the shared calendar", async ({ page }) => {
 	await signIn(page, "Employee");
-	await page.goto("/employee/leave?month=2026-08&date=2026-08-28&request=new");
+	await page.goto("/employee/leave?month=2099-01&date=2099-01-02&request=new");
 
-	await expect(page.getByRole("grid", { name: "August 2026 shared leave calendar" })).toBeVisible();
+	await expect(page.getByRole("grid", { name: "January 2099 shared leave calendar" })).toBeVisible();
 	await expect(page.getByRole("complementary", { name: "Request leave" })).toBeVisible();
 
-	await page.getByLabel("To").fill("2026-09-01");
+	await page.getByLabel("To").fill("2099-01-05");
 	await expect(page.getByText("2 working days")).toBeVisible();
-	await expect(page.getByText("3 non-working days excluded")).toBeVisible();
+	await expect(page.getByText("2 non-working days excluded")).toBeVisible();
 
 	const accessibility = await new AxeBuilder({ page }).analyze();
 	expect(accessibility.violations.map(({ id, nodes }) => ({ id, targets: nodes.map((node) => node.target.join(" ")) }))).toEqual([]);
@@ -39,7 +39,10 @@ test("calendar date navigation preserves context, scroll position, and focus", a
 	await page.evaluate(() => window.scrollTo(0, 700));
 	const before = await page.evaluate(() => window.scrollY);
 
-	await page.getByRole("gridcell", { name: "Saturday, 29 August" }).getByRole("link", { name: "29" }).click();
+	await page
+		.getByRole("gridcell", { name: "Saturday, 29 August" })
+		.getByRole("link", { name: "Saturday, 29 August, 0 people away" })
+		.click();
 	await expect(page).toHaveURL(/date=2026-08-29.*request=new/);
 	await expect(page.getByLabel("From")).toHaveValue("2026-08-29");
 	await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThanOrEqual(Math.max(0, before - 10));

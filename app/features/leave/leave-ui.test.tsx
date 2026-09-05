@@ -33,6 +33,30 @@ const holidays = [
   },
 ];
 
+function leaveRecord(
+  overrides: Partial<React.ComponentProps<typeof EmployeeLeaveWorkspace>["ownRecords"][number]> = {},
+) {
+  return {
+    id: "lr-own",
+    employeeId: "emp-001",
+    fullName: "Demo Employee",
+    department: "Operations",
+    leaveTypeId: "leave-annual",
+    typeName: "Annual leave",
+    paid: 1,
+    startDate: "2026-08-28",
+    endDate: "2026-08-28",
+    durationHalfDays: 2,
+    dayPart: "full",
+    reason: "Personal appointment",
+    status: "approved",
+    createdAt: "2026-08-20T08:00:00.000Z",
+    reviewedAt: "2026-08-21T08:00:00.000Z",
+    reviewNote: null,
+    ...overrides,
+  };
+}
+
 function renderRoute(element: React.ReactNode, path: string) {
   const router = createMemoryRouter([{ path: "*", element }], {
     initialEntries: [path],
@@ -41,6 +65,113 @@ function renderRoute(element: React.ReactNode, path: string) {
 }
 
 describe("employee leave workspace", () => {
+  test("summarises unique confirmed employees without duplicating approved names", () => {
+    renderRoute(
+      <EmployeeLeaveWorkspace
+        employeeId="emp-001"
+        ownRecords={[
+          leaveRecord(),
+          leaveRecord({ id: "lr-own-pending", status: "pending" }),
+        ]}
+        sharedRecords={[
+          {
+            id: "lr-mei-1",
+            employeeId: "emp-007",
+            fullName: "Mei Ling Wong",
+            department: "People",
+            startDate: "2026-08-28",
+            endDate: "2026-08-28",
+          },
+          {
+            id: "lr-mei-2",
+            employeeId: "emp-007",
+            fullName: "Mei Ling Wong",
+            department: "People",
+            startDate: "2026-08-28",
+            endDate: "2026-08-28",
+          },
+          {
+            id: "lr-aina",
+            employeeId: "emp-008",
+            fullName: "Aina Noor",
+            department: "Sales",
+            startDate: "2026-08-28",
+            endDate: "2026-08-28",
+          },
+        ]}
+        balances={balances}
+        holidays={holidays}
+        today="2026-08-27"
+      />,
+      "/employee/leave?month=2026-08&date=2026-08-28",
+    );
+
+    const day = screen.getByRole("gridcell", { name: "Friday, 28 August" });
+    expect(within(day).getByText("3 away")).toBeInTheDocument();
+    expect(within(day).getByText("You")).toBeInTheDocument();
+    expect(within(day).getByText("Aina Noor")).toBeInTheDocument();
+    expect(within(day).getByText("+1")).toBeInTheDocument();
+    expect(day.querySelectorAll(".calendar-event.away")).toHaveLength(0);
+    expect(day.querySelector(".calendar-event.own")).toBeInTheDocument();
+    expect(day.querySelector(".calendar-event.pending")).toBeInTheDocument();
+    expect(
+      within(day).getByRole("link", {
+        name: "Friday, 28 August, 3 people away",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("excludes pending leave and non-working dates from confirmed staffing", () => {
+    renderRoute(
+      <EmployeeLeaveWorkspace
+        employeeId="emp-001"
+        ownRecords={[
+          leaveRecord({
+            id: "lr-approved-range",
+            startDate: "2026-08-28",
+            endDate: "2026-09-01",
+            durationHalfDays: 4,
+          }),
+          leaveRecord({
+            id: "lr-pending-only",
+            startDate: "2026-08-27",
+            endDate: "2026-08-27",
+            status: "pending",
+          }),
+        ]}
+        sharedRecords={[]}
+        balances={balances}
+        holidays={holidays}
+        today="2026-08-27"
+      />,
+      "/employee/leave?month=2026-08&date=2026-08-28",
+    );
+
+    const pendingDay = screen.getByRole("gridcell", {
+      name: "Thursday, 27 August",
+    });
+    const workingDay = screen.getByRole("gridcell", {
+      name: "Friday, 28 August",
+    });
+    const weekend = screen.getByRole("gridcell", {
+      name: "Saturday, 29 August",
+    });
+    const holiday = screen.getByRole("gridcell", {
+      name: "Monday, 31 August",
+    });
+
+    expect(within(pendingDay).queryByText(/away$/)).not.toBeInTheDocument();
+    expect(within(workingDay).getByText("1 away")).toBeInTheDocument();
+    expect(within(weekend).queryByText(/away$/)).not.toBeInTheDocument();
+    expect(within(holiday).queryByText(/away$/)).not.toBeInTheDocument();
+    expect(holiday.querySelector(".calendar-event.holiday")).toBeInTheDocument();
+    expect(
+      within(holiday).getByRole("link", {
+        name: "Monday, 31 August, 0 people away",
+      }),
+    ).toBeInTheDocument();
+  });
+
   test("shows shared names and holidays without exposing coworker leave details", () => {
     renderRoute(
       <EmployeeLeaveWorkspace
@@ -110,12 +241,16 @@ describe("employee leave workspace", () => {
     await user.click(
       within(
         screen.getByRole("gridcell", { name: "Saturday, 29 August" }),
-      ).getByRole("link", { name: "29" }),
+      ).getByRole("link", {
+        name: "Saturday, 29 August, 0 people away",
+      }),
     );
     expect(
       within(
         screen.getByRole("gridcell", { name: "Thursday, 27 August" }),
-      ).getByRole("link", { name: "27" }),
+      ).getByRole("link", {
+        name: "Thursday, 27 August, 0 people away",
+      }),
     ).toHaveAttribute("aria-current", "date");
     expect(
       screen.getByRole("heading", { name: "Saturday, 29 August" }),
@@ -140,7 +275,9 @@ describe("employee leave workspace", () => {
     await user.click(
       within(
         screen.getByRole("gridcell", { name: "Saturday, 29 August" }),
-      ).getByRole("link", { name: "29" }),
+      ).getByRole("link", {
+        name: "Saturday, 29 August, 0 people away",
+      }),
     );
     expect(screen.getByRole("complementary", { name: "Request leave" })).not.toBeNull();
     expect(screen.getByLabelText("From")).toHaveValue("2026-08-29");
@@ -179,6 +316,7 @@ describe("employee leave workspace", () => {
         sharedRecords={[]}
         balances={balances}
         holidays={holidays}
+        today="2026-08-27"
       />,
       "/employee/leave?month=2026-08&request=new&date=2026-08-28",
     );
@@ -204,7 +342,11 @@ describe("employee leave workspace", () => {
     const selectedCell = screen.getByRole("gridcell", {
       name: "Wednesday, 26 August",
     });
-    within(selectedCell).getByRole("link", { name: "26" }).focus();
+    within(selectedCell)
+      .getByRole("link", {
+        name: "Wednesday, 26 August, 0 people away",
+      })
+      .focus();
     await user.keyboard("{ArrowRight}");
     expect(
       screen.getByRole("heading", { name: "Thursday, 27 August" }),
@@ -213,6 +355,104 @@ describe("employee leave workspace", () => {
 });
 
 describe("admin leave workspace", () => {
+  const adminEmployees = [
+    { id: "emp-008", fullName: "Aina Noor", department: "Sales" },
+    { id: "emp-009", fullName: "Sarah Lim", department: "Sales" },
+    { id: "emp-007", fullName: "Mei Ling Wong", department: "People" },
+  ];
+  const approvedAdminRecords = [
+    leaveRecord({
+      id: "lr-aina",
+      employeeId: "emp-008",
+      fullName: "Aina Noor",
+      department: "Sales",
+    }),
+    leaveRecord({
+      id: "lr-sarah",
+      employeeId: "emp-009",
+      fullName: "Sarah Lim",
+      department: "Sales",
+    }),
+    leaveRecord({
+      id: "lr-mei",
+      employeeId: "emp-007",
+      fullName: "Mei Ling Wong",
+      department: "People",
+    }),
+  ];
+
+  test("constrains confirmed staffing by admin department and employee filters", () => {
+    const { unmount } = renderRoute(
+      <AdminLeaveWorkspace
+        records={approvedAdminRecords}
+        employees={adminEmployees}
+        holidays={holidays}
+        balances={balances}
+        today="2026-08-27"
+      />,
+      "/admin/leave?month=2026-08&date=2026-08-28&department=Sales",
+    );
+
+    let day = screen.getByRole("gridcell", { name: "Friday, 28 August" });
+    expect(within(day).getByText("2 away")).toBeInTheDocument();
+    expect(within(day).queryByText("Mei Ling Wong")).not.toBeInTheDocument();
+
+    unmount();
+    renderRoute(
+      <AdminLeaveWorkspace
+        records={approvedAdminRecords}
+        employees={adminEmployees}
+        holidays={holidays}
+        balances={balances}
+        today="2026-08-27"
+      />,
+      "/admin/leave?month=2026-08&date=2026-08-28&department=Sales&employee=emp-008",
+    );
+
+    day = screen.getByRole("gridcell", { name: "Friday, 28 August" });
+    expect(within(day).getByText("1 away")).toBeInTheDocument();
+    expect(within(day).getByText("Aina Noor")).toBeInTheDocument();
+  });
+
+  test("hides confirmed staffing when admin filters exclude approved absences", () => {
+    const pendingRecord = leaveRecord({
+      id: "lr-pending",
+      employeeId: "emp-009",
+      fullName: "Sarah Lim",
+      department: "Sales",
+      status: "pending",
+    });
+    const { unmount } = renderRoute(
+      <AdminLeaveWorkspace
+        records={[...approvedAdminRecords, pendingRecord]}
+        employees={adminEmployees}
+        holidays={holidays}
+        balances={balances}
+        today="2026-08-27"
+      />,
+      "/admin/leave?month=2026-08&date=2026-08-28&status=pending",
+    );
+
+    let day = screen.getByRole("gridcell", { name: "Friday, 28 August" });
+    expect(within(day).queryByText(/away$/)).not.toBeInTheDocument();
+    expect(within(day).getByText("Sarah Lim")).toBeInTheDocument();
+
+    unmount();
+    renderRoute(
+      <AdminLeaveWorkspace
+        records={approvedAdminRecords}
+        employees={adminEmployees}
+        holidays={holidays}
+        balances={balances}
+        today="2026-08-27"
+      />,
+      "/admin/leave?month=2026-08&date=2026-08-28&event=public",
+    );
+
+    day = screen.getByRole("gridcell", { name: "Friday, 28 August" });
+    expect(within(day).queryByText(/away$/)).not.toBeInTheDocument();
+  });
+
   test("keeps the approval queue beside coverage context", () => {
     renderRoute(
       <AdminLeaveWorkspace

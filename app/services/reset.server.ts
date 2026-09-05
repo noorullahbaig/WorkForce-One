@@ -1,6 +1,11 @@
 export async function resetDemoData(db: D1Database) {
 	const now = "2026-08-26T00:00:00.000Z";
 	await db.batch([
+		db.prepare(`UPDATE attendance_records AS a SET (clock_in,clock_out,clock_in_method,clock_out_method,status,worked_minutes,overtime_minutes,updated_at) =
+   (SELECT c.original_clock_in,c.original_clock_out,c.original_clock_in_method,c.original_clock_out_method,c.original_status,c.original_worked_minutes,c.original_overtime_minutes,c.original_updated_at
+    FROM attendance_correction_requests c WHERE c.attendance_id=a.id ORDER BY c.rowid LIMIT 1)
+   WHERE EXISTS (SELECT 1 FROM attendance_correction_requests c WHERE c.attendance_id=a.id)`),
+  db.prepare("DELETE FROM attendance_correction_requests"),
 		db.prepare("DELETE FROM attendance_records WHERE id NOT LIKE 'att-%'"),
 		db.prepare("UPDATE attendance_records SET clock_in=CASE id WHEN 'att-001' THEN '2026-08-26T01:00:00.000Z' WHEN 'att-010' THEN '2026-08-25T02:00:00.000Z' ELSE clock_in END,clock_out=CASE WHEN id IN ('att-001','att-010') THEN NULL ELSE clock_out END,clock_out_method=CASE WHEN id IN ('att-001','att-010') THEN NULL ELSE clock_out_method END,worked_minutes=CASE WHEN id IN ('att-001','att-010') THEN NULL ELSE worked_minutes END,overtime_minutes=CASE WHEN id IN ('att-001','att-010') THEN NULL ELSE overtime_minutes END,status=CASE WHEN id IN ('att-001','att-010') THEN 'missing_clock_out' ELSE status END,updated_at=?").bind(now),
 		db.prepare("DELETE FROM leave_requests WHERE id NOT LIKE 'lr-%'"),

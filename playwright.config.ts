@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
 	testDir: "./tests/e2e",
+	globalSetup: "./tests/e2e/global-setup.ts",
 	fullyParallel: false,
 	workers: 1,
 	expect: { timeout: 15_000 },
@@ -14,5 +15,5 @@ export default defineConfig({
 		{ name: "mobile", use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 } } },
 		{ name: "small-mobile", use: { ...devices["Desktop Chrome"], viewport: { width: 360, height: 800 } } },
 	],
-	webServer: { command: "npm run dev -- --host 127.0.0.1", url: "http://127.0.0.1:5173/login", reuseExistingServer: !process.env.CI, timeout: 120_000 },
+	webServer: { command: "npm run dev -- --host 127.0.0.1 --force", url: "http://127.0.0.1:5173/login", reuseExistingServer: !process.env.CI, timeout: 120_000 },
 });
