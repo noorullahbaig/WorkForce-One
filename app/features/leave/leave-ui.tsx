@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -8,7 +9,9 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Form, Link, useNavigate, useSearchParams } from "react-router";
 import {
 	calculateLeaveDurationHalfDays,
@@ -152,12 +155,14 @@ function CalendarToolbar({
   today,
   requestOpen = false,
   admin = false,
+  actions,
 }: {
   month: string;
   basePath: string;
   today: string;
   requestOpen?: boolean;
   admin?: boolean;
+  actions?: ReactNode;
 }) {
   const [params] = useSearchParams();
   const makeHref = (nextMonth: string, view?: string) => {
@@ -205,29 +210,32 @@ function CalendarToolbar({
           Today
         </Link>
       </div>
-      <div className="calendar-view-switch" aria-label="Calendar view">
-        <Link
-          className={
-            !params.get("view") || params.get("view") === "calendar"
-              ? "active"
-              : ""
-          }
-          to={makeHref(month)}
-          preventScrollReset
-        >
-          Calendar
-        </Link>
-        <Link
-          className={params.get("view") === "agenda" ? "active" : ""}
-          to={makeHref(month, "agenda")}
-          preventScrollReset
-        >
-          Agenda
-        </Link>
-        <span className="privacy-note">
-          <Users />
-          {admin ? "Admin detail" : "Names and dates only"}
-        </span>
+      <div className="calendar-toolbar-actions">
+        <div className="calendar-view-switch" aria-label="Calendar view">
+          <Link
+            className={
+              !params.get("view") || params.get("view") === "calendar"
+                ? "active"
+                : ""
+            }
+            to={makeHref(month)}
+            preventScrollReset
+          >
+            Calendar
+          </Link>
+          <Link
+            className={params.get("view") === "agenda" ? "active" : ""}
+            to={makeHref(month, "agenda")}
+            preventScrollReset
+          >
+            Agenda
+          </Link>
+          <span className="privacy-note">
+            <Users />
+            {admin ? "Admin detail" : "Names and dates only"}
+          </span>
+        </div>
+        {actions}
       </div>
     </div>
   );
@@ -850,6 +858,11 @@ export function AdminLeaveWorkspace({
   backdateDays?: number;
 }) {
   const [params] = useSearchParams();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const filtersButtonRef = useRef<HTMLButtonElement>(null);
+  const manageButtonRef = useRef<HTMLButtonElement>(null);
   const resolvedToday = today ?? todayInTimeZone(new Date(), "Asia/Kuala_Lumpur");
   const month = validMonth(params.get("month"), resolvedToday);
   const selectedDate = selectedDateForMonth(
@@ -909,84 +922,106 @@ export function AdminLeaveWorkspace({
   const pending = records
     .filter((r) => r.status === "pending")
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const approvedThisMonth = records.filter(
+    (record) =>
+      record.status === "approved" && record.startDate.startsWith(month),
+  ).length;
+  const holidaysThisMonth = holidays.filter(
+    (holiday) => holiday.active && holiday.date.startsWith(month),
+  ).length;
+  const filterValues = {
+    department: departmentFilter,
+    employee: employeeFilter,
+    event: eventFilter,
+    status: statusFilter,
+  };
+  const activeFilters = Object.entries(filterValues).filter(
+    ([, value]) => value !== "all",
+  );
+  const filterLabel = (name: string, value: string) => {
+    if (name === "employee") {
+      return employees.find((employee) => employee.id === value)?.fullName ?? value;
+    }
+    if (name === "event") {
+      return {
+        absence: "Absences",
+        public: "Public holidays",
+        company: "Company holidays",
+      }[value] ?? value;
+    }
+    if (name === "status") {
+      return value.charAt(0).toUpperCase() + value.slice(1);
+    }
+    return value;
+  };
+  const hrefWithoutFilters = (only?: string) => {
+    const next = new URLSearchParams(params);
+    const names = only
+      ? [only]
+      : ["department", "employee", "event", "status"];
+    names.forEach((name) => next.delete(name));
+    next.delete("notice");
+    return `/admin/leave?${next.toString()}`;
+  };
+  const closeFilters = () => {
+    setFiltersOpen(false);
+    filtersButtonRef.current?.focus();
+  };
+  const closeSettings = () => {
+    setSettingsOpen(false);
+    manageButtonRef.current?.focus();
+  };
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      closeFilters();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [filtersOpen]);
   return (
     <>
-      <header className="leave-page-header">
+      <header className="leave-page-header admin-leave-header">
         <div>
           <p className="eyebrow">People / Leave</p>
           <h1>Leave calendar</h1>
-          <p>
-            Review requests with team coverage, holidays, and balances in one
-            workspace.
-          </p>
         </div>
         <div className="page-actions">
-          <Link className="button secondary" to="/admin/leave/balances">
-            <SlidersHorizontal />
-            Adjust balances
-          </Link>
-          <Link className="button primary" to="/admin/leave/holidays">
-            <CalendarDays />
-            Manage holidays
-          </Link>
+          <DropdownMenu.Root open={manageOpen} onOpenChange={setManageOpen}>
+            <div className="manage-leave">
+              <DropdownMenu.Trigger asChild>
+                <button ref={manageButtonRef} className="button secondary" type="button">
+                  Manage leave
+                  <ChevronDown />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content className="manage-leave-menu" align="end" sideOffset={7}>
+                  <DropdownMenu.Item asChild>
+                    <Link to="/admin/leave/balances">
+                      <SlidersHorizontal />
+                      Adjust balances
+                    </Link>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item asChild>
+                    <Link to="/admin/leave/holidays">
+                      <CalendarDays />
+                      Manage holidays
+                    </Link>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="manage-leave-settings"
+                    onSelect={() => setSettingsOpen(true)}
+                  >
+                    Leave settings
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </div>
+          </DropdownMenu.Root>
         </div>
       </header>
-      <div
-        className="admin-leave-summary"
-        tabIndex={0}
-        aria-label="Leave calendar summary"
-      >
-        <span>
-          <b>{pending.length}</b> awaiting review
-        </span>
-        <span>
-          <b>
-            {
-              records.filter(
-                (r) => r.status === "approved" && r.startDate.startsWith(month),
-              ).length
-            }
-          </b>{" "}
-          approved this month
-        </span>
-        <span>
-          <b>
-            {
-              holidays.filter((h) => h.date.startsWith(month) && h.active)
-                .length
-            }
-          </b>{" "}
-          Penang holidays
-        </span>
-      </div>
-      <section className="leave-policy-card surface" aria-label="Leave policy">
-        <div>
-          <p className="eyebrow">Company policy</p>
-          <h2>Backdated leave requests</h2>
-          <p>
-            Employees can request leave from today back through this many
-            calendar days. The rule is enforced in the browser and on submit.
-          </p>
-        </div>
-        <Form method="post" className="inline-policy-form">
-          <input type="hidden" name="intent" value="update-leave-policy" />
-          <label>
-            Allowed days
-            <input
-              type="number"
-              name="leaveBackdateDays"
-              min="0"
-              max="365"
-              step="1"
-              defaultValue={backdateDays}
-              required
-            />
-          </label>
-          <button className="button secondary" type="submit">
-            Save policy
-          </button>
-        </Form>
-      </section>
       <nav className="admin-mobile-tabs" aria-label="Admin leave workspace">
         <Link
           className={mobilePanel === "calendar" ? "active" : ""}
@@ -1003,85 +1038,135 @@ export function AdminLeaveWorkspace({
       </nav>
       <section className={`admin-leave-workspace mobile-${mobilePanel}`}>
         <div className="calendar-canvas surface">
-          <CalendarToolbar
-            month={month}
-            basePath="/admin/leave"
-            today={resolvedToday}
-            admin
-          />
-          <Form method="get" className="leave-filters">
-            <input type="hidden" name="month" value={month} />
-            {agenda ? <input type="hidden" name="view" value="agenda" /> : null}
-            <label>
-              Department
-              <select
-                name="department"
-                defaultValue={departmentFilter}
-                onChange={(event) => event.currentTarget.form?.requestSubmit()}
-              >
-                <option value="all">All departments</option>
-                {[...new Set(employees.map((e) => e.department))]
-                  .sort()
-                  .map((department) => (
-                    <option value={department} key={department}>
-                      {department}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label>
-              Employee
-              <select
-                name="employee"
-                defaultValue={employeeFilter}
-                onChange={(event) => event.currentTarget.form?.requestSubmit()}
-              >
-                <option value="all">All employees</option>
-                {employees
-                  .filter(
-                    (employee) =>
-                      departmentFilter === "all" ||
-                      employee.department === departmentFilter,
-                  )
-                  .map((employee) => (
-                    <option value={employee.id} key={employee.id}>
-                      {employee.fullName}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label>
-              Events
-              <select
-                name="event"
-                defaultValue={eventFilter}
-                onChange={(event) => event.currentTarget.form?.requestSubmit()}
-              >
-                <option value="all">All events</option>
-                <option value="absence">Absences</option>
-                <option value="public">Public holidays</option>
-                <option value="company">Company holidays</option>
-              </select>
-            </label>
-            <label>
-              Status
-              <select
-                name="status"
-                defaultValue={statusFilter}
-                onChange={(event) => event.currentTarget.form?.requestSubmit()}
-              >
-                <option value="all">All statuses</option>
-                <option value="approved">Approved</option>
-                <option value="pending">Pending</option>
-              </select>
-            </label>
-            <span className="legend">
-              <i className="approved" />
-              Approved <i className="pending" />
-              Pending <i className="holiday" />
-              Holiday
-            </span>
-          </Form>
+          <div className="calendar-command-area" role="region" aria-label="Calendar commands">
+            <CalendarToolbar
+              month={month}
+              basePath="/admin/leave"
+              today={resolvedToday}
+              admin
+              actions={
+                <button
+                  ref={filtersButtonRef}
+                  className="filter-toggle"
+                  type="button"
+                  aria-label="Filters"
+                  aria-expanded={filtersOpen}
+                  aria-controls="leave-filter-panel"
+                  onClick={() => setFiltersOpen((open) => !open)}
+                >
+                  <SlidersHorizontal />
+                  Filters
+                  {activeFilters.length ? <b>{activeFilters.length}</b> : null}
+                </button>
+              }
+            />
+            <div className="calendar-command-meta">
+              <div className="leave-command-stats" aria-label="Leave counts">
+                <span><b>{pending.length}</b> awaiting review</span>
+                <span><b>{approvedThisMonth}</b> approved this month</span>
+                <span>
+                  <b>{holidaysThisMonth}</b> Penang holiday{holidaysThisMonth === 1 ? "" : "s"}
+                </span>
+              </div>
+              <span className="legend">
+                <i className="approved" />
+                Approved <i className="pending" />
+                Pending <i className="holiday" />
+                Holiday
+              </span>
+            </div>
+            {activeFilters.length ? (
+              <div className="active-filter-chips" aria-label="Active filters">
+                {activeFilters.map(([name, value]) => (
+                  <Link
+                    key={name}
+                    to={hrefWithoutFilters(name)}
+                    aria-label={`Remove ${name} filter`}
+                    preventScrollReset
+                  >
+                    <span>{filterLabel(name, value)}</span>
+                    <X />
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+            {filtersOpen ? (
+              <Form method="get" id="leave-filter-panel" className="leave-filters">
+                <input type="hidden" name="month" value={month} />
+                {["date", "view", "panel", "request"].map((name) =>
+                  params.get(name) ? (
+                    <input key={name} type="hidden" name={name} value={params.get(name) ?? ""} />
+                  ) : null,
+                )}
+                <label>
+                  Department
+                  <select
+                    name="department"
+                    value={departmentFilter}
+                    onChange={(event) => event.currentTarget.form?.requestSubmit()}
+                  >
+                    <option value="all">All departments</option>
+                    {[...new Set(employees.map((e) => e.department))]
+                      .sort()
+                      .map((department) => (
+                        <option value={department} key={department}>
+                          {department}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label>
+                  Employee
+                  <select
+                    name="employee"
+                    value={employeeFilter}
+                    onChange={(event) => event.currentTarget.form?.requestSubmit()}
+                  >
+                    <option value="all">All employees</option>
+                    {employees
+                      .filter(
+                        (employee) =>
+                          departmentFilter === "all" ||
+                          employee.department === departmentFilter,
+                      )
+                      .map((employee) => (
+                        <option value={employee.id} key={employee.id}>
+                          {employee.fullName}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label>
+                  Events
+                  <select
+                    name="event"
+                    value={eventFilter}
+                    onChange={(event) => event.currentTarget.form?.requestSubmit()}
+                  >
+                    <option value="all">All events</option>
+                    <option value="absence">Absences</option>
+                    <option value="public">Public holidays</option>
+                    <option value="company">Company holidays</option>
+                  </select>
+                </label>
+                <label>
+                  Status
+                  <select
+                    name="status"
+                    value={statusFilter}
+                    onChange={(event) => event.currentTarget.form?.requestSubmit()}
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </label>
+                <Link className="reset-filters" to={hrefWithoutFilters()} preventScrollReset>
+                  Reset filters
+                </Link>
+              </Form>
+            ) : null}
+          </div>
           {agenda ? (
             <Agenda events={events} month={month} />
           ) : (
@@ -1140,6 +1225,60 @@ export function AdminLeaveWorkspace({
           ) : null}
         </aside>
       </section>
+      <Dialog.Root
+        open={settingsOpen}
+        onOpenChange={(open) => {
+          if (open) setSettingsOpen(true);
+          else closeSettings();
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="leave-settings-overlay" />
+          <Dialog.Content
+            className="leave-settings-sheet"
+            aria-describedby="leave-settings-description"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              manageButtonRef.current?.focus();
+            }}
+          >
+            <div className="leave-settings-heading">
+              <div>
+                <p className="eyebrow">Company policy</p>
+                <Dialog.Title>Leave settings</Dialog.Title>
+              </div>
+              <Dialog.Close asChild>
+                <button className="sheet-close" type="button" aria-label="Close leave settings">
+                  <X />
+                </button>
+              </Dialog.Close>
+            </div>
+            <h3>Backdated leave requests</h3>
+            <Dialog.Description id="leave-settings-description">
+              Employees can request leave from today back through this many
+              calendar days. The rule is enforced in the browser and on submit.
+            </Dialog.Description>
+            <Form method="post" className="leave-settings-form" aria-label="Backdated leave policy">
+              <input type="hidden" name="intent" value="update-leave-policy" />
+              <label>
+                Allowed days
+                <input
+                  type="number"
+                  name="leaveBackdateDays"
+                  min="0"
+                  max="365"
+                  step="1"
+                  defaultValue={backdateDays}
+                  required
+                />
+              </label>
+              <button className="button primary" type="submit">
+                Save policy
+              </button>
+            </Form>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </>
   );
 }

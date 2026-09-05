@@ -2,7 +2,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import userEvent from "@testing-library/user-event";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { createMemoryRouter, RouterProvider, useLocation } from "react-router";
 import { afterEach, describe, expect, test } from "vitest";
 import { AdminLeaveWorkspace, EmployeeLeaveWorkspace } from "./leave-ui";
 
@@ -61,6 +61,18 @@ function renderRoute(element: React.ReactNode, path: string) {
   const router = createMemoryRouter([{ path: "*", element }], {
     initialEntries: [path],
   });
+  return render(<RouterProvider router={router} />);
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output aria-label="Current location">{location.pathname}{location.search}</output>;
+}
+
+function renderRouteWithLocation(element: React.ReactNode, path: string) {
+  const router = createMemoryRouter([
+    { path: "*", element: <>{element}<LocationProbe /></> },
+  ], { initialEntries: [path] });
   return render(<RouterProvider router={router} />);
 }
 
@@ -453,7 +465,8 @@ describe("admin leave workspace", () => {
     expect(within(day).queryByText(/away$/)).not.toBeInTheDocument();
   });
 
-  test("keeps the approval queue beside coverage context", () => {
+  test("keeps the approval queue beside coverage context", async () => {
+    const user = userEvent.setup();
     renderRoute(
       <AdminLeaveWorkspace
         records={[
@@ -492,6 +505,7 @@ describe("admin leave workspace", () => {
     expect(
       screen.getByRole("heading", { name: "Approval queue" }),
     ).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Filters" }));
     expect(screen.getByRole("combobox", { name: "Employee" })).not.toBeNull();
     expect(screen.getByRole("combobox", { name: "Events" })).not.toBeNull();
     expect(screen.getByRole("combobox", { name: "Status" })).not.toBeNull();
@@ -506,5 +520,91 @@ describe("admin leave workspace", () => {
       screen.getByRole("button", { name: "Reject request" }),
     ).not.toBeNull();
     expect(screen.getByText("12 days")).not.toBeNull();
+  });
+
+  test("places compact leave counts in the calendar command area", () => {
+    renderRoute(
+      <AdminLeaveWorkspace
+        records={[
+          ...approvedAdminRecords,
+          leaveRecord({ id: "pending", status: "pending" }),
+        ]}
+        employees={adminEmployees}
+        holidays={holidays}
+        balances={balances}
+        today="2026-08-27"
+      />,
+      "/admin/leave?month=2026-08",
+    );
+
+    const commandArea = screen.getByRole("region", { name: "Calendar commands" });
+    const counts = within(commandArea).getByLabelText("Leave counts");
+    expect(counts).toHaveTextContent("1 awaiting review");
+    expect(counts).toHaveTextContent("3 approved this month");
+    expect(counts).toHaveTextContent("1 Penang holiday");
+    expect(screen.queryByLabelText("Leave calendar summary")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Leave policy")).not.toBeInTheDocument();
+  });
+
+  test("opens management actions and moves leave policy into a focus-restoring sheet", async () => {
+    const user = userEvent.setup();
+    renderRoute(
+      <AdminLeaveWorkspace
+        records={approvedAdminRecords}
+        employees={adminEmployees}
+        holidays={holidays}
+        balances={balances}
+        today="2026-08-27"
+        backdateDays={3}
+      />,
+      "/admin/leave?month=2026-08",
+    );
+
+    const manageButton = screen.getByRole("button", { name: "Manage leave" });
+    expect(screen.queryByRole("menuitem", { name: "Adjust balances" })).not.toBeInTheDocument();
+    await user.click(manageButton);
+    expect(screen.getByRole("menuitem", { name: "Adjust balances" })).toHaveAttribute("href", "/admin/leave/balances");
+    expect(screen.getByRole("menuitem", { name: "Manage holidays" })).toHaveAttribute("href", "/admin/leave/holidays");
+
+    await user.click(screen.getByRole("menuitem", { name: "Leave settings" }));
+    const sheet = screen.getByRole("dialog", { name: "Leave settings" });
+    const policyForm = within(sheet).getByRole("form", { name: "Backdated leave policy" });
+    expect(within(policyForm).getByDisplayValue("3")).toHaveAttribute("name", "leaveBackdateDays");
+    expect(within(policyForm).getByDisplayValue("3")).toHaveAttribute("min", "0");
+    expect(within(policyForm).getByDisplayValue("3")).toHaveAttribute("max", "365");
+    expect(within(policyForm).getByDisplayValue("update-leave-policy")).toHaveAttribute("name", "intent");
+
+    await user.click(within(sheet).getByRole("button", { name: "Close leave settings" }));
+    expect(screen.queryByRole("dialog", { name: "Leave settings" })).not.toBeInTheDocument();
+    expect(manageButton).toHaveFocus();
+  });
+
+  test("opens URL-backed filters, exposes active chips, and resets only filters", async () => {
+    const user = userEvent.setup();
+    renderRouteWithLocation(
+      <AdminLeaveWorkspace
+        records={approvedAdminRecords}
+        employees={adminEmployees}
+        holidays={holidays}
+        balances={balances}
+        today="2026-08-27"
+      />,
+      "/admin/leave?month=2026-08&date=2026-08-28&view=agenda&panel=calendar&department=Sales&status=approved",
+    );
+
+    expect(screen.getByRole("link", { name: "Remove department filter" })).toHaveTextContent("Sales");
+    expect(screen.getByRole("link", { name: "Remove status filter" })).toHaveTextContent("Approved");
+    const filtersButton = screen.getByRole("button", { name: "Filters" });
+    expect(filtersButton).toHaveAttribute("aria-expanded", "false");
+    await user.click(filtersButton);
+    expect(filtersButton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("combobox", { name: "Department" })).toHaveValue("Sales");
+    expect(screen.getByRole("combobox", { name: "Status" })).toHaveValue("approved");
+
+    await user.click(screen.getByRole("link", { name: "Reset filters" }));
+    expect(screen.getByLabelText("Current location")).toHaveTextContent(
+      "/admin/leave?month=2026-08&date=2026-08-28&view=agenda&panel=calendar",
+    );
+    expect(screen.queryByRole("link", { name: "Remove department filter" })).not.toBeInTheDocument();
   });
 });
