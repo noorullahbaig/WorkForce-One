@@ -9,6 +9,8 @@ A responsive Malaysian HR, attendance, leave and payroll demonstration for **Mer
 | Admin | `admin@workforceone.demo` | `AdminDemo#2026` |
 | Employee (Farah) | `employee@workforceone.demo` | `EmployeeDemo#2026` |
 
+For a complete role-by-role walkthrough and presentation script, see the [Workforce One presenter guide](docs/workforce-one-presenter-guide.md).
+
 The login page can autofill either account. The shared dataset resets nightly at 19:00 UTC (03:00 MYT) and can be reset by an admin from the dashboard guide. Authentication records and active sessions are preserved by the domain reset.
 
 ## Local setup
@@ -37,7 +39,7 @@ npm run check
 
 ## Functional walkthrough
 
-1. Sign in as Admin and open the Attendance simulator.
+1. Sign in as Admin and open Attendance capture.
 2. Complete the missing clock-outs for Farah and Alex using fingerprint or QR.
 3. Approve Sarah’s leave request; balances, audit data and the action queue update together.
 4. Open August payroll. The run cannot be finalised while attendance exceptions remain.

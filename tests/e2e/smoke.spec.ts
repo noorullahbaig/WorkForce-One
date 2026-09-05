@@ -6,6 +6,7 @@ test("admin can sign in and reach live people and payroll data", async ({ page }
 	await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
 	await page.getByRole("button", { name: /Admin/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
+	await page.getByRole("button", { name: "Skip tour" }).click();
 	await expect(page.getByRole("heading", { name: /Good morning/ })).toBeVisible();
 	await page.goto("/admin/employees");
 	await expect(page.getByText("Farah Iskandar")).toBeVisible();
@@ -17,6 +18,7 @@ test("employee account only sees Farah self-service", async ({ page }) => {
 	await page.goto("/login");
 	await page.getByRole("button", { name: /Employee/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
+	await page.getByRole("button", { name: "Skip tour" }).click();
 	await expect(page.getByRole("heading", { name: "Good morning, Farah" })).toBeVisible();
 	await page.goto("/admin");
 	await expect(page).toHaveURL(/\/employee$/);

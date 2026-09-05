@@ -6,13 +6,14 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	await page.goto("/login");
 	await page.getByRole("button", { name: /Admin/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
+	await page.getByRole("button", { name: "Skip tour" }).click();
 	const initialReset = await page.request.post("/admin", {
 		form: { intent: "reset-demo" },
 		headers: { Origin: "http://127.0.0.1:5173" },
 	});
 	expect(initialReset.ok()).toBeTruthy();
 
-	await page.getByRole("link", { name: "Attendance terminal" }).click();
+	await page.getByRole("link", { name: "Attendance capture" }).click();
 	await expect(page).toHaveURL(/\/admin\/attendance\/simulate$/);
 	await page.locator('select[name="employeeId"]').selectOption("emp-001");
 	await page.getByRole("button", { name: "Capture attendance" }).click();
@@ -29,7 +30,7 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	await page.goto("/admin/payroll/payroll-2026-08");
 	await expect(page.getByText(/attendance exception/)).toHaveCount(0);
 	await page.getByRole("button", { name: "Finalise payroll" }).click();
-	await expect(page.getByText(/Payroll finalised/)).toBeVisible();
+	await expect(page.getByText("Payroll finalised. Employee payslips are now available.", { exact: true })).toBeVisible();
 	const pdf = await page.request.get("/resources/payroll/payroll-2026-08.pdf");
 	expect(pdf.ok()).toBeTruthy();
 	expect(pdf.headers()["content-type"]).toContain("application/pdf");
@@ -44,6 +45,7 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	await page.getByRole("button", { name: "Sign out" }).first().click();
 	await page.getByRole("button", { name: /Employee/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
+	await page.getByRole("button", { name: "Skip tour" }).click();
 	await expect(page.getByText("August payslip is ready")).toBeVisible();
 	await page.goto("/employee/payslips");
 	await expect(page.getByText("August 2026")).toBeVisible();

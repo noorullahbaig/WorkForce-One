@@ -245,7 +245,7 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
     ...writes,
   ]);
   return results[0].meta.changes
-    ? { ok: "Payroll finalised. Snapshots and payslips are now immutable." }
+    ? { ok: "Payroll finalised. Employee payslips are now available." }
     : {
         error:
           "Payroll or attendance changed during finalisation. Refresh and review the latest inputs and pending corrections.",

@@ -73,7 +73,7 @@ export default function Login() {
 							{navigation.state !== "idle" ? "Signing in…" : <>Enter workspace <ArrowRight size={18} /></>}
 						</button>
 					</Form>
-					<div className="demo-divider">Try the demo</div>
+					<div className="demo-divider">Choose a role</div>
 					<div className="demo-accounts">
 						<button type="button" onClick={() => fill("admin@workforceone.demo", "AdminDemo#2026")}>
 							<span className="demo-icon"><ShieldCheck size={18} /></span>
@@ -87,7 +87,7 @@ export default function Login() {
 						</button>
 					</div>
 					<p className="login-session-note">
-						<Lock size={12} /> Session data stays within your browser.
+						<Lock size={12} /> Secure session on this device.
 					</p>
 				</div>
 			</section>

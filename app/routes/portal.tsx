@@ -6,11 +6,13 @@ import { AdminCorrections } from '../features/attendance/correction-ui';
 import { listCorrections, submitCorrection, reviewCorrection } from '../features/attendance/corrections.server';
 import type { Attendance, CorrectionRequest } from '../features/attendance/types';
 import { aggregateAttendance } from '../features/payroll/attendance-inputs';
+import { PayrollEmployeeReview } from '../features/payroll/payroll-employee-review';
+import { ProductTour } from '../features/onboarding/product-tour';
 import {
 	Form, Link, NavLink, redirect, useActionData, useLoaderData, useLocation, useNavigation,
 } from "react-router";
 import {
-	Bell, CalendarDays, Check, ChevronRight, Clock3, Coffee, Download,
+	Bell, CalendarDays, Check, ChevronRight, Clock3, Coffee, Compass, Download,
 	FileText, Fingerprint, Home, Landmark, LayoutDashboard, LogOut, Menu, Plus,
 	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserCheck,
 	UserMinus, UserRound, Users, WalletCards,
@@ -278,6 +280,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Portal() {
 	const data=useLoaderData<typeof loader>(); const location=useLocation(); const actionData=useActionData<typeof action>(); const navigation=useNavigation();
+	const [tourReplay, setTourReplay] = useState(0);
 	const path=location.pathname; const busy=navigation.state!=="idle";
 	return <div className={data.admin?"app-shell admin-shell":"app-shell employee-shell"}>
 		<AppNavigation admin={data.admin} user={data.user} unread={data.notifications.filter((item)=>!item.readAt).length}/>
@@ -288,20 +291,21 @@ export default function Portal() {
 					<CompanyDropdown companyInfo={data.companyInfo} employeeCount={data.employees.length}/>
 				</div>
 				<div className="top-actions">
-					<Link to={data.admin?"/admin/notifications":"/employee/notifications"} aria-label="Notifications" className="icon-button"><Bell/>{data.notifications.some((item)=>!item.readAt)&&<i/>}</Link>
-					<UserMenu user={data.user} admin={data.admin}/>
+					<Link data-tour={data.admin?undefined:"employee-notifications"} to={data.admin?"/admin/notifications":"/employee/notifications"} aria-label="Notifications" className="icon-button"><Bell/>{data.notifications.some((item)=>!item.readAt)&&<i/>}</Link>
+					<UserMenu user={data.user} admin={data.admin} onTakeTour={()=>setTourReplay((value)=>value+1)}/>
 				</div>
 			</header>
 			{busy&&<div className="route-progress"/>}
 			{actionData && ("ok" in actionData || "error" in actionData) && <div className={`toast ${"error" in actionData?"danger":"success"}`}>{"error" in actionData?actionData.error:actionData.ok}</div>}
 			<div className="page-wrap">{data.admin?<AdminRouter path={path} data={data}/>:<EmployeeRouter path={path} data={data}/>}</div>
 		</main>
+		<ProductTour role={data.admin?"admin":"employee"} replayToken={tourReplay}/>
 	</div>;
 }
 
-function UserMenu({user, admin}:{user:DemoUser; admin:boolean}) {
+function UserMenu({user, admin, onTakeTour}:{user:DemoUser; admin:boolean;onTakeTour:()=>void}) {
 	return <details className="user-popover">
-		<summary className="avatar-button" aria-label="User profile & account">
+		<summary className="avatar-button" role="button" aria-label="User profile & account">
 			<div className="avatar">{initials(user.name)}</div>
 		</summary>
 		<div className="user-menu">
@@ -323,6 +327,9 @@ function UserMenu({user, admin}:{user:DemoUser; admin:boolean}) {
 				<Link to={admin ? "/admin/notifications" : "/employee/notifications"} className="user-menu-item">
 					<Bell size={15}/> Notifications
 				</Link>
+				<button type="button" className="user-menu-item" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");onTakeTour();}}>
+					<Compass size={15}/> Take product tour
+				</button>
 			</div>
 			<Form method="post" action="/logout" style={{margin:0}}>
 				<button className="user-menu-logout">
@@ -356,11 +363,11 @@ function CompanyDropdown({companyInfo, employeeCount}:{companyInfo:CompanyInfo; 
 function MobileMenu({admin}:{admin:boolean}) { const links=admin?[["/admin","Home"],["/admin/employees","People"],["/admin/attendance","Attendance"],["/admin/leave","Leave"],["/admin/payroll","Payroll"],["/admin/payroll/policies","Policies"],["/admin/reports","Reports"],["/admin/notifications","Notifications"]]:[["/employee","Home"],["/employee/attendance","Attendance"],["/employee/leave","Leave"],["/employee/payslips","Payslips"],["/employee/notifications","Notifications"],["/employee/profile","Profile"]]; return <details className="mobile-menu"><summary aria-label="Open navigation"><Menu/></summary><div className="mobile-menu-sheet"><div><strong>Navigate</strong><span>Workforce One</span></div><nav>{links.map(([to,label])=><Link key={to} to={to}>{label}<ChevronRight/></Link>)}</nav><Form method="post" action="/logout"><button className="button secondary wide"><LogOut/>Sign out</button></Form></div></details> }
 
 function AppNavigation({admin,user,unread}:{admin:boolean;user:DemoUser;unread:number}) {
-	const adminItems=[["/admin",LayoutDashboard,"Home"],["/admin/employees",Users,"People"],["/admin/attendance",Clock3,"Time"],["/admin/payroll",WalletCards,"Payroll"],["/admin/reports",FileText,"Reports"]] as const;
-	const employeeItems=[["/employee",Home,"Home"],["/employee/attendance",Clock3,"Attendance"],["/employee/leave",CalendarDays,"Leave"],["/employee/payslips",WalletCards,"Payslips"],["/employee/profile",UserRound,"Profile"]] as const;
+	const adminItems=[["/admin",LayoutDashboard,"Home","admin-home"],["/admin/employees",Users,"People","admin-people"],["/admin/attendance",Clock3,"Time","admin-attendance"],["/admin/payroll",WalletCards,"Payroll","admin-payroll"],["/admin/reports",FileText,"Reports","admin-reports"]] as const;
+	const employeeItems=[["/employee",Home,"Home","employee-home"],["/employee/attendance",Clock3,"Attendance","employee-attendance"],["/employee/leave",CalendarDays,"Leave","employee-leave"],["/employee/payslips",WalletCards,"Payslips","employee-payslips"],["/employee/profile",UserRound,"Profile","employee-profile"]] as const;
 	const items=admin?adminItems:employeeItems;
-	return <><aside className="sidebar"><div className="wordmark inverse"><span>W1</span> Workforce One</div><p className="nav-label">Workspace</p><nav>{items.map(([to,Icon,label])=><NavLink end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{label}</span>{label==="Home"&&unread>0?<b>{unread}</b>:null}</NavLink>)}</nav><div className="sidebar-foot"><Link to={admin?"/admin/notifications":"/employee/notifications"}><Bell/>Notifications{unread?<b>{unread}</b>:null}</Link><Form method="post" action="/logout"><button><LogOut/>Sign out</button></Form><div className="account"><div className="avatar">{initials(user.name)}</div><span><strong>{user.name}</strong><small>{admin?"People administrator":"Employee"}</small></span></div></div></aside>
-	<nav className="bottom-nav">{items.slice(0,5).map(([to,Icon,label],index)=><NavLink end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{admin&&index===4?"More":label}</span></NavLink>)}</nav></>;
+	return <><aside className="sidebar"><div className="wordmark inverse"><span>W1</span> Workforce One</div><p className="nav-label">Workspace</p><nav>{items.map(([to,Icon,label,tour])=><NavLink data-tour={tour} end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{label}</span>{label==="Home"&&unread>0?<b>{unread}</b>:null}</NavLink>)}</nav><div className="sidebar-foot"><Link data-tour={admin?undefined:"employee-notifications"} to={admin?"/admin/notifications":"/employee/notifications"}><Bell/>Notifications{unread?<b>{unread}</b>:null}</Link><Form method="post" action="/logout"><button><LogOut/>Sign out</button></Form><div className="account"><div className="avatar">{initials(user.name)}</div><span><strong>{user.name}</strong><small>{admin?"People administrator":"Employee"}</small></span></div></div></aside>
+	<nav className="bottom-nav">{items.slice(0,5).map(([to,Icon,label,tour],index)=><NavLink data-tour={tour} end={to===(admin?"/admin":"/employee")} to={to} key={to}><Icon/><span>{admin&&index===4?"More":label}</span></NavLink>)}</nav></>;
 }
 
 function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}) {
@@ -383,7 +390,7 @@ function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loa
 function AdminHome({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	const pending=data.leave.filter((r)=>r.status==="pending").length, missing=data.attendance.filter((r)=>r.status==="missing_clock_out").length, draft=data.payrolls.find((r)=>r.status==="draft");
 	const todayLabel=`${date(data.today,{weekday:"long"})} · ${date(data.today,{day:"numeric",month:"long"})}`;
-	return <><PageHeader eyebrow={todayLabel} title={`Good morning, ${data.user.name.split(" ")[0]}`} description="Here’s what needs attention across Merdeka Coffee." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Attendance terminal</Link>}/>
+	return <><PageHeader eyebrow={todayLabel} title={`Good morning, ${data.user.name.split(" ")[0]}`} description="Here’s what needs attention across Merdeka Coffee." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Attendance capture</Link>}/>
 		<section className="metric-strip"><article><span>Active people</span><strong>{data.employees.filter((e)=>e.status!=="inactive").length}</strong><small>Across {new Set(data.employees.map((e)=>e.department)).size} teams</small></article><article><span>Present today</span><strong>{data.attendance.filter((r)=>r.workDate===data.today&&r.status!=="absent").length}<em> / {data.employees.length}</em></strong><small>{missing} missing clock-out{missing===1?"":"s"}</small></article><article><span>Leave requests</span><strong>{pending}</strong><small>Awaiting review</small></article><article><span>August payroll</span><strong>{draft?"Draft":"Finalised"}</strong><small>Pay day · 31 Aug</small></article></section>
 		<div className="dashboard-grid"><section className="surface"><div className="section-head"><div><p className="eyebrow">Action queue</p><h2>Needs your attention</h2></div><span className="count">{pending+missing}</span></div>
 			{data.corrections.some(c=>c.status==="pending")&&<Link className="action-row" to="/admin/attendance/corrections"><span className="action-icon warning"><Clock3/></span><span><strong>Review attendance corrections</strong><small>{data.corrections.filter(c=>c.status==="pending").length} requests awaiting a decision</small></span><ChevronRight/></Link>}
@@ -578,7 +585,7 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 	</>;
 }
 
-function PayrollList({runs}:{runs:Payroll[]}) { return <><PageHeader eyebrow="Payroll" title="Payroll runs" description="A traceable path from source inputs to immutable payslips." action={<Link className="button secondary" to="/admin/payroll/policies"><ShieldCheck/>Statutory policy</Link>}/><section className="surface table payroll-table"><div className="table-head"><span>Pay period</span><span>Policy</span><span>Gross</span><span>Net pay</span><span>Status</span><span/></div>{runs.map((r)=><Link className="table-row" key={r.id} to={`/admin/payroll/${r.id}`}><span><strong>{date(r.periodStart,{month:"long",year:"numeric"})}</strong><small>Pay date · {date(r.payDate)}</small></span><span><strong>{r.policyName}</strong><small>Verified 26 Aug 2026</small></span><span>{r.status==="finalised"?money(r.grossTotalSen):"Calculated on review"}</span><span><strong>{r.status==="finalised"?money(r.netTotalSen):"—"}</strong></span><Status value={r.status}/><ChevronRight/></Link>)}</section></> }
+function PayrollList({runs}:{runs:Payroll[]}) { return <><PageHeader eyebrow="Payroll" title="Payroll runs" description="A traceable path from reviewed inputs to finalised payslips." action={<Link className="button secondary" to="/admin/payroll/policies"><ShieldCheck/>Statutory policy</Link>}/><section className="surface table payroll-table"><div className="table-head"><span>Pay period</span><span>Policy</span><span>Gross</span><span>Net pay</span><span>Status</span><span/></div>{runs.map((r)=><Link className="table-row" key={r.id} to={`/admin/payroll/${r.id}`}><span><strong>{date(r.periodStart,{month:"long",year:"numeric"})}</strong><small>Pay date · {date(r.payDate)}</small></span><span><strong>{r.policyName}</strong><small>Verified 26 Aug 2026</small></span><span>{r.status==="finalised"?money(r.grossTotalSen):"Calculated on review"}</span><span><strong>{r.status==="finalised"?money(r.netTotalSen):"—"}</strong></span><Status value={r.status}/><ChevronRight/></Link>)}</section></> }
 
 function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:Payroll;employees:Employee[];attendance:Attendance[];adjustments:PayrollAdjustment[];corrections:CorrectionRequest[]}) {
 	if(!run) return <Empty title="Payroll not found" body="This run is not available."/>;
@@ -586,6 +593,7 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:
  const pendingCorrections=corrections.filter(c=>c.status==="pending"&&c.workDate>=run.periodStart&&c.workDate<=run.periodEnd);
  const attendanceTotals=aggregateAttendance(attendance,run.periodStart,run.periodEnd);
 	const runAdjustments = adjustments.filter((a)=>a.payrollRunId === run.id);
+	const hasBlockers = missing.length>0||pendingCorrections.length>0;
 
 	return <>
 		<PageHeader eyebrow="Payroll / Run" title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`} description={`Pay date ${date(run.payDate)} · ${run.policyName}`} action={run.status==="finalised"?<><a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download/>CSV</a><a className="button secondary" href={`/resources/payroll/${run.id}.bank.csv`}><Landmark size={16}/>Bank CSV</a><a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText/>PDF report</a></>:undefined}/>
@@ -593,19 +601,7 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:
 		{run.status==="draft"&&missing.length>0&&<div className="alert warning"><Clock3/><div><strong>{missing.length} attendance exception{missing.length===1?"":"s"} block finalisation</strong><p>{missing.map((r)=>r.fullName).join(", ")} need a clock-out.</p></div><Link className="button secondary" to="/admin/attendance">Resolve now</Link></div>}
 
 		{run.status==="draft"&&pendingCorrections.length>0&&<div className="alert warning"><Clock3/><div><strong>{pendingCorrections.length} pending attendance corrections block finalisation</strong><p>Approve or reject the requests before freezing payroll.</p></div><Link className="button secondary" to="/admin/attendance/corrections">Review corrections</Link></div>}
-		<section className="surface payroll-review">
-			<div className="section-head"><div><p className="eyebrow">Calculation review</p><h2>{employees.length} employee snapshots</h2></div><span className="simulation-tag">Audit ready</span></div>
-			<div className="review-head"><span>Employee</span><span>Pay basis</span><span>Attendance input</span><span>Policy</span></div>
-			{employees.map((e)=>{
-				const att=attendanceTotals.find((r)=>r.employeeId===e.id);
-				return <div className="review-row" key={e.id}>
-					<span className="person"><i>{initials(e.fullName)}</i><span><strong>{e.fullName}</strong><small>{e.employeeCode}</small></span></span>
-					<span><strong>{e.salaryType==="monthly"?money(e.monthlySalarySen):`${money(e.hourlyRateSen)}/hr`}</strong><small>{e.salaryType}</small></span>
-					<span><strong>{att?.workedMinutes?`${att.workedMinutes} min`:(e.salaryType==="monthly"?"Monthly base":"No hours")}</strong><small>{att?.overtimeMinutes??0} OT min</small></span>
-					<span><strong>MY Standard 2026</strong><small>EPF · SOCSO · EIS</small></span>
-				</div>;
-			})}
-		</section>
+		<PayrollEmployeeReview employees={employees} attendance={attendanceTotals}/>
 
 		{run.status === "draft" && (
 			<section className="surface adjustment-panel">
@@ -671,7 +667,7 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:
 			</section>
 		)}
 
-		{run.status==="draft"?<div className="finalise-bar"><div><ShieldCheck/><span><strong>Ready for an immutable snapshot</strong><small>Finalising generates protected payslips and cannot be undone.</small></span></div><Form method="post"><input type="hidden" name="intent" value="finalise-payroll"/><input type="hidden" name="id" value={run.id}/><button className="button primary" disabled={missing.length>0||pendingCorrections.length>0}>Finalise payroll</button></Form></div>:<div className="finalised-banner"><Check/><div><strong>Finalised {date(run.finalisedAt)}</strong><span>Net pay {money(run.netTotalSen)} · source and policy snapshots preserved</span></div></div>}
+		{run.status==="draft"?<div className="finalise-bar"><div><ShieldCheck/><span><strong>{hasBlockers?"Resolve outstanding items":"Ready to finalise"}</strong><small>{hasBlockers?"Finalisation becomes available after attendance exceptions and correction requests are resolved.":"Finalising locks payroll results and publishes employee payslips."}</small></span></div><Form method="post"><input type="hidden" name="intent" value="finalise-payroll"/><input type="hidden" name="id" value={run.id}/><button className="button primary" disabled={hasBlockers}>Finalise payroll</button></Form></div>:<div className="finalised-banner"><Check/><div><strong>Payroll finalised {date(run.finalisedAt)}</strong><span>Net pay {money(run.netTotalSen)} · calculation inputs retained for audit</span></div></div>}
 	</>;
 }
 
@@ -728,7 +724,7 @@ function Policy({policies}:{policies:PolicyRecord[]}){
 function Reports({runs}:{runs:Payroll[]}){
 	const final=runs.find((r)=>r.status==="finalised");
 	return <>
-		<PageHeader eyebrow="Reports" title="Payroll exports" description="Protected files generated directly from finalised snapshots."/>
+		<PageHeader eyebrow="Reports" title="Payroll exports" description="Files generated directly from finalised payroll records."/>
 		<div className="report-grid">
 			<article className="surface report-card">
 				<FileText/>
@@ -795,7 +791,7 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 
 function Payslips({slips}:{slips:Payslip[]}){return <><PageHeader eyebrow="Self-service" title="Payslips" description="Your protected, finalised payroll records."/><section className="payslip-list">{slips.length?slips.map((s)=><Link className="surface payslip-row" to={`/employee/payslips/${s.id}`} key={s.id}><div className="document-icon"><FileText/></div><span><strong>{date(`${s.period}-01`,{month:"long",year:"numeric"})}</strong><small>Paid {date(s.payDate)}</small></span><span><small>Net pay</small><strong>{money(s.netPaySen)}</strong></span><Status value="finalised"/><ChevronRight/></Link>):<Empty title="No payslips yet" body="Finalised payroll records will appear here."/>}</section></>}
 
-function PayslipDetail({slip}:{slip?:Payslip}){if(!slip)return <Empty title="Payslip not found" body="You do not have access to this record."/>;const b=JSON.parse(slip.breakdownJson) as PayrollBreakdown;return <><PageHeader eyebrow="Payslips / Detail" title={`${date(`${slip.period}-01`,{month:"long",year:"numeric"})} payslip`} description={`Merdeka Coffee · paid ${date(slip.payDate)}`} action={<a className="button primary" href={`/resources/payslips/${slip.id}.pdf`}><Download/>Download PDF</a>}/><section className="payslip-paper"><div className="payslip-brand"><div className="wordmark"><span>W1</span> Workforce One</div><div><strong>Merdeka Coffee Sdn. Bhd.</strong><small>Document issuer · 202001028884</small></div></div><div className="net-block"><span>Net pay</span><strong>{money(slip.netPaySen)}</strong><small>Finalised · immutable payroll snapshot</small></div><div className="payslip-columns"><dl><h3>Earnings</h3><div><dt>Base pay</dt><dd>{money(b.basePaySen)}</dd></div><div><dt>Overtime</dt><dd>{money(b.overtimePaySen)}</dd></div><div><dt>Allowances</dt><dd>{money(b.allowanceSen)}</dd></div><div className="total"><dt>Gross pay</dt><dd>{money(slip.grossPaySen)}</dd></div></dl><dl><h3>Deductions</h3><div><dt>EPF</dt><dd>{money(b.epfEmployeeSen)}</dd></div><div><dt>SOCSO</dt><dd>{money(b.socsoEmployeeSen)}</dd></div><div><dt>EIS</dt><dd>{money(b.eisEmployeeSen)}</dd></div><div><dt>PCB</dt><dd>{money(b.pcbSen)}</dd></div><div className="total"><dt>Total deductions</dt><dd>{money(slip.totalDeductionsSen)}</dd></div></dl></div><p className="payslip-note">Generated from the finalised payroll record. PCB values reflect verified tax schedules.</p></section></>}
+function PayslipDetail({slip}:{slip?:Payslip}){if(!slip)return <Empty title="Payslip not found" body="You do not have access to this record."/>;const b=JSON.parse(slip.breakdownJson) as PayrollBreakdown;return <><PageHeader eyebrow="Payslips / Detail" title={`${date(`${slip.period}-01`,{month:"long",year:"numeric"})} payslip`} description={`Merdeka Coffee · paid ${date(slip.payDate)}`} action={<a className="button primary" href={`/resources/payslips/${slip.id}.pdf`}><Download/>Download PDF</a>}/><section className="payslip-paper"><div className="payslip-brand"><div className="wordmark"><span>W1</span> Workforce One</div><div><strong>Merdeka Coffee Sdn. Bhd.</strong><small>Document issuer · 202001028884</small></div></div><div className="net-block"><span>Net pay</span><strong>{money(slip.netPaySen)}</strong><small>Finalised payroll record</small></div><div className="payslip-columns"><dl><h3>Earnings</h3><div><dt>Base pay</dt><dd>{money(b.basePaySen)}</dd></div><div><dt>Overtime</dt><dd>{money(b.overtimePaySen)}</dd></div><div><dt>Allowances</dt><dd>{money(b.allowanceSen)}</dd></div><div className="total"><dt>Gross pay</dt><dd>{money(slip.grossPaySen)}</dd></div></dl><dl><h3>Deductions</h3><div><dt>EPF</dt><dd>{money(b.epfEmployeeSen)}</dd></div><div><dt>SOCSO</dt><dd>{money(b.socsoEmployeeSen)}</dd></div><div><dt>EIS</dt><dd>{money(b.eisEmployeeSen)}</dd></div><div><dt>PCB</dt><dd>{money(b.pcbSen)}</dd></div><div className="total"><dt>Total deductions</dt><dd>{money(slip.totalDeductionsSen)}</dd></div></dl></div><p className="payslip-note">Generated from the finalised payroll record. PCB values reflect verified tax schedules.</p></section></>}
 
 function EmployeeProfile({employee}:{employee:Employee}){
 	const [showEdit, setShowEdit] = useState(false);

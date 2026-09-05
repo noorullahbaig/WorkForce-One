@@ -395,8 +395,8 @@ function Review({
           <p className="correction-warning" role="note">
             <strong>Finalised payroll period</strong>
             <br />
-            Approval updates attendance only. Finalised payroll totals,
-            snapshots, and payslips remain unchanged.
+            Approval updates attendance only. Finalised payroll calculations
+            and payslips remain unchanged.
           </p>
         )}
         {request.status === "pending" &&
