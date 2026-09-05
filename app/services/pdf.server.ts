@@ -12,7 +12,7 @@ function addHeader(page: ReturnType<PDFDocument["addPage"]>, bold: Awaited<Retur
 
 export async function payrollReportPdf(period:string, rows:PayrollPdfRow[]) {
 	const pdf=await PDFDocument.create();const page=pdf.addPage([595,842]);const regular=await pdf.embedFont(StandardFonts.Helvetica);const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
-	addHeader(page,bold,regular,`Payroll report · ${period}`,"Merdeka Coffee Sdn. Bhd. · Generated from finalised immutable results");
+	addHeader(page,bold,regular,`Payroll report · ${period}`,"Merdeka Coffee Sdn. Bhd. · Generated from finalised payroll records");
 	const cols=[42,240,335,420,505];["Employee","Gross","Deductions","Net pay","Employer"].forEach((text,index)=>page.drawText(text,{x:cols[index],y:730,size:8,font:bold,color:rgb(.32,.38,.36)}));
 	let y=705;for(const row of rows){page.drawText(`${row.fullName} · ${row.employeeCode}`,{x:42,y,size:8,font:regular});page.drawText(money(row.grossPaySen),{x:240,y,size:8,font:regular});page.drawText(money(row.totalDeductionsSen),{x:335,y,size:8,font:regular});page.drawText(money(row.netPaySen),{x:420,y,size:8,font:bold});page.drawText(money(row.employerContributionsSen),{x:505,y,size:8,font:regular});page.drawLine({start:{x:42,y:y-10},end:{x:553,y:y-10},thickness:.5,color:rgb(.86,.88,.86)});y-=29;if(y<80)break}
 	const totals=rows.reduce((a,r)=>({gross:a.gross+r.grossPaySen,ded:a.ded+r.totalDeductionsSen,net:a.net+r.netPaySen,employer:a.employer+r.employerContributionsSen}),{gross:0,ded:0,net:0,employer:0});page.drawText("TOTAL",{x:42,y:y-5,size:9,font:bold});[totals.gross,totals.ded,totals.net,totals.employer].forEach((value,index)=>page.drawText(money(value),{x:cols[index+1],y:y-5,size:8,font:bold}));

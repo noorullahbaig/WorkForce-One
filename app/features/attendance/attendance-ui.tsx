@@ -142,9 +142,9 @@ export function Simulator({
   return (
     <>
       <PageHeader
-        eyebrow="Time / Terminal"
-        title="Attendance terminal"
-        description="Simulate biometric clock-in/out terminal events and verify time calculations."
+        eyebrow="Time / Capture"
+        title="Attendance capture"
+        description="Record employee clock-in and clock-out events and verify time calculations."
         action={
           <Link className="button secondary" to="/admin/attendance">
             View records
@@ -154,7 +154,7 @@ export function Simulator({
       <div className="simulator-grid">
         <section className="surface simulator">
           <div className="sim-display">
-            <span className="live-dot">Terminal active</span>
+            <span className="live-dot">Ready to record</span>
             <div className="scan-ring">
               <Fingerprint />
             </div>
@@ -208,8 +208,8 @@ export function Simulator({
           </Form>
         </section>
         <aside className="surface sim-aside">
-          <p className="eyebrow">Terminal operation</p>
-          <h3>Device event processing</h3>
+          <p className="eyebrow">Attendance operation</p>
+          <h3>How attendance is processed</h3>
           <ul>
             <li>
               <Check />

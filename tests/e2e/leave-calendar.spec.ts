@@ -8,6 +8,8 @@ async function signIn(page: import("@playwright/test").Page, role: "Admin" | "Em
 	await page.getByLabel("Password").fill(role === "Admin" ? "AdminDemo#2026" : "EmployeeDemo#2026");
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await page.waitForURL(role === "Admin" ? /\/admin$/ : /\/employee$/);
+	const skipTour = page.getByRole("button", { name: "Skip tour" });
+	if (await skipTour.isVisible()) await skipTour.click();
 }
 
 	test("employee plans leave in the shared calendar", async ({ page }) => {
@@ -73,6 +75,8 @@ test("successful leave submission closes the form and preserves the selected dat
 	await page.getByRole("button", { name: /Admin/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await page.waitForURL(/\/admin$/);
+	const skipTour = page.getByRole("button", { name: "Skip tour" });
+	if (await skipTour.isVisible()) await skipTour.click();
 	await page.request.post("/admin", {
 		form: { intent: "reset-demo" },
 		headers: { Origin: "http://127.0.0.1:5173" },
