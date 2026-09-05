@@ -84,10 +84,9 @@
 }
 .correction-preview {
   padding: 16px;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--emerald-dark);
-  border-radius: 6px;
-  background: var(--paper);
+  border: 1px solid #b8decf;
+  border-radius: 9px;
+  background: var(--mint);
   font-size: 0.87rem;
 }
 .correction-preview p {
@@ -109,7 +108,8 @@
 }
 .correction-warning {
   background: #fff6df;
-  border-left: 3px solid #a86b09;
+  border: 1px solid #e7bb73;
+  border-radius: 9px;
   padding: 14px;
   color: #694008;
 }

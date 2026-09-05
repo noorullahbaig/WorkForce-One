@@ -9,6 +9,9 @@ async function chooseRole(page: import("@playwright/test").Page, role: "Admin" |
 test("first-login tours are role-specific and can be replayed", async ({ page }, testInfo) => {
 	test.skip(testInfo.project.name !== "desktop", "The mobile journey validates responsive tour placement.");
 	await chooseRole(page, "Admin");
+	const adminNavigation = page.getByRole("navigation", { name: "Administrator navigation" });
+	await expect(adminNavigation.getByRole("link", { name: "Attendance" })).toBeVisible();
+	await expect(adminNavigation.getByRole("link", { name: "Leave" })).toBeVisible();
 	await expect(page.getByRole("dialog")).toContainText("Step 1 of 5");
 	await expect(page.getByRole("heading", { name: "Home and action queue" })).toBeVisible();
 	await page.getByRole("button", { name: "Next" }).click();
@@ -22,6 +25,13 @@ test("first-login tours are role-specific and can be replayed", async ({ page },
 	await page.getByRole("button", { name: "Take product tour" }).click();
 	await expect(page.getByRole("heading", { name: "Home and action queue" })).toBeVisible();
 	await page.getByRole("button", { name: "Skip tour" }).click();
+	await page.route("**/admin/reports*", async (route) => {
+		await new Promise((resolve) => setTimeout(resolve, 450));
+		await route.continue();
+	});
+	await adminNavigation.getByRole("link", { name: "Reports" }).click();
+	await expect(page.getByRole("status")).toHaveText("Opening reports…");
+	await expect(page).toHaveURL(/\/admin\/reports$/);
 
 	await page.getByRole("button", { name: "Sign out" }).first().click();
 	await chooseRole(page, "Employee");
@@ -32,6 +42,10 @@ test("first-login tours are role-specific and can be replayed", async ({ page },
 test("payroll review controls and coach mark fit the mobile viewport", async ({ page }, testInfo) => {
 	test.skip(testInfo.project.name !== "mobile", "Responsive layout is covered by the mobile project.");
 	await chooseRole(page, "Admin");
+	const primaryNavigation = page.getByRole("navigation", { name: "Primary navigation" });
+	await expect(primaryNavigation.getByRole("link", { name: "Leave" })).toBeVisible();
+	await expect(primaryNavigation.getByRole("link", { name: "Payroll" })).toBeVisible();
+	await expect(primaryNavigation.getByText("More", { exact: true })).toHaveCount(0);
 	await expect(page.getByRole("dialog")).toBeVisible();
 	await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 	await page.getByRole("button", { name: "Skip tour" }).click();
