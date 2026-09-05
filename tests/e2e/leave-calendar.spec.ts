@@ -19,7 +19,7 @@ async function signIn(page: import("@playwright/test").Page, role: "Admin" | "Em
 	await expect(page.getByRole("grid", { name: "January 2099 shared leave calendar" })).toBeVisible();
 	await expect(page.getByRole("complementary", { name: "Request leave" })).toBeVisible();
 
-	await page.getByLabel("To").fill("2099-01-05");
+	await page.getByLabel("To", { exact: true }).fill("2099-01-05");
 	await expect(page.getByText("2 working days")).toBeVisible();
 	await expect(page.getByText("2 non-working days excluded")).toBeVisible();
 
@@ -87,9 +87,7 @@ test("admin can switch between calendar planning and the review queue", async ({
 	await signIn(page, "Admin");
 	await page.goto("/admin/leave?month=2026-08");
 
-	if (testInfo.project.name === "desktop") {
-		await page.getByRole("button", { name: "Filters" }).click();
-	}
+	await page.getByRole("button", { name: "Filters" }).click();
 	await expect(page.getByRole("combobox", { name: "Department" })).toBeVisible();
 	await expect(page.getByRole("combobox", { name: "Employee" })).toBeVisible();
 	await expect(page.getByRole("combobox", { name: "Events" })).toBeVisible();
