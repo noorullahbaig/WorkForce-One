@@ -1,6 +1,9 @@
 {
 	"name": "workforce-one-hrms-demo",
 	"description": "A responsive Malaysian HR and payroll demo on Cloudflare Workers.",
+	"engines": {
+		"node": ">=24"
+	},
 	"cloudflare": {
 		"label": "React Router Framework Starter",
 		"products": [
@@ -47,6 +50,7 @@
 		"drizzle-kit": "^0.31.10",
 		"eslint": "^10.9.1",
 		"jsdom": "^30.0.1",
+		"miniflare": "^5.20260825.0-alpha",
 		"tailwindcss": "4.1.17",
 		"typescript": "5.9.3",
 		"typescript-eslint": "^8.68.0",
@@ -63,6 +67,7 @@
 		"check": "npm run typecheck && npm run test:run && npm run build && wrangler deploy --dry-run",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate:local": "wrangler d1 migrations apply workforce-one-demo --local",
+		"db:migrations:validate": "node scripts/validate-migrations.mjs",
 		"db:seed:local": "wrangler d1 execute workforce-one-demo --local --file=./drizzle/seed.sql",
 		"deploy": "wrangler deploy",
 		"dev": "react-router dev",

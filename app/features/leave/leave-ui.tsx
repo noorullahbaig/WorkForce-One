@@ -70,6 +70,9 @@ type CalendarEvent = {
   endDate: string;
   kind: "holiday" | "away" | "own" | "pending";
   meta?: string;
+  employeeId?: string;
+  confirmedAway?: boolean;
+  staffingLabel?: string;
 };
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -112,6 +115,34 @@ function monthDays(month: string) {
     const current = new Date(start);
     current.setUTCDate(start.getUTCDate() + index);
     return current.toISOString().slice(0, 10);
+  });
+}
+
+function confirmedPeopleForDate(
+  day: string,
+  events: CalendarEvent[],
+  holidayDates: Set<string>,
+) {
+  const weekday = new Date(`${day}T00:00:00Z`).getUTCDay();
+  if (weekday === 0 || weekday === 6 || holidayDates.has(day)) return [];
+
+  return Array.from(
+    new Map(
+      events
+        .filter(
+          (event) =>
+            event.confirmedAway &&
+            event.employeeId &&
+            rangesOverlap(day, day, event.startDate, event.endDate),
+        )
+        .map((event) => [event.employeeId, event]),
+    ).values(),
+  ).sort((a, b) => {
+    if (a.staffingLabel === "You") return -1;
+    if (b.staffingLabel === "You") return 1;
+    return (a.staffingLabel ?? a.label).localeCompare(
+      b.staffingLabel ?? b.label,
+    );
   });
 }
 
@@ -205,12 +236,14 @@ function CalendarToolbar({
 function SharedCalendar({
   month,
   events,
+  holidayDates,
   basePath,
   selectedDate,
   today,
 }: {
   month: string;
   events: CalendarEvent[];
+  holidayDates: string[];
   basePath: string;
   selectedDate: string;
   today: string;
@@ -220,6 +253,7 @@ function SharedCalendar({
   const mounted = useRef(false);
   const label = `${date(`${month}-01`, { month: "long", year: "numeric" })} shared leave calendar`;
   const days = monthDays(month);
+  const holidayDateSet = new Set(holidayDates);
   useEffect(() => {
     if (mounted.current) {
       document.querySelector<HTMLElement>(`[data-calendar-date="${selectedDate}"]`)?.focus();
@@ -260,8 +294,21 @@ function SharedCalendar({
             const dayEvents = events.filter((event) =>
               rangesOverlap(day, day, event.startDate, event.endDate),
             );
+            const confirmedPeople = confirmedPeopleForDate(
+              day,
+              dayEvents,
+              holidayDateSet,
+            );
+            const calendarEvents = dayEvents.filter(
+              (event) => !event.confirmedAway || event.kind === "own",
+            );
             const isToday = day === today;
             const isSelected = day === selectedDate;
+            const dayLabel = date(day, {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            });
             const next = new URLSearchParams(params);
             next.set("month", day.slice(0, 7));
             next.set("date", day);
@@ -271,17 +318,14 @@ function SharedCalendar({
                 className={`calendar-day${day.slice(0, 7) !== month ? " outside" : ""}${isToday ? " today" : ""}${isSelected ? " selected" : ""}`}
                 role="gridcell"
                 aria-selected={isSelected}
-                aria-label={date(day, {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                })}
+                aria-label={dayLabel}
                 key={day}
               >
                 <Link
                   className="calendar-date"
                   to={`${basePath}?${next.toString()}`}
                   data-calendar-date={day}
+                  aria-label={`${dayLabel}, ${confirmedPeople.length} ${confirmedPeople.length === 1 ? "person" : "people"} away`}
                   aria-current={isToday ? "date" : undefined}
                   tabIndex={isSelected ? 0 : -1}
                   preventScrollReset
@@ -292,8 +336,31 @@ function SharedCalendar({
                 >
                   {Number(day.slice(8))}
                 </Link>
+                {confirmedPeople.length ? (
+                  <div className="confirmed-away" aria-hidden="true">
+                    <strong>{confirmedPeople.length} away</strong>
+                    <span className="confirmed-away-people">
+                      {confirmedPeople.slice(0, 2).map((event) => {
+                        const label = event.staffingLabel ?? event.label;
+                        return (
+                          <span
+                            className="confirmed-away-person"
+                            title={label}
+                            key={event.employeeId}
+                          >
+                            <i>{initials(label)}</i>
+                            <b>{label}</b>
+                          </span>
+                        );
+                      })}
+                      {confirmedPeople.length > 2 ? (
+                        <small>+{confirmedPeople.length - 2}</small>
+                      ) : null}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="calendar-events">
-                  {dayEvents.slice(0, 3).map((event) => (
+                  {calendarEvents.slice(0, 3).map((event) => (
                     <span
                       className={`calendar-event ${event.kind}`}
                       title={event.meta ?? event.label}
@@ -306,8 +373,8 @@ function SharedCalendar({
                       <b>{event.label}</b>
                     </span>
                   ))}
-                  {dayEvents.length > 3 ? (
-                    <small>+{dayEvents.length - 3} more</small>
+                  {calendarEvents.length > 3 ? (
+                    <small>+{calendarEvents.length - 3} more</small>
                   ) : null}
                 </div>
               </div>
@@ -409,6 +476,9 @@ export function EmployeeLeaveWorkspace({
         endDate: r.endDate,
         kind: "away" as const,
         meta: `${r.department} · away`,
+        employeeId: r.employeeId,
+        confirmedAway: true,
+        staffingLabel: r.fullName,
       })),
     ...ownRecords
       .filter((r) => r.status === "approved" || r.status === "pending")
@@ -419,6 +489,9 @@ export function EmployeeLeaveWorkspace({
         endDate: r.endDate,
         kind: r.status === "pending" ? ("pending" as const) : ("own" as const),
         meta: `${r.typeName} · ${r.status}`,
+        employeeId: r.employeeId,
+        confirmedAway: r.status === "approved",
+        staffingLabel: "You",
       })),
   ];
   const selectedEvents = events.filter((event) =>
@@ -487,6 +560,7 @@ export function EmployeeLeaveWorkspace({
             <SharedCalendar
               month={month}
               events={events}
+              holidayDates={holidays.filter((h) => h.active).map((h) => h.date)}
               basePath="/employee/leave"
               selectedDate={selectedDate}
               today={resolvedToday}
@@ -827,6 +901,9 @@ export function AdminLeaveWorkspace({
         endDate: r.endDate,
         kind: r.status === "pending" ? ("pending" as const) : ("away" as const),
         meta: `${r.typeName} · ${r.status}`,
+        employeeId: r.employeeId,
+        confirmedAway: r.status === "approved",
+        staffingLabel: r.fullName,
       })),
   ];
   const pending = records
@@ -1011,6 +1088,7 @@ export function AdminLeaveWorkspace({
             <SharedCalendar
               month={month}
               events={events}
+              holidayDates={holidays.filter((h) => h.active).map((h) => h.date)}
               basePath="/admin/leave"
               selectedDate={selectedDate}
               today={resolvedToday}
