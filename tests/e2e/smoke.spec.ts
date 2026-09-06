@@ -9,9 +9,11 @@ test("admin can sign in and reach live people and payroll data", async ({ page }
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await page.getByRole("button", { name: "Skip tour" }).click();
 	await expect(page.getByRole("heading", { name: /Good morning/ })).toBeVisible();
-	await expect(page.getByText("8 departments")).toBeVisible();
-	await expect(page.getByText("Missing clock-outs requiring review")).toBeVisible();
-	await expect(page.getByText("Pending review")).toBeVisible();
+	await expect(page.getByText("2 records", { exact: true })).toBeVisible();
+	await expect(page.getByText("Need review before payroll can be finalised")).toBeVisible();
+	await expect(page.getByText("August 2026 payroll", { exact: true })).toBeVisible();
+	await expect(page.getByText("Blocked", { exact: true })).toBeVisible();
+	await expect(page.getByText("8 departments")).toHaveCount(0);
 	await expect(page.getByText("Draft", { exact: true })).toHaveCount(0);
 	await page.goto("/admin/employees");
 	await expect(page.getByText("Farah Iskandar")).toBeVisible();

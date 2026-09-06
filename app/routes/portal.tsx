@@ -395,15 +395,26 @@ function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loa
 }
 
 function AdminHome({data}:{data:Awaited<ReturnType<typeof loader>>}) {
-	const pending=data.leave.filter((r)=>r.status==="pending").length, missing=data.attendance.filter((r)=>r.status==="missing_clock_out").length, draft=data.payrolls.find((r)=>r.status==="draft");
+	const pending=data.leave.filter((r)=>r.status==="pending").length;
+	const missingRecords=data.attendance.filter((r)=>r.status==="missing_clock_out");
+	const pendingCorrections=data.corrections.filter((r)=>r.status==="pending");
+	const attendanceBlockers=new Set([...missingRecords.map((r)=>r.id),...pendingCorrections.map((r)=>r.attendanceId)]).size;
+	const draft=data.payrolls.find((r)=>r.status==="draft");
+	const currentPayroll=draft??data.payrolls[0];
+	const payrollPeriod=currentPayroll?date(currentPayroll.periodStart,{month:"long",year:"numeric"}):"Current";
+	const payrollState=draft?(attendanceBlockers>0?"Blocked":"Ready to finalise"):"Finalised";
 	const todayLabel=`${date(data.today,{weekday:"long"})} · ${date(data.today,{day:"numeric",month:"long"})}`;
 	return <><PageHeader eyebrow={todayLabel} title={`Good morning, ${data.user.name.split(" ")[0]}`} description="Here’s what needs attention across Merdeka Coffee." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Attendance capture</Link>}/>
-		<section className="metric-strip"><article><span>Active employees</span><strong>{data.employees.filter((e)=>e.status!=="inactive").length}</strong><small>{new Set(data.employees.map((e)=>e.department)).size} departments</small></article><article><span>Attendance exceptions</span><strong>{missing}</strong><small>{missing?"Missing clock-outs requiring review":"No attendance exceptions"}</small></article><article><span>Leave approvals</span><strong>{pending}</strong><small>{pending?"Awaiting a decision":"No requests awaiting review"}</small></article><article><span>August 2026 payroll</span><strong>{draft?"Pending review":"Finalised"}</strong><small>{draft?"Not yet finalised · pay date 31 Aug":"Finalised payroll record"}</small></article></section>
-		<div className="dashboard-grid"><section className="surface"><div className="section-head"><div><p className="eyebrow">Action queue</p><h2>Needs your attention</h2></div><span className="count">{pending+missing}</span></div>
-			{data.corrections.some(c=>c.status==="pending")&&<Link className="action-row" to="/admin/attendance/corrections"><span className="action-icon warning"><Clock3/></span><span><strong>Review attendance corrections</strong><small>{data.corrections.filter(c=>c.status==="pending").length} requests awaiting a decision</small></span><ChevronRight/></Link>}
-			{missing>0&&<Link className="action-row" to="/admin/attendance"><span className="action-icon warning"><Clock3/></span><span><strong>Resolve missing clock-outs</strong><small>{missing} attendance record{missing===1?"":"s"} block payroll finalisation</small></span><ChevronRight/></Link>}
+		<section className="metric-strip operational-strip">
+			<Link to="/admin/attendance"><span>Attendance</span><strong>{attendanceBlockers?`${attendanceBlockers} record${attendanceBlockers===1?"":"s"}`:"Clear"}</strong><small>{attendanceBlockers?"Need review before payroll can be finalised":"No records need attention"}</small><ChevronRight/></Link>
+			<Link to="/admin/leave"><span>Leave approvals</span><strong>{pending?`${pending} request${pending===1?"":"s"}`:"Clear"}</strong><small>{pending?"Waiting for an administrator decision":"No requests are waiting"}</small><ChevronRight/></Link>
+			<Link to={currentPayroll?`/admin/payroll/${currentPayroll.id}`:"/admin/payroll"}><span>{payrollPeriod} payroll</span><strong>{payrollState}</strong><small>{draft&&attendanceBlockers?`${attendanceBlockers} attendance record${attendanceBlockers===1?"":"s"} must be resolved`:draft?"Attendance inputs are ready for review":"Payroll results are finalised"}</small><ChevronRight/></Link>
+		</section>
+		<div className="dashboard-grid"><section className="surface"><div className="section-head"><div><p className="eyebrow">Action queue</p><h2>Needs your attention</h2></div><span className="count">{pending+missingRecords.length+pendingCorrections.length}</span></div>
+			{pendingCorrections.length>0&&<Link className="action-row" to="/admin/attendance/corrections"><span className="action-icon warning"><Clock3/></span><span><strong>Review attendance corrections</strong><small>{pendingCorrections.length} request{pendingCorrections.length===1?"":"s"} awaiting a decision</small></span><ChevronRight/></Link>}
+			{missingRecords.length>0&&<Link className="action-row" to="/admin/attendance"><span className="action-icon warning"><Clock3/></span><span><strong>Resolve missing clock-outs</strong><small>{missingRecords.length} attendance record{missingRecords.length===1?"":"s"} block payroll finalisation</small></span><ChevronRight/></Link>}
 			{pending>0&&<Link className="action-row" to="/admin/leave"><span className="action-icon emerald"><CalendarDays/></span><span><strong>Review leave requests</strong><small>{pending} request waiting for a decision</small></span><ChevronRight/></Link>}
-			<Link className="action-row" to="/admin/payroll/payroll-2026-08"><span className="action-icon ink"><WalletCards/></span><span><strong>Review August payroll</strong><small>Inputs are ready for validation</small></span><ChevronRight/></Link>
+			{draft&&<Link className="action-row" to={`/admin/payroll/${draft.id}`}><span className="action-icon ink"><WalletCards/></span><span><strong>{attendanceBlockers?`${payrollPeriod} payroll is blocked`:`Finalise ${payrollPeriod} payroll`}</strong><small>{attendanceBlockers?"Resolve attendance records before finalising":"Attendance inputs are ready for review"}</small></span><ChevronRight/></Link>}
 		</section><section className="surface"><div className="section-head"><div><p className="eyebrow">Payroll pulse</p><h2>Latest finalised run</h2></div><Link to="/admin/payroll">View all</Link></div><div className="payroll-pulse"><span>July 2026</span><strong>{money(data.payrolls.find((r)=>r.status==="finalised")?.netTotalSen)}</strong><small>Net pay distributed</small><div><span>Gross <b>{money(data.payrolls.find((r)=>r.status==="finalised")?.grossTotalSen)}</b></span><span>Deductions <b>{money(data.payrolls.find((r)=>r.status==="finalised")?.deductionTotalSen)}</b></span></div></div></section></div>
 	</>;
 }
