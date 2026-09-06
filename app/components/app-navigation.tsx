@@ -86,6 +86,11 @@ export function AppNavigation({
   const bottomItems = admin ? adminItems.filter((item) => item.label !== "Reports") : employeeItems;
   const notificationHref = admin ? "/admin/notifications" : "/employee/notifications";
   const notificationTour = admin ? undefined : "employee-notifications";
+  const hasUnreadNotifications = unread > 0;
+  const notificationLabel = hasUnreadNotifications
+    ? `Notifications, ${unread} unread`
+    : "Notifications";
+  const compactUnreadCount = unread > 9 ? "9+" : String(unread);
 
   useEffect(() => {
     setPreference(storedPreference(role));
@@ -148,7 +153,6 @@ export function AppNavigation({
               >
                 <Icon aria-hidden="true" />
                 <span className="navigation-rail-copy">{label}</span>
-                {label === "Home" && unread > 0 ? <b>{unread}</b> : null}
                 {!expanded && <NavigationTooltip id={tooltipId} label={label} />}
               </NavLink>
             );
@@ -157,14 +161,20 @@ export function AppNavigation({
         <div className="sidebar-foot">
           <Link
             aria-describedby={expanded ? undefined : "navigation-tooltip-notifications"}
-            aria-label="Notifications"
+            aria-label={notificationLabel}
             data-tour={notificationTour}
             to={notificationHref}
           >
             <Bell aria-hidden="true" />
             <span className="navigation-rail-copy">Notifications</span>
-            {unread ? <b>{unread}</b> : null}
-            {!expanded && <NavigationTooltip id="navigation-tooltip-notifications" label="Notifications" />}
+            {hasUnreadNotifications ? (
+              <b className="navigation-unread-badge" aria-hidden="true">
+                {expanded ? unread : compactUnreadCount}
+              </b>
+            ) : null}
+            {!expanded && (
+              <NavigationTooltip id="navigation-tooltip-notifications" label={notificationLabel} />
+            )}
           </Link>
           <Form method="post" action="/logout">
             <button aria-describedby={expanded ? undefined : signOutTooltipId} aria-label="Sign out" type="submit">

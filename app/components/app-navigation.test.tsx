@@ -86,4 +86,56 @@ describe("AppNavigation", () => {
     );
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
   });
+
+  test("keeps unread notification state off Home", () => {
+    renderNavigation({ unread: 14 });
+
+    const desktopRail = screen.getByRole("complementary");
+    const home = within(desktopRail).getByRole("link", { name: "Home" });
+    expect(home).not.toHaveTextContent("14");
+    expect(home.querySelector(".navigation-unread-badge")).not.toBeInTheDocument();
+  });
+
+  test("shows the exact unread count beside Notifications in the expanded rail", () => {
+    renderNavigation({ unread: 14 });
+
+    const notifications = within(screen.getByRole("complementary")).getByRole("link", {
+      name: "Notifications, 14 unread",
+    });
+    const badge = notifications.querySelector(".navigation-unread-badge");
+    expect(badge).toHaveTextContent("14");
+    expect(badge).toHaveAttribute("aria-hidden", "true");
+  });
+
+  test("caps only the compact badge while its label and tooltip expose the actual count", async () => {
+    const user = userEvent.setup();
+    renderNavigation({ unread: 14 });
+
+    await user.click(screen.getByRole("button", { name: "Collapse navigation" }));
+    const notifications = within(screen.getByRole("complementary")).getByRole("link", {
+      name: "Notifications, 14 unread",
+    });
+    expect(notifications.querySelector(".navigation-unread-badge")).toHaveTextContent("9+");
+    expect(notifications).toHaveAttribute(
+      "aria-describedby",
+      "navigation-tooltip-notifications",
+    );
+    expect(screen.getByRole("tooltip", { name: "Notifications, 14 unread" })).toBeInTheDocument();
+  });
+
+  test.each([1, 2, 3, 4, 5, 6, 7, 8, 9])(
+    "shows compact unread count %i without capping",
+    async (unread) => {
+      const user = userEvent.setup();
+      renderNavigation({ unread });
+
+      await user.click(screen.getByRole("button", { name: "Collapse navigation" }));
+      const notifications = within(screen.getByRole("complementary")).getByRole("link", {
+        name: `Notifications, ${unread} unread`,
+      });
+      expect(notifications.querySelector(".navigation-unread-badge")).toHaveTextContent(
+        String(unread),
+      );
+    },
+  );
 });

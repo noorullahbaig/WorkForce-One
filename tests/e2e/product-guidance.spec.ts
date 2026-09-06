@@ -62,12 +62,37 @@ test("desktop rail and workspace stay aligned while collapsing", async ({ page }
 
 	await page.getByRole("button", { name: "Collapse navigation" }).click();
 	await page.waitForTimeout(70);
-	const transitionGap = await page.evaluate(() => {
+	const railGeometry = await page.evaluate(() => {
 		const rail = document.querySelector(".navigation-rail")!.getBoundingClientRect();
 		const workspace = document.querySelector(".workspace")!.getBoundingClientRect();
-		return Math.abs(rail.right - workspace.left);
+		const itemSelectors = [
+			'[data-tour="admin-home"]',
+			'[data-tour="admin-people"]',
+			'[data-tour="admin-attendance"]',
+			'[data-tour="admin-leave"]',
+			'[data-tour="admin-payroll"]',
+			'[data-tour="admin-reports"]',
+		];
+		const items = itemSelectors.map((selector) => {
+			const bounds = document.querySelector(selector)!.getBoundingClientRect();
+			return { center: bounds.left + bounds.width / 2, width: bounds.width };
+		});
+		const notificationLink = document.querySelector('.sidebar-foot a[href$="/notifications"]')!;
+		const notificationBounds = notificationLink.getBoundingClientRect();
+		return {
+			gap: Math.abs(rail.right - workspace.left),
+			items: [...items, {
+				center: notificationBounds.left + notificationBounds.width / 2,
+				width: notificationBounds.width,
+			}],
+			homeHasBadge: Boolean(document.querySelector('[data-tour="admin-home"] .navigation-unread-badge')),
+		};
 	});
-	expect(transitionGap).toBeLessThan(1);
+	expect(railGeometry.gap).toBeLessThan(1);
+	expect(railGeometry.homeHasBadge).toBe(false);
+	expect(railGeometry.items.every(({ width }) => width === 44)).toBe(true);
+	const centerline = railGeometry.items[0].center;
+	expect(railGeometry.items.every(({ center }) => Math.abs(center - centerline) < 0.5)).toBe(true);
 
 	await expect(page.getByRole("button", { name: "Expand navigation" })).toBeVisible();
 	await page.reload();
