@@ -3,7 +3,10 @@ import { expect, test } from "@playwright/test";
 async function chooseRole(page: import("@playwright/test").Page, role: "Admin" | "Employee") {
 	await page.goto("/login");
 	await page.getByRole("button", { name: new RegExp(role) }).click();
-	await page.getByRole("button", { name: "Enter workspace" }).click();
+	await Promise.all([
+		page.waitForURL(role === "Admin" ? /\/admin/ : /\/employee/),
+		page.getByRole("button", { name: "Enter workspace" }).click(),
+	]);
 }
 
 test("first-login tours are role-specific and can be replayed", async ({ page }, testInfo) => {
@@ -51,6 +54,29 @@ test("administrator task workspaces fit the laptop viewport", async ({ page }, t
 		await page.goto(path);
 		await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(768);
 	}
+});
+
+test("employee directory opens a focused add inspector without page scrolling", async ({ page }, testInfo) => {
+	await chooseRole(page, "Admin");
+	const skipTour = page.getByRole("button", { name: "Skip tour" });
+	if (await skipTour.isVisible()) await skipTour.click();
+	await page.goto("/admin/employees");
+	await expect(page.getByRole("heading", { name: "Employee directory" })).toBeVisible();
+	const addButton = page.getByRole("button", { name: "Add employee", exact: true }).first();
+	await addButton.click();
+	const inspector = page.getByTestId("employee-form-inspector");
+	await expect(inspector).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Add an employee" })).toBeFocused();
+	await expect(inspector.getByLabel("Full name")).toBeVisible();
+	if (testInfo.project.name === "desktop") {
+		await expect(page.locator(".people-workspace .task-scroll-surface")).toBeVisible();
+		await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(900);
+	} else {
+		await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(testInfo.project.name === "small-mobile" ? 360 : 390);
+	}
+	await page.getByRole("button", { name: "Close employee form" }).click();
+	await expect(inspector).toHaveCount(0);
+	await expect(addButton).toBeFocused();
 });
 
 test("desktop rail and workspace stay aligned while collapsing", async ({ page }, testInfo) => {

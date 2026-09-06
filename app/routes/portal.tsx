@@ -18,6 +18,7 @@ import type { Attendance, CorrectionRequest } from '../features/attendance/types
 import { aggregateAttendance } from '../features/payroll/attendance-inputs';
 import { PayrollEmployeeReview } from '../features/payroll/payroll-employee-review';
 import { ProductTour } from '../features/onboarding/product-tour';
+import { EmployeeForm } from '../features/people/employee-form';
 import { AppNavigation } from '../components/app-navigation';
 import {
 	Form, Link, redirect, useActionData, useLoaderData, useLocation, useNavigation,
@@ -28,7 +29,7 @@ import {
 	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserCheck,
 	UserMinus, UserRound, Users, WalletCards,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { calculateLeaveDurationHalfDays, calculateProjectedBalance, type LeaveDayPart } from "../domain/leave";
 import { getLeaveDatePolicyError } from "../domain/leave";
@@ -423,6 +424,7 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	const [query,setQuery]=useState("");
 	const [showFilters, setShowFilters]=useState(false);
 	const [showAddForm, setShowAddForm]=useState(false);
+	const addEmployeeButtonRef=useRef<HTMLButtonElement>(null);
 	const [dept, setDept]=useState("all");
 	const [type, setType]=useState("all");
 	const [status, setStatus]=useState("all");
@@ -439,7 +441,7 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	});
 
 	return <TaskWorkspace label="Employee directory" bounded>
-		<WorkspaceHeader eyebrow="People" title="Employee directory" description={`${data.employees.length} people · employment, pay and statutory profiles`} action={<button className="button primary" onClick={()=>setShowAddForm(true)}><Plus/>Add employee</button>}/>
+		<WorkspaceHeader eyebrow="People" title="Employee directory" description={`${data.employees.length} people · employment, pay and statutory profiles`} action={<button ref={addEmployeeButtonRef} type="button" className="button primary" onClick={()=>setShowAddForm(true)}><Plus/>Add employee</button>}/>
 		<WorkspaceToolbar label="Employee controls">
 			<div className="search">
 				<Search/>
@@ -489,72 +491,19 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 			</div>
 		)}
 
+		<div className={`people-workspace${showAddForm ? " has-inspector" : ""}`}>
 		<section className="table surface task-scroll-surface">
 			<div className="table-head"><span>Employee</span><span>Team & role</span><span>Pay profile</span><span>Status</span><span/></div>
 			{filtered.length ? filtered.map((e)=><Link className="table-row" to={`/admin/employees/${e.id}`} key={e.id}><span className="person"><i>{initials(e.fullName)}</i><span><strong>{e.fullName}</strong><small>{e.employeeCode} · {e.email}</small></span></span><span><strong>{e.department}</strong><small>{e.position}</small></span><span><strong>{e.salaryType==="monthly"?money(e.monthlySalarySen):`${money(e.hourlyRateSen)}/hr`}</strong><small>{e.employmentType.replace("_"," ")}</small></span><Status value={e.status}/><ChevronRight/></Link>) : <Empty title="No matching employees" body="Try adjusting your search or filters."/>}
 		</section>
-		<EmployeeForm open={showAddForm} onToggle={()=>setShowAddForm(!showAddForm)}/>
+		<EmployeeForm open={showAddForm} onClose={()=>setShowAddForm(false)} returnFocusRef={addEmployeeButtonRef}/>
+		</div>
 	</TaskWorkspace>;
-}
-
-function EmployeeForm({employee, open, onToggle}:{employee?:Employee; open?:boolean; onToggle?:()=>void}) {
-	return <details id="add-employee" className="surface employee-form" open={open}>
-		<summary onClick={(e)=>{ if (onToggle) { e.preventDefault(); onToggle(); } }}>{employee?"Edit employee profile":"Add an employee"}<ChevronRight/></summary>
-		<Form method="post" className="form-stack">
-			<input type="hidden" name="intent" value="save-employee"/>
-			{employee&&<input type="hidden" name="employeeId" value={employee.id}/>}
-			<div className="form-pair">
-				<label>Full name<input name="fullName" defaultValue={employee?.fullName} required/></label>
-				<label>Employee ID<input name="employeeCode" defaultValue={employee?.employeeCode??`MC-${1011}`} required/></label>
-			</div>
-			<div className="form-pair">
-				<label>Email<input name="email" type="email" defaultValue={employee?.email} required/></label>
-				<label>Phone<input name="phone" defaultValue={employee?.phone??"+60 "} required/></label>
-			</div>
-			<div className="form-pair">
-				<label>Department<input name="department" defaultValue={employee?.department} required/></label>
-				<label>Position<input name="position" defaultValue={employee?.position} required/></label>
-			</div>
-			<div className="form-pair">
-				<label>Employment
-					<select name="employmentType" defaultValue={employee?.employmentType??"full_time"}>
-						<option value="full_time">Full time</option>
-						<option value="part_time">Part time</option>
-						<option value="contract">Contract</option>
-					</select>
-				</label>
-				<label>Pay basis
-					<select name="salaryType" defaultValue={employee?.salaryType??"monthly"}>
-						<option value="monthly">Monthly</option>
-						<option value="hourly">Hourly</option>
-					</select>
-				</label>
-			</div>
-			<div className="form-pair">
-				<label>Rate (RM)<input name="rateRm" type="number" min="1" step="0.01" defaultValue={((employee?.monthlySalarySen??employee?.hourlyRateSen??450000)/100).toFixed(2)} required/></label>
-				<label>Start date<input name="startDate" type="date" defaultValue={employee?.startDate??"2026-08-26"} required/></label>
-			</div>
-			<div className="form-pair">
-				<label>MyKad / IC No.<input name="icNumber" defaultValue={employee?.icNumber??""} placeholder="920315-10-5542"/></label>
-				<label>KWSP / EPF Member No.<input name="epfNumber" defaultValue={employee?.epfNumber??""} placeholder="21498102"/></label>
-			</div>
-			<div className="form-pair">
-				<label>LHDN Tax No.<input name="taxNumber" defaultValue={employee?.taxNumber??""} placeholder="SG 291048201"/></label>
-				<label>Bank Name<input name="bankName" defaultValue={employee?.bankName??"Maybank"} placeholder="Maybank / CIMB / Public Bank"/></label>
-			</div>
-			<div className="form-pair">
-				<label>Bank Account Number<input name="bankAccountNumber" defaultValue={employee?.bankAccountNumber??""} placeholder="514012384910"/></label>
-				<div/>
-			</div>
-			<PendingButton intent="save-employee" pendingLabel="Saving employee…">
-				{employee?"Save changes":"Add employee"}
-			</PendingButton>
-		</Form>
-	</details>;
 }
 
 function EmployeeInspector({employee}:{employee?:Employee}) {
 	const [showEdit, setShowEdit] = useState(false);
+	const editEmployeeButtonRef=useRef<HTMLButtonElement>(null);
 	if(!employee) return <Empty title="Employee not found" body="This profile is not available."/>;
 	return <>
 		<PageHeader eyebrow="People / Employee" title={employee.fullName} description={`${employee.employeeCode} · ${employee.position}`} action={
@@ -568,7 +517,7 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 						{employee.status === "inactive" ? <><UserCheck size={16}/> Activate</> : <><UserMinus size={16}/> Deactivate</>}
 					</button>
 				</Form>
-				<button className="button primary" onClick={()=>setShowEdit(true)}>Edit profile</button>
+				<button ref={editEmployeeButtonRef} type="button" className="button primary" onClick={()=>setShowEdit(true)}>Edit profile</button>
 			</>
 		}/>
 		<div className="profile-grid">
@@ -601,7 +550,7 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 				</dl>
 			</section>
 		</div>
-		<EmployeeForm employee={employee} open={showEdit} onToggle={()=>setShowEdit(!showEdit)}/>
+		<EmployeeForm employee={employee} open={showEdit} onClose={()=>setShowEdit(false)} returnFocusRef={editEmployeeButtonRef}/>
 	</>;
 }
 
