@@ -9,6 +9,10 @@ test("admin can sign in and reach live people and payroll data", async ({ page }
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await page.getByRole("button", { name: "Skip tour" }).click();
 	await expect(page.getByRole("heading", { name: /Good morning/ })).toBeVisible();
+	await expect(page.getByText("8 departments")).toBeVisible();
+	await expect(page.getByText("Missing clock-outs requiring review")).toBeVisible();
+	await expect(page.getByText("Pending review")).toBeVisible();
+	await expect(page.getByText("Draft", { exact: true })).toHaveCount(0);
 	await page.goto("/admin/employees");
 	await expect(page.getByText("Farah Iskandar")).toBeVisible();
 	const results = await new AxeBuilder({ page }).disableRules(["color-contrast"]).analyze();
