@@ -39,9 +39,9 @@ const features = [
 ];
 
 const stats = [
-	{ value: "48", label: "Companies" },
-	{ value: "12,400+", label: "Payslips issued" },
-	{ value: "99.9%", label: "Uptime" },
+	{ value: "Payroll", label: "Automated processing" },
+	{ value: "Attendance", label: "Clock-in & timesheets" },
+	{ value: "Leave", label: "Requests & approvals" },
 ];
 
 export default function Login() {
