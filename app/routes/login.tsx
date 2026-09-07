@@ -37,14 +37,22 @@ export default function Login() {
 	return (
 		<main className="login-page">
 			<section className="login-story">
-				<img
-					src="/login-visual-abstract.jpg"
-					alt="PayME abstract time and payroll visualization"
-					className="login-story-bg"
-				/>
 				<Link to="/" className="wordmark inverse" aria-label="PayME home">
 					<span>P</span> PayME
 				</Link>
+				<div className="story-content">
+					<h1>Clarity from clock-in to payday.</h1>
+					<div className="story-visual-wrap">
+						<img
+							src="/login-visual-abstract.jpg"
+							alt="PayME abstract time and payroll visualization"
+							className="story-visual-img"
+							width="540"
+							height="540"
+							loading="eager"
+						/>
+					</div>
+				</div>
 			</section>
 			<section className="login-panel">
 				<div className="login-card">
