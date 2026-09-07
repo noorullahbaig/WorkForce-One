@@ -30,11 +30,18 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 const features = [
-	{ icon: Calculator, title: "Automated Payroll", desc: "Process salaries, taxes, and deductions in one click." },
-	{ icon: Clock, title: "Time Tracking", desc: "Live clock-in, geolocation, and timesheet approvals." },
-	{ icon: CalendarDays, title: "Leave Management", desc: "Custom policies, instant approvals, and balance tracking." },
-	{ icon: Users, title: "Employee Portal", desc: "Self-service dashboard for documents and requests." },
-	{ icon: FileSpreadsheet, title: "Smart Reporting", desc: "Export compliant reports for HR and accounting." },
+	{ emoji: "💰", title: "Automated Payroll", desc: "Process salaries, EPF, SOCSO, and PCB in one click.", badge: "Fully automated" },
+	{ emoji: "🕐", title: "Time & Attendance", desc: "Live clock-in with GPS, biometric, and QR support.", badge: "Real-time" },
+	{ emoji: "🗓️", title: "Leave Management", desc: "Custom leave policies, instant approvals, balance tracking.", badge: "Multi-policy" },
+	{ emoji: "👤", title: "Employee Portal", desc: "Self-service payslips, documents, and leave requests.", badge: "Self-service" },
+	{ emoji: "📊", title: "HR Analytics", desc: "Headcount, turnover, and cost dashboards at a glance.", badge: "Live data" },
+	{ emoji: "📄", title: "Payslip & Reports", desc: "PDF payslips and statutory-compliant exports in seconds.", badge: "PDF & CSV" },
+];
+
+const stats = [
+	{ value: "48", label: "Companies" },
+	{ value: "12,400+", label: "Payslips issued" },
+	{ value: "99.9%", label: "Uptime" },
 ];
 
 export default function Login() {
@@ -49,22 +56,33 @@ export default function Login() {
 					<span>P</span> PayME
 				</Link>
 				<div className="story-content">
+					<p className="story-eyebrow">Workforce Management Platform</p>
 					<h1>Clarity from clock-in to payday.</h1>
-					<p className="story-subtitle">Everything you need to manage your workforce, process payroll, and empower your team—all in one seamless platform.</p>
-					
-					<div className="feature-scroller-wrap">
-						<div className="feature-scroller">
+					<p className="story-subtitle">Everything your HR team needs — payroll, attendance, leave, and analytics — all in one place.</p>
+
+					<div className="marquee-viewport" aria-hidden="true">
+						<div className="marquee-track">
 							{[...features, ...features].map((feat, i) => (
-								<div key={i} className="feature-card glass-card">
-									<feat.icon className="feature-icon" size={24} strokeWidth={1.5} />
-									<div className="feature-info">
-										<h3>{feat.title}</h3>
+								<div key={i} className="marquee-card">
+									<span className="marquee-emoji">{feat.emoji}</span>
+									<div className="marquee-info">
+										<strong>{feat.title}</strong>
 										<p>{feat.desc}</p>
 									</div>
+									<span className="marquee-badge">{feat.badge}</span>
 								</div>
 							))}
 						</div>
 					</div>
+				</div>
+
+				<div className="login-stat-strip">
+					{stats.map((s) => (
+						<div key={s.label} className="login-stat">
+							<strong>{s.value}</strong>
+							<span>{s.label}</span>
+						</div>
+					))}
 				</div>
 			</section>
 			<section className="login-panel">
