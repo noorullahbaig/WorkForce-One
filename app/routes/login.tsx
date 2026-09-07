@@ -44,8 +44,8 @@ export default function Login() {
 					<h1>Clarity from clock-in to payday.</h1>
 					<div className="story-visual-wrap">
 						<img
-							src="/login-visual-payme.png"
-							alt="PayME clock-in to payday visual flow"
+							src="/login-visual-abstract.jpg"
+							alt="PayME abstract time and payroll visualization"
 							className="story-visual-img"
 							width="540"
 							height="540"
