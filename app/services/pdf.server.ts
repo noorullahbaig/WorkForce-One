@@ -5,7 +5,7 @@ type PayrollPdfRow = { fullName:string; employeeCode:string; grossPaySen:number;
 
 function addHeader(page: ReturnType<PDFDocument["addPage"]>, bold: Awaited<ReturnType<PDFDocument["embedFont"]>>, regular: Awaited<ReturnType<PDFDocument["embedFont"]>>, title:string, subtitle:string) {
 	page.drawRectangle({x:0,y:760,width:595,height:82,color:rgb(.043,.122,.165)});
-	page.drawText("WORKFORCE ONE",{x:42,y:806,size:9,font:bold,color:rgb(.47,.84,.71)});
+	page.drawText("PayME",{x:42,y:806,size:9,font:bold,color:rgb(.47,.84,.71)});
 	page.drawText(title,{x:42,y:782,size:20,font:bold,color:rgb(1,1,1)});
 	page.drawText(subtitle,{x:42,y:765,size:8,font:regular,color:rgb(.7,.78,.78)});
 }

@@ -48,13 +48,15 @@ const employeeItems: NavigationItem[] = [
 ];
 
 export function navigationRailStorageKey(role: NavigationRole) {
-  return `workforce-one:navigation-rail:${navigationStorageVersion}:${role}`;
+	return `payme:navigation-rail:${navigationStorageVersion}:${role}`;
 }
 
 function storedPreference(role: NavigationRole) {
   if (typeof window === "undefined") return "expanded";
   try {
-    return localStorage.getItem(navigationRailStorageKey(role)) === "collapsed"
+    const next = localStorage.getItem(navigationRailStorageKey(role));
+    const legacy = localStorage.getItem(`workforce-one:navigation-rail:${navigationStorageVersion}:${role}`);
+    return (next ?? legacy) === "collapsed"
       ? "collapsed"
       : "expanded";
   } catch {
@@ -123,7 +125,7 @@ export function AppNavigation({
     <>
       <aside className={railClassName} aria-label={`${admin ? "Administrator" : "Employee"} workspace`}>
         <div className="navigation-rail-header">
-          <div className="wordmark inverse"><span>W1</span><strong className="navigation-rail-copy">Workforce One</strong></div>
+				<div className="wordmark inverse"><span>P</span><strong className="navigation-rail-copy">PayME</strong></div>
           <button
             type="button"
             className="navigation-rail-toggle"

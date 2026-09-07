@@ -67,7 +67,7 @@ const steps: Record<ProductTourRole, TourStep[]> = {
 };
 
 export function tourStorageKey(role: ProductTourRole) {
-  return `workforce-one:product-tour:v1:${role}`;
+  return `payme:product-tour:v1:${role}`;
 }
 
 export function ProductTour({

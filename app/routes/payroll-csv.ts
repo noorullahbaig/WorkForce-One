@@ -10,5 +10,5 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 	const keys = ["employeeCode", "fullName", "period", "grossPaySen", "totalDeductionsSen", "netPaySen", "employerContributionsSen"];
 	const escape = (value: unknown) => `"${String(value).replaceAll('"', '""')}"`;
 	const csv = [keys.join(","), ...rows.map((row: Record<string, string | number>) => keys.map((key) => escape(row[key])).join(","))].join("\n");
-	return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="workforce-one-${params.id}.csv"`, "Cache-Control": "private, no-store" } });
+	return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="payme-${params.id}.csv"`, "Cache-Control": "private, no-store" } });
 }

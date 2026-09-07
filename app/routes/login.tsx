@@ -6,7 +6,7 @@ import { assertSameOrigin, authenticate, createSession, getUser } from "../servi
 import { cloudflareContext } from "../context";
 import type { Route } from "./+types/login";
 
-export const meta = () => [{ title: "Sign in · Workforce One" }, { name: "description", content: "Merdeka Coffee HR and payroll portal" }];
+export const meta = () => [{ title: "Sign in · PayME" }, { name: "description", content: "Merdeka Coffee HR and payroll portal" }];
 
 export async function loader({ request, context }: Route.LoaderArgs) {
 	const user = await getUser(request, context.get(cloudflareContext).env);
@@ -37,15 +37,15 @@ export default function Login() {
 	return (
 		<main className="login-page">
 			<section className="login-story">
-				<Link to="/" className="wordmark inverse" aria-label="Workforce One home">
-					<span>W1</span> Workforce One
+				<Link to="/" className="wordmark inverse" aria-label="PayME home">
+					<span>P</span> PayME
 				</Link>
 				<div className="story-content">
 					<h1>Clarity from clock-in to payday.</h1>
 					<div className="story-visual-wrap">
 						<img
-							src="/login-visual.png"
-							alt="Workforce One clock-in to payday visual flow"
+							src="/login-visual-payme.png"
+							alt="PayME clock-in to payday visual flow"
 							className="story-visual-img"
 							width="540"
 							height="540"
@@ -56,8 +56,8 @@ export default function Login() {
 			</section>
 			<section className="login-panel">
 				<div className="login-card">
-					<Link to="/" className="login-brand" aria-label="Workforce One home">
-						<span>W1</span>
+					<Link to="/" className="login-brand" aria-label="PayME home">
+						<span>P</span>
 					</Link>
 					<h2>Sign in</h2>
 					{actionData?.error && <div className="alert danger" role="alert">{actionData.error}</div>}

@@ -1,4 +1,4 @@
-# Workforce One HRMS Demo
+# PayME HRMS Demo
 
 A responsive Malaysian HR, attendance, leave and payroll demonstration for **Merdeka Coffee Sdn. Bhd.** It runs as a React Router 8 SSR application on Cloudflare Workers with D1, and uses real mutable demo records rather than hard-coded dashboard totals.
 
@@ -9,7 +9,7 @@ A responsive Malaysian HR, attendance, leave and payroll demonstration for **Mer
 | Admin | `admin@workforceone.demo` | `AdminDemo#2026` |
 | Employee (Farah) | `employee@workforceone.demo` | `EmployeeDemo#2026` |
 
-For a complete role-by-role walkthrough and presentation script, see the [Workforce One presenter guide](docs/workforce-one-presenter-guide.md).
+For a complete role-by-role walkthrough and presentation script, see the [PayME presenter guide](docs/workforce-one-presenter-guide.md).
 
 The login page can autofill either account. The shared dataset resets nightly at 19:00 UTC (03:00 MYT) and can be reset by an admin from the dashboard guide. Authentication records and active sessions are preserved by the domain reset.
 

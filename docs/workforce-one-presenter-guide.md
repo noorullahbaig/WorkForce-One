@@ -1,10 +1,10 @@
-# Workforce One presenter guide
+# PayME presenter guide
 
 This guide shows the complete employee attendance-correction workflow and the administrator controls around attendance, payroll, notifications, and audit history.
 
 ## Prepare the presentation
 
-Open Workforce One in two separate browser sessions so both roles remain signed in:
+Open PayME in two separate browser sessions so both roles remain signed in:
 
 1. Use the normal browser window for the administrator.
 2. Use a private window or a second browser for the employee.

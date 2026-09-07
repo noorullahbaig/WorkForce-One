@@ -11,25 +11,14 @@ import type { Route } from "./+types/root";
 import "./app.css";
 
 export const headers = () => ({
-	"Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+	"Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
 	"Referrer-Policy": "strict-origin-when-cross-origin",
 	"X-Content-Type-Options": "nosniff",
 	"X-Frame-Options": "DENY",
 	"Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 });
 
-export const links: Route.LinksFunction = () => [
-	{ rel: "preconnect", href: "https://fonts.googleapis.com" },
-	{
-		rel: "preconnect",
-		href: "https://fonts.gstatic.com",
-		crossOrigin: "anonymous",
-	},
-	{
-		rel: "stylesheet",
-		href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap",
-	},
-];
+export const links: Route.LinksFunction = () => [];
 
 export function Layout({ children }: { children: React.ReactNode }) {
 	return (
@@ -71,7 +60,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
 	return (
 		<main className="error-page">
-			<div className="brand-mark">W1</div>
+			<div className="brand-mark">P</div>
 			<h1>{message}</h1>
 			<p>{details}</p>
 			<a className="button primary" href="/">Return home</a>

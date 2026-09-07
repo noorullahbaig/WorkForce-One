@@ -50,7 +50,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 	return new Response(lines.join("\n"), {
 		headers: {
 			"Content-Type": "text/csv; charset=utf-8",
-			"Content-Disposition": `attachment; filename="workforce-one-bank-payout-${params.id}.csv"`,
+			"Content-Disposition": `attachment; filename="payme-bank-payout-${params.id}.csv"`,
 			"Cache-Control": "private, no-store",
 		},
 	});

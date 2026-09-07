@@ -22,9 +22,11 @@ const PAGE_SIZE = 10;
 export function PayrollEmployeeReview({
   employees,
   attendance,
+  blocked = false,
 }: {
   employees: PayrollReviewEmployee[];
   attendance: PayrollAttendanceInput[];
+  blocked?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [payBasis, setPayBasis] = useState("all");
@@ -70,7 +72,9 @@ export function PayrollEmployeeReview({
           <h2 id="employee-pay-review-title">Employee pay review</h2>
           <p>Review attendance and pay inputs before finalising payroll.</p>
         </div>
-        <span className="review-state">Ready for review</span>
+        <span className={`review-state${blocked ? " is-blocked" : ""}`}>
+          {blocked ? "Needs attention" : "Ready for review"}
+        </span>
       </div>
 
       <div className="payroll-review-toolbar">
