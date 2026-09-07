@@ -29,6 +29,14 @@ export async function action({ request, context }: Route.ActionArgs) {
 	throw redirect(target, { headers: { "Set-Cookie": await createSession(userId, env, new URL(request.url).protocol === "https:") } });
 }
 
+const features = [
+	{ icon: Calculator, title: "Automated Payroll", desc: "Process salaries, taxes, and deductions in one click." },
+	{ icon: Clock, title: "Time Tracking", desc: "Live clock-in, geolocation, and timesheet approvals." },
+	{ icon: CalendarDays, title: "Leave Management", desc: "Custom policies, instant approvals, and balance tracking." },
+	{ icon: Users, title: "Employee Portal", desc: "Self-service dashboard for documents and requests." },
+	{ icon: FileSpreadsheet, title: "Smart Reporting", desc: "Export compliant reports for HR and accounting." },
+];
+
 export default function Login() {
 	const actionData = useActionData<typeof action>();
 	const navigation = useNavigation();
@@ -44,34 +52,17 @@ export default function Login() {
 					<h1>Clarity from clock-in to payday.</h1>
 					<p className="story-subtitle">Everything you need to manage your workforce, process payroll, and empower your team—all in one seamless platform.</p>
 					
-					<div className="abstract-ui-composition">
-						<div className="floating-card glass-card top-card">
-							<div className="glass-card-header">
-								<CheckCircle2 size={16} className="emerald-icon" />
-								<span>Attendance Logged</span>
-							</div>
-							<div className="glass-card-body">
-								<span className="time">08:45 <span>AM</span></span>
-								<div className="pulse-indicator">
-									<span className="pulse-dot"></span>
-									On Time
+					<div className="feature-scroller-wrap">
+						<div className="feature-scroller">
+							{[...features, ...features].map((feat, i) => (
+								<div key={i} className="feature-card glass-card">
+									<feat.icon className="feature-icon" size={24} strokeWidth={1.5} />
+									<div className="feature-info">
+										<h3>{feat.title}</h3>
+										<p>{feat.desc}</p>
+									</div>
 								</div>
-							</div>
-						</div>
-						
-						<div className="floating-card glass-card bottom-card">
-							<div className="glass-card-header">
-								<ShieldCheck size={16} className="emerald-icon" />
-								<span>October Payslip</span>
-							</div>
-							<div className="glass-card-body">
-								<span className="amount">RM 4,580.00</span>
-								<div className="badge success">Finalised</div>
-							</div>
-							<div className="glass-skeleton-lines">
-								<div></div>
-								<div></div>
-							</div>
+							))}
 						</div>
 					</div>
 				</div>
