@@ -43,9 +43,38 @@ export default function Login() {
 				<div className="story-content">
 					<h1>Clarity from clock-in to payday.</h1>
 					<p className="story-subtitle">Everything you need to manage your workforce, process payroll, and empower your team—all in one seamless platform.</p>
+					
+					<div className="abstract-ui-composition">
+						<div className="floating-card glass-card top-card">
+							<div className="glass-card-header">
+								<CheckCircle2 size={16} className="emerald-icon" />
+								<span>Attendance Logged</span>
+							</div>
+							<div className="glass-card-body">
+								<span className="time">08:45 <span>AM</span></span>
+								<div className="pulse-indicator">
+									<span className="pulse-dot"></span>
+									On Time
+								</div>
+							</div>
+						</div>
+						
+						<div className="floating-card glass-card bottom-card">
+							<div className="glass-card-header">
+								<ShieldCheck size={16} className="emerald-icon" />
+								<span>October Payslip</span>
+							</div>
+							<div className="glass-card-body">
+								<span className="amount">RM 4,580.00</span>
+								<div className="badge success">Finalised</div>
+							</div>
+							<div className="glass-skeleton-lines">
+								<div></div>
+								<div></div>
+							</div>
+						</div>
+					</div>
 				</div>
-				{/* Empty div for flexbox spacing balance if needed, or just let auto margins work */}
-				<div className="story-footer"></div>
 			</section>
 			<section className="login-panel">
 				<div className="login-card">
