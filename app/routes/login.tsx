@@ -42,17 +42,10 @@ export default function Login() {
 				</Link>
 				<div className="story-content">
 					<h1>Clarity from clock-in to payday.</h1>
-					<div className="story-visual-wrap">
-						<img
-							src="/login-visual-floating.jpg"
-							alt="PayME abstract time and payroll visualization"
-							className="story-visual-img"
-							width="540"
-							height="540"
-							loading="eager"
-						/>
-					</div>
+					<p className="story-subtitle">Everything you need to manage your workforce, process payroll, and empower your team—all in one seamless platform.</p>
 				</div>
+				{/* Empty div for flexbox spacing balance if needed, or just let auto margins work */}
+				<div className="story-footer"></div>
 			</section>
 			<section className="login-panel">
 				<div className="login-card">
