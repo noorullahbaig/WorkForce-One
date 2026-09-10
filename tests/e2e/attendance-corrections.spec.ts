@@ -8,8 +8,8 @@ async function login(page: Page, role: "Admin" | "Employee") {
   await page.getByRole("button", { name: new RegExp(role) }).click();
   await page.getByRole("button", { name: "Enter workspace" }).click();
   await expect(page).toHaveURL(role === "Admin" ? /\/admin$/ : /\/employee$/);
-  const skipTour = page.getByRole("button", { name: "Skip tour" });
-  if (await skipTour.isVisible()) await skipTour.click();
+  const dismissTour = page.getByRole("button", { name: "Not now" });
+  if (await dismissTour.isVisible()) await dismissTour.click();
 }
 async function requestCorrection(page: Page, out: string, reason: string) {
   await page.goto("/employee/attendance?correct=att-001");
@@ -108,6 +108,7 @@ test("employee correction, payroll blocker, approval, rejection and historical w
     await expect(page.getByText(/Clock-out captured/)).toBeVisible();
     await page.goto("/admin/payroll/payroll-2026-08");
     await page.getByRole("button", { name: "Finalise payroll" }).click();
+    await page.getByRole("button", { name: "Confirm finalisation" }).click();
     await expect(
       page.getByText(
         "Payroll finalised. Employee payslips are now available.",

@@ -84,7 +84,14 @@ describe("AppNavigation", () => {
       "id",
       "navigation-tooltip-admin-home",
     );
-    expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Primary navigation" })).not.toBeInTheDocument();
+  });
+
+  test("keeps the five-destination bottom navigation for employees", () => {
+    renderNavigation({ admin: false, user: { ...adminUser, role: "employee", employeeId: "employee-1" } });
+
+    const navigation = screen.getByRole("navigation", { name: "Primary navigation" });
+    expect(within(navigation).getAllByRole("link")).toHaveLength(5);
   });
 
   test("keeps unread notification state off Home", () => {

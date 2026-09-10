@@ -2,6 +2,9 @@
   padding: 24px;
   margin-bottom: 24px;
 }
+.correction-review-layout{min-height:0;flex:1}.correction-review-layout>.correction-queue{height:100%}.correction-review-layout>.correction-panel{min-height:0;height:100%;margin:0;overflow-y:auto;scrollbar-gutter:stable}.correction-back{display:none;margin-bottom:16px;font-size:.78rem;font-weight:700}
+@media (min-width:1200px){.correction-review-layout.has-selection{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:14px}}
+@media (max-width:1199px){.correction-review-layout.has-selection>.correction-queue{display:none}.correction-review-layout>.correction-panel{height:auto;overflow:visible}.correction-back{display:inline-flex}}
 .correction-panel h2 {
   margin: 0;
 }

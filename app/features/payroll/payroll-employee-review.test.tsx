@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { PayrollEmployeeReview } from "./payroll-employee-review";
 
 afterEach(cleanup);
@@ -56,5 +56,63 @@ describe("PayrollEmployeeReview", () => {
     expect(screen.getByText("Showing 1–2 of 2 employees")).toBeVisible();
     expect(screen.getByText("Employee 06")).toBeVisible();
     expect(screen.getByText("Employee 16")).toBeVisible();
+  });
+
+  test("opens a selected employee with complete draft inputs", async () => {
+    const user = userEvent.setup();
+    const onSelectEmployee = vi.fn();
+    const { rerender } = render(
+      <PayrollEmployeeReview
+        employees={employees}
+        attendance={attendance}
+        adjustments={[{ employeeId: "employee-1", type: "allowance", description: "Travel", amountSen: 12500 }]}
+        onSelectEmployee={onSelectEmployee}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Review Employee 01/ }));
+    expect(onSelectEmployee).toHaveBeenCalledWith("employee-1");
+
+    rerender(
+      <PayrollEmployeeReview
+        employees={employees}
+        attendance={attendance}
+        adjustments={[{ employeeId: "employee-1", type: "allowance", description: "Travel", amountSen: 12500 }]}
+        selectedEmployeeId="employee-1"
+        onSelectEmployee={onSelectEmployee}
+      />,
+    );
+    const inspector = screen.getByRole("region", { name: "Employee 01 payroll detail" });
+    expect(inspector).toHaveTextContent("MY Standard 2026");
+    expect(inspector).toHaveTextContent("480 min");
+    expect(inspector).toHaveTextContent("Travel");
+  });
+
+  test("uses stored results for finalised employee financial detail", () => {
+    render(
+      <PayrollEmployeeReview
+        employees={employees}
+        attendance={attendance}
+        runStatus="finalised"
+        selectedEmployeeId="employee-1"
+        storedResults={[{
+          employeeId: "employee-1",
+          grossPaySen: 612300,
+          totalDeductionsSen: 73100,
+          netPaySen: 539200,
+          breakdownJson: JSON.stringify({ basePaySen: 500000, overtimePaySen: 12000, allowanceSen: 100300, epfEmployeeSen: 55000, socsoEmployeeSen: 12000, eisEmployeeSen: 1100, pcbSen: 5000 }),
+        }]}
+      />,
+    );
+
+    const inspector = screen.getByRole("region", { name: "Employee 01 payroll detail" });
+    expect(screen.getByRole("button", { name: /Review Employee 01/ })).toHaveTextContent(/RM\s5,392\.00/);
+    expect(screen.queryByRole("button", { name: /Review Employee 02/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Pay basis")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Attendance input")).not.toBeInTheDocument();
+    expect(screen.getByText("Showing 1–1 of 1 employee")).toBeVisible();
+    expect(inspector).toHaveTextContent(/RM\s5,392\.00/);
+    expect(inspector).toHaveTextContent(/RM\s6,123\.00/);
+    expect(inspector).toHaveTextContent("Stored finalised result");
   });
 });

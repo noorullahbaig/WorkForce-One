@@ -12,6 +12,7 @@ import {
   PageHeader,
   Status,
   Empty,
+  ScrollableRegion,
   TaskWorkspace,
   WorkspaceHeader,
 } from "../../components/portal-ui";
@@ -33,7 +34,7 @@ export function AttendancePage({
   const displayRecords = tab === "exceptions" ? exceptions : records;
 
   return (
-    <TaskWorkspace label="Attendance records" bounded>
+    <TaskWorkspace label="Attendance records" scrollMode="list">
       <WorkspaceHeader
         eyebrow="Time"
         title="Attendance"
@@ -63,7 +64,7 @@ export function AttendancePage({
           Needs attention <b>{exceptions.length}</b>
         </button>
       </div>
-      <section className="table surface attendance-table task-scroll-surface">
+      <ScrollableRegion label="Attendance results" className="table surface attendance-table">
         <div className="table-head">
           <span>Employee</span>
           <span>Date</span>
@@ -82,27 +83,27 @@ export function AttendancePage({
                   <small>{r.employeeCode}</small>
                 </span>
               </span>
-              <span>
+              <span data-label="Date">
                 {date(r.workDate, {
                   weekday: "short",
                   day: "numeric",
                   month: "short",
                 })}
               </span>
-              <span>
+              <span data-label="Clock in">
                 <strong>{time(r.clockIn)}</strong>
                 <small>{r.clockInMethod ?? "—"}</small>
               </span>
-              <span>
+              <span data-label="Clock out">
                 <strong>{time(r.clockOut)}</strong>
                 <small>{r.clockOutMethod ?? "Needs correction"}</small>
               </span>
-              <span>
+              <span data-label="Worked">
                 {r.workedMinutes
                   ? `${Math.floor(r.workedMinutes / 60)}h ${r.workedMinutes % 60}m`
                   : "—"}
               </span>
-              <span>
+              <span className="attendance-status" data-label="Status">
                 <Status value={r.status} />
                 {corrections.some(
                   (c) => c.attendanceId === r.id && c.status === "pending",
@@ -124,7 +125,7 @@ export function AttendancePage({
             body="All shifts are complete and reconciled."
           />
         )}
-      </section>
+      </ScrollableRegion>
     </TaskWorkspace>
   );
 }
@@ -297,6 +298,7 @@ export function EmployeeAttendance({
         description="Your workday history in Malaysia time."
       />
 
+      <div className="employee-attendance-primary">
       <section className="employee-clock-card">
         <div className="employee-clock-info">
           <p className="eyebrow light">Shift Terminal</p>
@@ -321,6 +323,7 @@ export function EmployeeAttendance({
           >
             <button
               type="button"
+              aria-pressed={method === "fingerprint"}
               onClick={() => setMethod("fingerprint")}
               className={`button small ${method === "fingerprint" ? "paper" : "ghost"}`}
               style={{
@@ -332,6 +335,7 @@ export function EmployeeAttendance({
             </button>
             <button
               type="button"
+              aria-pressed={method === "qr"}
               onClick={() => setMethod("qr")}
               className={`button small ${method === "qr" ? "paper" : "ghost"}`}
               style={{
@@ -442,6 +446,7 @@ export function EmployeeAttendance({
           </span>
         </div>
       </section>
+      </div>
 
       <EmployeeCorrectionHistory records={records} corrections={corrections} />
     </>

@@ -15,6 +15,8 @@ test("first-login tours are role-specific and can be replayed", async ({ page },
 	const adminNavigation = page.getByRole("navigation", { name: "Administrator navigation" });
 	await expect(adminNavigation.getByRole("link", { name: "Attendance" })).toBeVisible();
 	await expect(adminNavigation.getByRole("link", { name: "Leave" })).toBeVisible();
+	await expect(page.getByRole("complementary", { name: "Take a quick PayME tour" })).toBeVisible();
+	await page.getByRole("button", { name: "Start tour" }).click();
 	await expect(page.getByRole("dialog")).toContainText("Step 1 of 5");
 	await expect(page.getByRole("heading", { name: "Home and action queue" })).toBeVisible();
 	await page.getByRole("button", { name: "Next" }).click();
@@ -38,6 +40,7 @@ test("first-login tours are role-specific and can be replayed", async ({ page },
 
 	await page.getByRole("button", { name: "Sign out" }).first().click();
 	await chooseRole(page, "Employee");
+	await page.getByRole("button", { name: "Start tour" }).click();
 	await expect(page.getByRole("heading", { name: "Your employee home" })).toBeVisible();
 	await expect(page.getByRole("dialog")).toContainText("Step 1 of 5");
 });
@@ -46,9 +49,7 @@ test("administrator task workspaces fit the laptop viewport", async ({ page }, t
 	test.skip(testInfo.project.name !== "desktop", "Laptop viewport assertion runs once.");
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await chooseRole(page, "Admin");
-	const skipTour = page.getByRole("button", { name: "Skip tour" });
-	await expect(skipTour).toBeVisible();
-	await skipTour.click();
+	await page.getByRole("button", { name: "Not now" }).click();
 
 	for (const path of ["/admin/employees", "/admin/attendance", "/admin/payroll", "/admin/reports"]) {
 		await page.goto(path);
@@ -58,8 +59,8 @@ test("administrator task workspaces fit the laptop viewport", async ({ page }, t
 
 test("employee directory opens a focused add inspector without page scrolling", async ({ page }, testInfo) => {
 	await chooseRole(page, "Admin");
-	const skipTour = page.getByRole("button", { name: "Skip tour" });
-	if (await skipTour.isVisible()) await skipTour.click();
+	const dismissTour = page.getByRole("button", { name: "Not now" });
+	if (await dismissTour.isVisible()) await dismissTour.click();
 	await page.goto("/admin/employees");
 	await expect(page.getByRole("heading", { name: "Employee directory" })).toBeVisible();
 	const addButton = page.getByRole("button", { name: "Add employee", exact: true }).first();
@@ -69,10 +70,12 @@ test("employee directory opens a focused add inspector without page scrolling", 
 	await expect(page.getByRole("heading", { name: "Add an employee" })).toBeFocused();
 	await expect(inspector.getByLabel("Full name")).toBeVisible();
 	if (testInfo.project.name === "desktop") {
-		await expect(page.locator(".people-workspace .task-scroll-surface")).toBeVisible();
+		await expect(page.locator(".people-workspace .scrollable-region")).toBeVisible();
 		await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(900);
 	} else {
-		await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(testInfo.project.name === "small-mobile" ? 360 : 390);
+		await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+			testInfo.project.name === "tablet" ? 768 : testInfo.project.name === "small-mobile" ? 360 : 390
+		);
 	}
 	await page.getByRole("button", { name: "Close employee form" }).click();
 	await expect(inspector).toHaveCount(0);
@@ -82,9 +85,7 @@ test("employee directory opens a focused add inspector without page scrolling", 
 test("desktop rail and workspace stay aligned while collapsing", async ({ page }, testInfo) => {
 	test.skip(testInfo.project.name !== "desktop", "Desktop rail is hidden at smaller breakpoints.");
 	await chooseRole(page, "Admin");
-	const skipTour = page.getByRole("button", { name: "Skip tour" });
-	await expect(skipTour).toBeVisible();
-	await skipTour.click();
+	await page.getByRole("button", { name: "Not now" }).click();
 
 	await page.getByRole("button", { name: "Collapse navigation" }).click();
 	await page.waitForTimeout(70);
@@ -128,13 +129,11 @@ test("desktop rail and workspace stay aligned while collapsing", async ({ page }
 test("payroll review controls and coach mark fit the mobile viewport", async ({ page }, testInfo) => {
 	test.skip(testInfo.project.name !== "mobile", "Responsive layout is covered by the mobile project.");
 	await chooseRole(page, "Admin");
-	const primaryNavigation = page.getByRole("navigation", { name: "Primary navigation" });
-	await expect(primaryNavigation.getByRole("link", { name: "Leave" })).toBeVisible();
-	await expect(primaryNavigation.getByRole("link", { name: "Payroll" })).toBeVisible();
-	await expect(primaryNavigation.getByText("More", { exact: true })).toHaveCount(0);
-	await expect(page.getByRole("dialog")).toBeVisible();
+	await expect(page.getByRole("navigation", { name: "Primary navigation" })).toHaveCount(0);
+	await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
+	await expect(page.getByRole("complementary", { name: "Take a quick PayME tour" })).toBeVisible();
 	await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-	await page.getByRole("button", { name: "Skip tour" }).click();
+	await page.getByRole("button", { name: "Not now" }).click();
 	await page.goto("/admin/payroll/payroll-2026-08");
 	await expect(page.getByRole("heading", { name: "Employee pay review" })).toBeVisible();
 	await expect(page.getByText("Showing 1–10 of 10 employees")).toBeVisible();

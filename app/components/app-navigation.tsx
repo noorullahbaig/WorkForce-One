@@ -191,13 +191,15 @@ export function AppNavigation({
           </div>
         </div>
       </aside>
-      <nav className="bottom-nav" aria-label="Primary navigation">
-        {bottomItems.map(({ to, icon: Icon, label, tour }) => (
-          <NavLink data-tour={tour} end={to === (admin ? "/admin" : "/employee")} to={to} key={to}>
-            <Icon aria-hidden="true" /><span>{label}</span>
-          </NavLink>
-        ))}
-      </nav>
+      {!admin ? (
+        <nav className="bottom-nav" aria-label="Primary navigation">
+          {bottomItems.map(({ to, icon: Icon, label, tour }) => (
+            <NavLink data-tour={tour} end={to === "/employee"} to={to} key={to}>
+              <Icon aria-hidden="true" /><span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      ) : null}
     </>
   );
 }

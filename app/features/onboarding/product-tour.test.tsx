@@ -30,6 +30,8 @@ describe("ProductTour", () => {
       </>,
     );
 
+    expect(await screen.findByRole("complementary", { name: "Take a quick PayME tour" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Start tour" }));
     expect(await screen.findByRole("dialog", { name: "Home and action queue" })).toBeVisible();
     expect(screen.getByText("Step 1 of 5")).toBeVisible();
     expect(document.querySelector('[data-tour="admin-home"]')).toHaveClass("product-tour-target");
@@ -53,7 +55,7 @@ describe("ProductTour", () => {
 
     cleanup();
     render(<ProductTour role="employee" />);
-    expect(await screen.findByRole("dialog", { name: "Your employee home" })).toBeVisible();
+    expect(await screen.findByRole("complementary", { name: "Take a quick PayME tour" })).toBeVisible();
   });
 
   test("supports keyboard navigation and finishes on the last step", async () => {
@@ -64,6 +66,7 @@ describe("ProductTour", () => {
         <ProductTour role="admin" />
       </>,
     );
+    await user.click(await screen.findByRole("button", { name: "Start tour" }));
     await screen.findByRole("dialog");
     for (let step = 1; step < 5; step += 1) {
       await user.click(screen.getByRole("button", { name: "Next" }));

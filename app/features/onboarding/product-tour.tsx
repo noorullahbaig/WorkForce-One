@@ -80,6 +80,7 @@ export function ProductTour({
   onOpenChange?: (open: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [invitationOpen, setInvitationOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const primaryAction = useRef<HTMLButtonElement>(null);
   const roleSteps = steps[role];
@@ -87,12 +88,18 @@ export function ProductTour({
 
   useEffect(() => {
     setStepIndex(0);
-    setOpen(localStorage.getItem(tourStorageKey(role)) !== "complete");
+    const key = tourStorageKey(role);
+    const legacyKey = `workforce-one:product-tour:v1:${role}`;
+    const stored = localStorage.getItem(key) ?? localStorage.getItem(legacyKey);
+    if (stored === "complete") localStorage.setItem(key, "complete");
+    setOpen(false);
+    setInvitationOpen(stored !== "complete" && stored !== "dismissed");
   }, [role]);
 
   useEffect(() => {
     if (replayToken > 0) {
       setStepIndex(0);
+      setInvitationOpen(false);
       setOpen(true);
     }
   }, [replayToken]);
@@ -133,6 +140,21 @@ export function ProductTour({
     setOpen(false);
   }
 
+  if (invitationOpen && !open) {
+    return (
+      <aside className="product-tour-invitation" aria-labelledby="tour-invitation-title">
+        <Compass aria-hidden="true" />
+        <div>
+          <h2 id="tour-invitation-title">Take a quick PayME tour</h2>
+          <p>See where your main tasks and records live. You can replay this later from your account menu.</p>
+          <div>
+            <button type="button" className="button primary" onClick={() => { setInvitationOpen(false); setOpen(true); }}>Start tour</button>
+            <button type="button" className="button secondary" onClick={() => { localStorage.setItem(tourStorageKey(role), "dismissed"); setInvitationOpen(false); }}>Not now</button>
+          </div>
+        </div>
+      </aside>
+    );
+  }
   if (!open) return null;
   const isLast = stepIndex === roleSteps.length - 1;
 

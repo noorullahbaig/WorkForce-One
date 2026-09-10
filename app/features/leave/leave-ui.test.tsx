@@ -77,6 +77,42 @@ function renderRouteWithLocation(element: React.ReactNode, path: string) {
 }
 
 describe("employee leave workspace", () => {
+  test("uses the shared Schedule and Requests workspace switch", () => {
+    renderRoute(
+      <EmployeeLeaveWorkspace
+        employeeId="emp-001"
+        ownRecords={[leaveRecord()]}
+        sharedRecords={[]}
+        balances={balances}
+        holidays={holidays}
+        today="2026-08-27"
+      />,
+      "/employee/leave?month=2026-08&panel=requests",
+    );
+
+    expect(screen.getByRole("link", { name: "Schedule" })).toHaveAttribute("href", expect.stringContaining("panel=schedule"));
+    expect(screen.getByRole("link", { name: "Requests" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: "Request history" })).toBeVisible();
+    expect(screen.queryByRole("grid")).not.toBeInTheDocument();
+  });
+
+  test("makes an explicit calendar URL available for the mobile agenda default", () => {
+    renderRoute(
+      <EmployeeLeaveWorkspace
+        employeeId="emp-001"
+        ownRecords={[]}
+        sharedRecords={[]}
+        balances={balances}
+        holidays={holidays}
+        today="2026-08-27"
+      />,
+      "/employee/leave?month=2026-08",
+    );
+
+    expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", expect.stringContaining("view=calendar"));
+    expect(screen.getByRole("link", { name: "Request leave" })).toHaveAttribute("href", expect.stringContaining("panel=requests"));
+  });
+
   test("summarises unique confirmed employees without duplicating approved names", () => {
     renderRoute(
       <EmployeeLeaveWorkspace
@@ -510,6 +546,7 @@ describe("admin leave workspace", () => {
     expect(screen.getByRole("combobox", { name: "Events" })).not.toBeNull();
     expect(screen.getByRole("combobox", { name: "Status" })).not.toBeNull();
     expect(screen.getByRole("link", { name: "Requests" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Schedule" })).not.toBeNull();
     expect(
       screen.getByText("0 of 2 Sales employees already away"),
     ).not.toBeNull();

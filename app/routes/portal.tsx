@@ -8,6 +8,7 @@ import {
 	PendingButton,
 	Status,
 	TaskWorkspace,
+	ScrollableRegion,
 	WorkspaceHeader,
 	WorkspaceToolbar,
 } from '../components/portal-ui';
@@ -21,15 +22,15 @@ import { ProductTour } from '../features/onboarding/product-tour';
 import { EmployeeForm } from '../features/people/employee-form';
 import { AppNavigation } from '../components/app-navigation';
 import {
-	Form, Link, redirect, useActionData, useLoaderData, useLocation, useNavigation,
+	Form, Link, redirect, useActionData, useLoaderData, useLocation, useNavigation, useSearchParams,
 } from "react-router";
 import {
-	Bell, CalendarDays, Check, ChevronRight, Clock3, Coffee, Compass, Download,
+	Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Coffee, Compass, Download,
 	FileText, Fingerprint, Landmark, LogOut, Menu, Plus,
 	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserCheck,
 	UserMinus, UserRound, Users, WalletCards,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { calculateLeaveDurationHalfDays, calculateProjectedBalance, type LeaveDayPart } from "../domain/leave";
 import { getLeaveDatePolicyError } from "../domain/leave";
@@ -56,7 +57,7 @@ type Leave = LeaveRecord;
 type SharedLeave = SharedLeaveRecord;
 type Holiday = HolidayRecord;
 type Payroll = { id:string; period:string; periodStart:string; periodEnd:string; payDate:string; status:string; grossTotalSen:number; deductionTotalSen:number; netTotalSen:number; employerContributionTotalSen:number; finalisedAt:string|null; policyName:string };
-type Payslip = { id:string; employeeId:string; fullName:string; period:string; payDate:string; grossPaySen:number; totalDeductionsSen:number; netPaySen:number; breakdownJson:string };
+type Payslip = { id:string; payrollRunId:string; employeeId:string; fullName:string; period:string; payDate:string; grossPaySen:number; totalDeductionsSen:number; netPaySen:number; breakdownJson:string };
 type Notification = { id:string; title:string; body:string; href:string|null; readAt:string|null; createdAt:string };
 type Balance = LeaveBalanceSummary;
 type PayrollAdjustment = { id:string; payrollRunId:string; employeeId:string; fullName:string; type:"allowance"|"bonus"|"deduction"|"pcb"; description:string; amountSen:number; reason:string|null; createdAt:string };
@@ -80,7 +81,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 		all<SharedLeave>(env.DB.prepare("SELECT l.id,l.employee_id employeeId,e.full_name fullName,e.department,l.start_date startDate,l.end_date endDate FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status='approved' ORDER BY l.start_date,e.full_name").bind(user.companyId)),
 		all<Holiday>(env.DB.prepare("SELECT id,name,date,category,region,observed,active FROM holidays WHERE company_id=? ORDER BY date,name").bind(user.companyId)),
 		all<Payroll>(env.DB.prepare(`SELECT r.id, r.period, r.period_start periodStart, r.period_end periodEnd, r.pay_date payDate, r.status, r.gross_total_sen grossTotalSen, r.deduction_total_sen deductionTotalSen, r.net_total_sen netTotalSen, r.employer_contribution_total_sen employerContributionTotalSen, r.finalised_at finalisedAt, p.name policyName FROM payroll_runs r JOIN payroll_policies p ON p.id=r.policy_id WHERE r.company_id=? ORDER BY r.period DESC`).bind(user.companyId)),
-		all<Payslip>(bind(env.DB.prepare(`SELECT p.id, p.employee_id employeeId, e.full_name fullName, r.period, r.pay_date payDate, pr.gross_pay_sen grossPaySen, pr.total_deductions_sen totalDeductionsSen, pr.net_pay_sen netPaySen, pr.breakdown_json breakdownJson FROM payslips p JOIN employees e ON e.id=p.employee_id JOIN payroll_runs r ON r.id=p.payroll_run_id JOIN payroll_results pr ON pr.id=p.payroll_result_id${employeeScope} ORDER BY r.period DESC`))),
+		all<Payslip>(bind(env.DB.prepare(`SELECT p.id, p.payroll_run_id payrollRunId, p.employee_id employeeId, e.full_name fullName, r.period, r.pay_date payDate, pr.gross_pay_sen grossPaySen, pr.total_deductions_sen totalDeductionsSen, pr.net_pay_sen netPaySen, pr.breakdown_json breakdownJson FROM payslips p JOIN employees e ON e.id=p.employee_id JOIN payroll_runs r ON r.id=p.payroll_run_id JOIN payroll_results pr ON pr.id=p.payroll_result_id${employeeScope} ORDER BY r.period DESC`))),
 		all<Notification>(env.DB.prepare(`SELECT id,title,body,href,read_at readAt,created_at createdAt FROM notifications WHERE user_id=? ORDER BY created_at DESC`).bind(user.id)),
 		all<Balance>(bind(env.DB.prepare(`SELECT b.employee_id employeeId,b.leave_type_id leaveTypeId,t.name,t.paid,b.allocated_half_days allocatedHalfDays,COALESCE((SELECT SUM(a.delta_half_days) FROM leave_balance_adjustments a WHERE a.employee_id=b.employee_id AND a.leave_type_id=b.leave_type_id),0) adjustmentHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='approved'),0) approvedHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='pending'),0) pendingHalfDays FROM leave_balances b JOIN leave_types t ON t.id=b.leave_type_id JOIN employees e ON e.id=b.employee_id${employeeScope} ORDER BY e.full_name,t.name`))),
 		all<PayrollAdjustment>(bind(env.DB.prepare(`SELECT a.id, a.payroll_run_id payrollRunId, a.employee_id employeeId, e.full_name fullName, a.type, a.description, a.amount_sen amountSen, a.reason, a.created_at createdAt FROM payroll_adjustments a JOIN employees e ON e.id=a.employee_id${employeeScope} ORDER BY a.created_at DESC`))),
@@ -178,7 +179,6 @@ export async function action({ request, context }: Route.ActionArgs) {
 		if (!phone || !email) return { error: "Please provide a valid phone number and email address." };
 		await env.DB.batch([
 			env.DB.prepare("UPDATE employees SET phone=?, email=?, bank_account_number=?, updated_at=? WHERE id=?").bind(phone, email, bankAccountNumber || null, now, user.employeeId),
-			env.DB.prepare("UPDATE users SET email=?, updated_at=? WHERE id=?").bind(email, now, user.id),
 			env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,'company-merdeka',?,'employee.self_update','employee',?,'{}',?)").bind(crypto.randomUUID(), user.id, user.employeeId, now),
 		]);
 		return { ok: "Profile information updated successfully." };
@@ -297,7 +297,7 @@ export default function Portal() {
 	const [railCollapsed, setRailCollapsed] = useState(false);
 	const path=location.pathname; const busy=navigation.state!=="idle";
 	const intent = String(navigation.formData?.get("intent") ?? "");
-	return <div className={data.admin?"app-shell admin-shell":"app-shell employee-shell"} data-navigation={navigation.state} data-navigation-rail={railCollapsed?"collapsed":"expanded"}>
+	return <div className="app-shell" data-navigation={navigation.state} data-navigation-rail={railCollapsed?"collapsed":"expanded"}>
 		<AppNavigation admin={data.admin} user={data.user} unread={data.notifications.filter((item)=>!item.readAt).length} forceExpanded={tourOpen} onCollapsedChange={setRailCollapsed}/>
 		<main className={busy?"workspace is-navigating":"workspace"} aria-busy={busy}>
 			<header className="topbar">
@@ -332,24 +332,24 @@ function UserMenu({user, admin, onTakeTour}:{user:DemoUser; admin:boolean;onTake
 			</div>
 			<div className="user-menu-links">
 				{admin ? (
-					<Link to="/admin/employees" className="user-menu-item">
-						<Users size={15}/> People directory
+					<Link aria-label="People directory" to="/admin/employees" className="user-menu-item">
+						<Users aria-hidden="true" size={15}/><span>People directory</span>
 					</Link>
 				) : (
-					<Link to="/employee/profile" className="user-menu-item">
-						<UserRound size={15}/> My Profile
+					<Link aria-label="My Profile" to="/employee/profile" className="user-menu-item">
+						<UserRound aria-hidden="true" size={15}/><span>My Profile</span>
 					</Link>
 				)}
-				<Link to={admin ? "/admin/notifications" : "/employee/notifications"} className="user-menu-item">
-					<Bell size={15}/> Notifications
+				<Link aria-label="Notifications" to={admin ? "/admin/notifications" : "/employee/notifications"} className="user-menu-item">
+					<Bell aria-hidden="true" size={15}/><span>Notifications</span>
 				</Link>
-				<button type="button" className="user-menu-item" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");onTakeTour();}}>
-					<Compass size={15}/> Take product tour
+				<button aria-label="Take product tour" type="button" className="user-menu-item" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");onTakeTour();}}>
+					<Compass aria-hidden="true" size={15}/><span>Take product tour</span>
 				</button>
 			</div>
 			<Form method="post" action="/logout" style={{margin:0}}>
-				<button className="user-menu-logout">
-					<LogOut size={15}/> Sign out
+				<button aria-label="Sign out" className="user-menu-logout">
+					<LogOut aria-hidden="true" size={15}/><span>Sign out</span>
 				</button>
 			</Form>
 		</div>
@@ -376,7 +376,7 @@ function CompanyDropdown({companyInfo, employeeCount}:{companyInfo:CompanyInfo; 
 	</details>;
 }
 
-function MobileMenu({admin}:{admin:boolean}) { const links=admin?[["/admin","Home"],["/admin/employees","People"],["/admin/attendance","Attendance"],["/admin/leave","Leave"],["/admin/payroll","Payroll"],["/admin/payroll/policies","Policies"],["/admin/reports","Reports"],["/admin/notifications","Notifications"]]:[["/employee","Home"],["/employee/attendance","Attendance"],["/employee/leave","Leave"],["/employee/payslips","Payslips"],["/employee/notifications","Notifications"],["/employee/profile","Profile"]]; return <details className="mobile-menu"><summary aria-label="Open navigation"><Menu/></summary><div className="mobile-menu-sheet"><div><strong>Navigate</strong><span>PayME</span></div><nav>{links.map(([to,label])=><Link key={to} to={to}>{label}<ChevronRight/></Link>)}</nav><Form method="post" action="/logout"><button className="button secondary wide"><LogOut/>Sign out</button></Form></div></details> }
+function MobileMenu({admin}:{admin:boolean}) { const links=admin?[["/admin","Home"],["/admin/employees","People"],["/admin/attendance","Attendance"],["/admin/leave","Leave"],["/admin/payroll","Payroll"],["/admin/payroll/policies","Policies"],["/admin/reports","Reports"],["/admin/notifications","Notifications"]]:[["/employee","Home"],["/employee/attendance","Attendance"],["/employee/leave","Leave"],["/employee/payslips","Payslips"],["/employee/notifications","Notifications"],["/employee/profile","Profile"]]; return <details className="mobile-menu"><summary aria-label="Open navigation" role="button"><Menu/></summary><div className="mobile-menu-sheet"><div><strong>Navigate</strong><span>PayME</span></div><nav>{links.map(([to,label])=><Link key={to} to={to}>{label}<ChevronRight/></Link>)}</nav><Form method="post" action="/logout"><button className="button secondary wide"><LogOut/>Sign out</button></Form></div></details> }
 
 function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}) {
 	if(path.includes("/employees/")) return <EmployeeInspector employee={data.employees.find((e)=>path.endsWith(e.id))}/>;
@@ -388,7 +388,7 @@ function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loa
 	if(path==="/admin/leave/balances") return <BalanceAdmin balances={data.balances} employees={data.employees}/>;
 	if(path==="/admin/leave") return <AdminLeaveWorkspace records={data.leave} employees={data.employees} holidays={data.holidays} balances={data.balances} today={data.today} backdateDays={data.companyInfo.leaveBackdateDays}/>;
 	if(path==="/admin/payroll/policies") return <Policy policies={data.policies}/>;
-	if(path.includes("/admin/payroll/")) return <PayrollDetail run={data.payrolls.find((r)=>path.endsWith(r.id))} employees={data.employees} attendance={data.attendance} adjustments={data.adjustments} corrections={data.corrections}/>;
+	if(path.includes("/admin/payroll/")) return <PayrollDetail run={data.payrolls.find((r)=>path.endsWith(r.id))} employees={data.employees} attendance={data.attendance} adjustments={data.adjustments} corrections={data.corrections} payslips={data.payslips}/>;
 	if(path==="/admin/payroll") return <PayrollList runs={data.payrolls}/>;
 	if(path==="/admin/reports") return <Reports runs={data.payrolls}/>;
 	if(path==="/admin/notifications") return <Notifications items={data.notifications}/>;
@@ -404,30 +404,36 @@ function AdminHome({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	const currentPayroll=draft??data.payrolls[0];
 	const payrollPeriod=currentPayroll?date(currentPayroll.periodStart,{month:"long",year:"numeric"}):"Current";
 	const payrollState=draft?(attendanceBlockers>0?"Blocked":"Ready to finalise"):"Finalised";
+	const latestFinalised=data.payrolls.find((r)=>r.status==="finalised");
 	const todayLabel=`${date(data.today,{weekday:"long"})} · ${date(data.today,{day:"numeric",month:"long"})}`;
 	return <><PageHeader eyebrow={todayLabel} title={`Good morning, ${data.user.name.split(" ")[0]}`} description="Here’s what needs attention across Merdeka Coffee." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Attendance capture</Link>}/>
-		<section className="metric-strip operational-strip">
-			<Link to="/admin/attendance"><span>Attendance</span><strong>{attendanceBlockers?`${attendanceBlockers} record${attendanceBlockers===1?"":"s"}`:"Clear"}</strong><small>{attendanceBlockers?"Need review before payroll can be finalised":"No records need attention"}</small><ChevronRight/></Link>
-			<Link to="/admin/leave"><span>Leave approvals</span><strong>{pending?`${pending} request${pending===1?"":"s"}`:"Clear"}</strong><small>{pending?"Waiting for an administrator decision":"No requests are waiting"}</small><ChevronRight/></Link>
-			<Link to={currentPayroll?`/admin/payroll/${currentPayroll.id}`:"/admin/payroll"}><span>{payrollPeriod} payroll</span><strong>{payrollState}</strong><small>{draft&&attendanceBlockers?`${attendanceBlockers} attendance record${attendanceBlockers===1?"":"s"} must be resolved`:draft?"Attendance inputs are ready for review":"Payroll results are finalised"}</small><ChevronRight/></Link>
-		</section>
 		<div className="dashboard-grid"><section className="surface"><div className="section-head"><div><p className="eyebrow">Action queue</p><h2>Needs your attention</h2></div><span className="count">{pending+missingRecords.length+pendingCorrections.length}</span></div>
 			{pendingCorrections.length>0&&<Link className="action-row" to="/admin/attendance/corrections"><span className="action-icon warning"><Clock3/></span><span><strong>Review attendance corrections</strong><small>{pendingCorrections.length} request{pendingCorrections.length===1?"":"s"} awaiting a decision</small></span><ChevronRight/></Link>}
 			{missingRecords.length>0&&<Link className="action-row" to="/admin/attendance"><span className="action-icon warning"><Clock3/></span><span><strong>Resolve missing clock-outs</strong><small>{missingRecords.length} attendance record{missingRecords.length===1?"":"s"} block payroll finalisation</small></span><ChevronRight/></Link>}
 			{pending>0&&<Link className="action-row" to="/admin/leave"><span className="action-icon emerald"><CalendarDays/></span><span><strong>Review leave requests</strong><small>{pending} request waiting for a decision</small></span><ChevronRight/></Link>}
 			{draft&&<Link className="action-row" to={`/admin/payroll/${draft.id}`}><span className="action-icon ink"><WalletCards/></span><span><strong>{attendanceBlockers?`${payrollPeriod} payroll is blocked`:`Finalise ${payrollPeriod} payroll`}</strong><small>{attendanceBlockers?"Resolve attendance records before finalising":"Attendance inputs are ready for review"}</small></span><ChevronRight/></Link>}
-		</section><section className="surface"><div className="section-head"><div><p className="eyebrow">Payroll pulse</p><h2>Latest finalised run</h2></div><Link to="/admin/payroll">View all</Link></div><div className="payroll-pulse"><span>July 2026</span><strong>{money(data.payrolls.find((r)=>r.status==="finalised")?.netTotalSen)}</strong><small>Net pay distributed</small><div><span>Gross <b>{money(data.payrolls.find((r)=>r.status==="finalised")?.grossTotalSen)}</b></span><span>Deductions <b>{money(data.payrolls.find((r)=>r.status==="finalised")?.deductionTotalSen)}</b></span></div></div></section></div>
+		</section><section className="surface"><div className="section-head"><div><p className="eyebrow">Payroll readiness</p><h2>{payrollPeriod}</h2></div><Link to={currentPayroll?`/admin/payroll/${currentPayroll.id}`:"/admin/payroll"}>Open run</Link></div><div className="payroll-readiness"><Status value={payrollState}/><p>{draft&&attendanceBlockers?`${attendanceBlockers} attendance record${attendanceBlockers===1?"":"s"} must be resolved before finalisation.`:draft?"Attendance inputs are ready for review.":"No draft run is currently open."}</p></div>{latestFinalised&&<div className="payroll-pulse compact"><span>Latest finalised · {date(latestFinalised.periodStart,{month:"long",year:"numeric"})}</span><strong>{money(latestFinalised.netTotalSen)}</strong><small>Net pay distributed</small><div><span>Gross <b>{money(latestFinalised.grossTotalSen)}</b></span><span>Deductions <b>{money(latestFinalised.deductionTotalSen)}</b></span></div></div>}</section></div>
 	</>;
 }
 
 function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
-	const [query,setQuery]=useState("");
+	const [params,setParams]=useSearchParams();
+	const query=params.get("q")??"";
 	const [showFilters, setShowFilters]=useState(false);
 	const [showAddForm, setShowAddForm]=useState(false);
+	const [compactList,setCompactList]=useState(false);
 	const addEmployeeButtonRef=useRef<HTMLButtonElement>(null);
-	const [dept, setDept]=useState("all");
-	const [type, setType]=useState("all");
-	const [status, setStatus]=useState("all");
+	const dept=params.get("department")??"all";
+	const type=params.get("type")??"all";
+	const status=params.get("status")??"all";
+	const requestedPage=Math.max(1,Number(params.get("page")??"1")||1);
+	useEffect(()=>{
+		const media=window.matchMedia("(max-width: 820px)");
+		const sync=()=>setCompactList(media.matches);sync();media.addEventListener("change",sync);return()=>media.removeEventListener("change",sync);
+	},[]);
+	const updateListParam=(name:string,value:string,defaultValue="")=>{
+		const next=new URLSearchParams(params);if(value===defaultValue||!value)next.delete(name);else next.set(name,value);next.delete("page");setParams(next,{preventScrollReset:true});
+	};
 
 	const departments = Array.from(new Set(data.employees.map((e)=>e.department))).sort();
 	const hasActiveFilters = dept !== "all" || type !== "all" || status !== "all";
@@ -439,13 +445,18 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 		const matchesStatus = status === "all" || e.status === status;
 		return matchesQuery && matchesDept && matchesType && matchesStatus;
 	});
+	const pageSize=compactList?8:10;
+	const pageCount=Math.max(1,Math.ceil(filtered.length/pageSize));
+	const page=Math.min(requestedPage,pageCount);
+	const visible=filtered.slice((page-1)*pageSize,page*pageSize);
+	const setPage=(value:number)=>{const next=new URLSearchParams(params);if(value<=1)next.delete("page");else next.set("page",String(value));setParams(next,{preventScrollReset:true});};
 
-	return <TaskWorkspace label="Employee directory" bounded>
+	return <TaskWorkspace label="Employee directory" scrollMode="split">
 		<WorkspaceHeader eyebrow="People" title="Employee directory" description={`${data.employees.length} people · employment, pay and statutory profiles`} action={<button ref={addEmployeeButtonRef} type="button" className="button primary" onClick={()=>setShowAddForm(true)}><Plus/>Add employee</button>}/>
 		<WorkspaceToolbar label="Employee controls">
 			<div className="search">
 				<Search/>
-				<input aria-label="Search employees" placeholder="Search name, role or employee ID" value={query} onChange={(event)=>setQuery(event.target.value)}/>
+				<input aria-label="Search employees" placeholder="Search name, role or employee ID" value={query} onChange={(event)=>updateListParam("q",event.target.value)}/>
 			</div>
 			<button className={`button ${showFilters || hasActiveFilters ? "primary" : "secondary"}`} onClick={()=>setShowFilters(!showFilters)}>
 				<SlidersHorizontal/>Filters {hasActiveFilters ? "(Active)" : ""}
@@ -457,14 +468,14 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 				<div className="filter-grid">
 					<label>
 						Department
-						<select value={dept} onChange={(e)=>setDept(e.target.value)}>
+						<select value={dept} onChange={(e)=>updateListParam("department",e.target.value,"all")}>
 							<option value="all">All departments</option>
 							{departments.map((d)=><option key={d} value={d}>{d}</option>)}
 						</select>
 					</label>
 					<label>
 						Employment type
-						<select value={type} onChange={(e)=>setType(e.target.value)}>
+						<select value={type} onChange={(e)=>updateListParam("type",e.target.value,"all")}>
 							<option value="all">All types</option>
 							<option value="full_time">Full time</option>
 							<option value="part_time">Part time</option>
@@ -473,7 +484,7 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 					</label>
 					<label>
 						Status
-						<select value={status} onChange={(e)=>setStatus(e.target.value)}>
+						<select value={status} onChange={(e)=>updateListParam("status",e.target.value,"all")}>
 							<option value="all">All statuses</option>
 							<option value="active">Active</option>
 							<option value="on_leave">On leave</option>
@@ -483,7 +494,7 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 				</div>
 				{hasActiveFilters && (
 					<div className="filter-actions">
-						<button className="text-button" onClick={()=>{setDept("all"); setType("all"); setStatus("all");}}>
+						<button className="text-button" onClick={()=>{const next=new URLSearchParams(params);["department","type","status","page"].forEach((key)=>next.delete(key));setParams(next,{preventScrollReset:true});}}>
 							<RotateCcw size={14}/> Reset filters
 						</button>
 					</div>
@@ -492,10 +503,11 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 		)}
 
 		<div className={`people-workspace${showAddForm ? " has-inspector" : ""}`}>
-		<section className="table surface task-scroll-surface">
+		<ScrollableRegion label="Employee results" className="table surface">
 			<div className="table-head"><span>Employee</span><span>Team & role</span><span>Pay profile</span><span>Status</span><span/></div>
-			{filtered.length ? filtered.map((e)=><Link className="table-row" to={`/admin/employees/${e.id}`} key={e.id}><span className="person"><i>{initials(e.fullName)}</i><span><strong>{e.fullName}</strong><small>{e.employeeCode} · {e.email}</small></span></span><span><strong>{e.department}</strong><small>{e.position}</small></span><span><strong>{e.salaryType==="monthly"?money(e.monthlySalarySen):`${money(e.hourlyRateSen)}/hr`}</strong><small>{e.employmentType.replace("_"," ")}</small></span><Status value={e.status}/><ChevronRight/></Link>) : <Empty title="No matching employees" body="Try adjusting your search or filters."/>}
-		</section>
+			{visible.length ? visible.map((e)=><Link className="table-row" to={`/admin/employees/${e.id}?${params.toString()}`} key={e.id}><span className="person"><i>{initials(e.fullName)}</i><span><strong>{e.fullName}</strong><small>{e.employeeCode} · {e.email}</small></span></span><span><strong>{e.department}</strong><small>{e.position}</small></span><span><strong>{e.salaryType==="monthly"?money(e.monthlySalarySen):`${money(e.hourlyRateSen)}/hr`}</strong><small>{e.employmentType.replace("_"," ")}</small></span><Status value={e.status}/><ChevronRight/></Link>) : <Empty title="No matching employees" body="Try adjusting your search or filters."/>}
+			{filtered.length>0&&<div className="payroll-pagination list-pagination"><p>Showing {(page-1)*pageSize+1}–{Math.min(page*pageSize,filtered.length)} of {filtered.length} employees</p><nav aria-label="Employee directory pages"><button type="button" disabled={page===1} onClick={()=>setPage(page-1)}><ChevronLeft/>Previous</button>{Array.from({length:pageCount},(_,index)=>index+1).map((number)=><button type="button" key={number} aria-current={number===page?"page":undefined} className={number===page?"active":""} onClick={()=>setPage(number)}>{number}</button>)}<button type="button" disabled={page===pageCount} onClick={()=>setPage(page+1)}>Next<ChevronRight/></button></nav></div>}
+		</ScrollableRegion>
 		<EmployeeForm open={showAddForm} onClose={()=>setShowAddForm(false)} returnFocusRef={addEmployeeButtonRef}/>
 		</div>
 	</TaskWorkspace>;
@@ -503,12 +515,13 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 
 function EmployeeInspector({employee}:{employee?:Employee}) {
 	const [showEdit, setShowEdit] = useState(false);
+	const [listParams] = useSearchParams();
 	const editEmployeeButtonRef=useRef<HTMLButtonElement>(null);
 	if(!employee) return <Empty title="Employee not found" body="This profile is not available."/>;
 	return <>
 		<PageHeader eyebrow="People / Employee" title={employee.fullName} description={`${employee.employeeCode} · ${employee.position}`} action={
 			<>
-				<Link className="button secondary" to="/admin/employees">Back</Link>
+				<Link className="button secondary" to={`/admin/employees${listParams.toString()?`?${listParams.toString()}`:""}`}>Back</Link>
 				<Form method="post" style={{margin:0}}>
 					<input type="hidden" name="intent" value="toggle-employee-status"/>
 					<input type="hidden" name="employeeId" value={employee.id}/>
@@ -555,29 +568,44 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 }
 
 function PayrollList({runs}:{runs:Payroll[]}) {
-	return <TaskWorkspace label="Payroll runs" bounded>
+	return <TaskWorkspace label="Payroll runs" scrollMode="list">
 		<WorkspaceHeader eyebrow="Payroll" title="Payroll runs" description="Review calculation inputs and finalised payroll records." action={<Link className="button secondary" to="/admin/payroll/policies"><ShieldCheck/>Statutory policy</Link>}/>
-		<section className="surface table payroll-table task-scroll-surface">
+		<ScrollableRegion label="Payroll run results" className="surface table payroll-table">
 			<div className="table-head"><span>Pay period</span><span>Policy</span><span>Gross</span><span>Net pay</span><span>Status</span><span/></div>
 			{runs.map((r)=><Link className="table-row" key={r.id} to={`/admin/payroll/${r.id}`}><span><strong>{date(r.periodStart,{month:"long",year:"numeric"})}</strong><small>Pay date · {date(r.payDate)}</small></span><span><strong>{r.policyName}</strong><small>Verified 26 Aug 2026</small></span><span>{r.status==="finalised"?money(r.grossTotalSen):"Calculated on review"}</span><span><strong>{r.status==="finalised"?money(r.netTotalSen):"—"}</strong></span><Status value={r.status}/><ChevronRight/></Link>)}
-		</section>
+		</ScrollableRegion>
 	</TaskWorkspace>;
 }
 
-function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:Payroll;employees:Employee[];attendance:Attendance[];adjustments:PayrollAdjustment[];corrections:CorrectionRequest[]}) {
+function PayrollDetail({run,employees,attendance,adjustments,corrections,payslips}:{run?:Payroll;employees:Employee[];attendance:Attendance[];adjustments:PayrollAdjustment[];corrections:CorrectionRequest[];payslips:Payslip[]}) {
+	const [params, setParams] = useSearchParams();
+	const [confirmFinalise, setConfirmFinalise] = useState(false);
+	const finaliseButtonRef = useRef<HTMLButtonElement>(null);
 	if(!run) return <Empty title="Payroll not found" body="This run is not available."/>;
 	const missing = attendance.filter((r)=>r.status==="missing_clock_out"&&r.workDate>=run.periodStart&&r.workDate<=run.periodEnd);
  const pendingCorrections=corrections.filter(c=>c.status==="pending"&&c.workDate>=run.periodStart&&c.workDate<=run.periodEnd);
  const attendanceTotals=aggregateAttendance(attendance,run.periodStart,run.periodEnd);
 	const runAdjustments = adjustments.filter((a)=>a.payrollRunId === run.id);
+	const storedResults = payslips.filter((p)=>p.payrollRunId === run.id);
 	const hasBlockers = missing.length>0||pendingCorrections.length>0;
+	const selectedEmployeeId = params.get("employee");
+	const selectEmployee = (employeeId:string) => {
+		const next = new URLSearchParams(params);
+		next.set("employee",employeeId);
+		setParams(next,{preventScrollReset:true});
+	};
+	const clearEmployee = () => {
+		const next = new URLSearchParams(params);
+		next.delete("employee");
+		setParams(next,{preventScrollReset:true});
+	};
 
 	return <TaskWorkspace label={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll review`}>
 		<WorkspaceHeader eyebrow="Payroll / Run" title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`} description={`Pay date ${date(run.payDate)} · ${run.policyName}`} action={run.status==="finalised"?<><a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download/>CSV</a><a className="button secondary" href={`/resources/payroll/${run.id}.bank.csv`}><Landmark size={16}/>Bank CSV</a><a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText/>PDF report</a></>:undefined}/>
 		{run.status==="draft"&&missing.length>0&&<div className="alert warning"><Clock3/><div><strong>{missing.length} attendance exception{missing.length===1?"":"s"} block finalisation</strong><p>{missing.map((r)=>r.fullName).join(", ")} need a clock-out.</p></div><Link className="button secondary" to="/admin/attendance">Resolve now</Link></div>}
 
 		{run.status==="draft"&&pendingCorrections.length>0&&<div className="alert warning"><Clock3/><div><strong>{pendingCorrections.length} pending attendance corrections block finalisation</strong><p>Approve or reject the requests before freezing payroll.</p></div><Link className="button secondary" to="/admin/attendance/corrections">Review corrections</Link></div>}
-		<PayrollEmployeeReview employees={employees} attendance={attendanceTotals} blocked={hasBlockers}/>
+		<PayrollEmployeeReview employees={employees} attendance={attendanceTotals} adjustments={runAdjustments} storedResults={storedResults} runStatus={run.status === "finalised" ? "finalised" : "draft"} policyName={run.policyName} blocked={hasBlockers} selectedEmployeeId={selectedEmployeeId} onSelectEmployee={selectEmployee} onClearSelection={clearEmployee}/>
 
 		{run.status === "draft" && (
 			<section className="surface adjustment-panel">
@@ -645,16 +673,22 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections}:{run?:
 			</section>
 		)}
 
-		{run.status==="draft"?<div className="finalise-bar"><div><ShieldCheck/><span><strong>{hasBlockers?"Resolve outstanding items":"Ready to finalise"}</strong><small>{hasBlockers?"Finalisation becomes available after attendance exceptions and correction requests are resolved.":"Finalising locks payroll results and publishes employee payslips."}</small></span></div><Form method="post"><input type="hidden" name="intent" value="finalise-payroll"/><input type="hidden" name="id" value={run.id}/><PendingButton intent="finalise-payroll" pendingLabel="Finalising payroll…" disabled={hasBlockers}>Finalise payroll</PendingButton></Form></div>:<div className="finalised-banner"><Check/><div><strong>Payroll finalised {date(run.finalisedAt)}</strong><span>Net pay {money(run.netTotalSen)} · calculation inputs retained for audit</span></div></div>}
+		{run.status==="draft"?<div className="finalise-bar"><div><ShieldCheck/><span><strong>{hasBlockers?"Resolve outstanding items":"Ready to finalise"}</strong><small>{hasBlockers?"Finalisation becomes available after attendance exceptions and correction requests are resolved.":"Finalising locks payroll results and publishes employee payslips."}</small></span></div><button ref={finaliseButtonRef} type="button" className="button primary" disabled={hasBlockers} onClick={()=>setConfirmFinalise(true)}>Finalise payroll</button></div>:<div className="finalised-banner"><Check/><div><strong>Payroll finalised {date(run.finalisedAt)}</strong><span>Net pay {money(run.netTotalSen)} · stored calculation results retained for audit</span></div></div>}
+		{run.status==="draft"&&confirmFinalise&&<div className="confirmation-overlay" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget){setConfirmFinalise(false);requestAnimationFrame(()=>finaliseButtonRef.current?.focus());}}}><section className="surface confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="finalise-title"><p className="eyebrow">Final confirmation</p><h2 id="finalise-title">Finalise {date(run.periodStart,{month:"long",year:"numeric"})} payroll?</h2><p>This freezes the stored payroll results and publishes payslips to employees. The run cannot be recalculated after finalisation.</p><div><button type="button" className="button secondary" onClick={()=>{setConfirmFinalise(false);requestAnimationFrame(()=>finaliseButtonRef.current?.focus());}}>Cancel</button><Form method="post"><input type="hidden" name="intent" value="finalise-payroll"/><input type="hidden" name="id" value={run.id}/><PendingButton intent="finalise-payroll" pendingLabel="Finalising payroll…">Confirm finalisation</PendingButton></Form></div></section></div>}
 	</TaskWorkspace>;
 }
 
 function Policy({policies}:{policies:PolicyRecord[]}){
 	const [showCreate, setShowCreate] = useState(false);
+	const createButtonRef = useRef<HTMLButtonElement>(null);
+	const closeCreate = () => {
+		setShowCreate(false);
+		requestAnimationFrame(() => createButtonRef.current?.focus());
+	};
 	return <>
-		<PageHeader eyebrow="Payroll / Policies" title="Statutory Policies" description="Statutory contribution schedules for Malaysian employees under 60." action={<button className="button primary" onClick={()=>setShowCreate(true)}><Plus/>Clone custom policy</button>}/>
-		<details id="create-policy" className="surface employee-form" open={showCreate} style={{marginBottom:"20px"}}>
-			<summary onClick={(e)=>{ e.preventDefault(); setShowCreate(!showCreate); }}>Create or clone statutory policy <ChevronRight/></summary>
+		<PageHeader eyebrow="Payroll / Policies" title="Statutory Policies" description="Statutory contribution schedules for Malaysian employees under 60." action={<button ref={createButtonRef} className="button primary" onClick={()=>setShowCreate(true)}><Plus/>Clone custom policy</button>}/>
+		{showCreate?<section id="create-policy" className="surface employee-form policy-create" style={{marginBottom:"20px"}} aria-labelledby="create-policy-title">
+			<div className="policy-create-head"><div><p className="eyebrow">New policy</p><h2 id="create-policy-title">Create from the current policy</h2></div><button type="button" className="button secondary" onClick={closeCreate}>Cancel</button></div>
 			<Form method="post" className="form-stack" style={{marginTop:"14px"}}>
 				<input type="hidden" name="intent" value="clone-policy"/>
 				<div className="form-pair">
@@ -675,7 +709,7 @@ function Policy({policies}:{policies:PolicyRecord[]}){
 				</div>
 				<PendingButton intent="clone-policy" pendingLabel="Saving policy…">Save custom policy</PendingButton>
 			</Form>
-		</details>
+		</section>:null}
 
 		<div className="policy-grid">
 			<section className="surface">
@@ -769,12 +803,35 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 
 function Payslips({slips}:{slips:Payslip[]}){return <><PageHeader eyebrow="Self-service" title="Payslips" description="Your protected, finalised payroll records."/><section className="payslip-list">{slips.length?slips.map((s)=><Link className="surface payslip-row" to={`/employee/payslips/${s.id}`} key={s.id}><div className="document-icon"><FileText/></div><span><strong>{date(`${s.period}-01`,{month:"long",year:"numeric"})}</strong><small>Paid {date(s.payDate)}</small></span><span><small>Net pay</small><strong>{money(s.netPaySen)}</strong></span><Status value="finalised"/><ChevronRight/></Link>):<Empty title="No payslips yet" body="Finalised payroll records will appear here."/>}</section></>}
 
-function PayslipDetail({slip}:{slip?:Payslip}){if(!slip)return <Empty title="Payslip not found" body="You do not have access to this record."/>;const b=JSON.parse(slip.breakdownJson) as PayrollBreakdown;return <><PageHeader eyebrow="Payslips / Detail" title={`${date(`${slip.period}-01`,{month:"long",year:"numeric"})} payslip`} description={`Merdeka Coffee · paid ${date(slip.payDate)}`} action={<a className="button primary" href={`/resources/payslips/${slip.id}.pdf`}><Download/>Download PDF</a>}/><section className="payslip-paper"><div className="payslip-brand"><div className="wordmark"><span>P</span> PayME</div><div><strong>Merdeka Coffee Sdn. Bhd.</strong><small>Document issuer · 202001028884</small></div></div><div className="net-block"><span>Net pay</span><strong>{money(slip.netPaySen)}</strong><small>Finalised payroll record</small></div><div className="payslip-columns"><dl><h3>Earnings</h3><div><dt>Base pay</dt><dd>{money(b.basePaySen)}</dd></div><div><dt>Overtime</dt><dd>{money(b.overtimePaySen)}</dd></div><div><dt>Allowances</dt><dd>{money(b.allowanceSen)}</dd></div><div className="total"><dt>Gross pay</dt><dd>{money(slip.grossPaySen)}</dd></div></dl><dl><h3>Deductions</h3><div><dt>EPF</dt><dd>{money(b.epfEmployeeSen)}</dd></div><div><dt>SOCSO</dt><dd>{money(b.socsoEmployeeSen)}</dd></div><div><dt>EIS</dt><dd>{money(b.eisEmployeeSen)}</dd></div><div><dt>PCB</dt><dd>{money(b.pcbSen)}</dd></div><div className="total"><dt>Total deductions</dt><dd>{money(slip.totalDeductionsSen)}</dd></div></dl></div><p className="payslip-note">Generated from the finalised payroll record. PCB values reflect verified tax schedules.</p></section></>}
+function PayslipDetail({slip}:{slip?:Payslip}){if(!slip)return <Empty title="Payslip not found" body="You do not have access to this record."/>;const b=JSON.parse(slip.breakdownJson) as PayrollBreakdown;return <><PageHeader eyebrow="Payslips / Detail" title={`${date(`${slip.period}-01`,{month:"long",year:"numeric"})} payslip`} description={`Merdeka Coffee · paid ${date(slip.payDate)}`} action={<><Link className="button secondary" to="/employee/payslips"><ChevronRight className="back-icon"/>Back to payslips</Link><a className="button primary" href={`/resources/payslips/${slip.id}.pdf`}><Download/>Download PDF</a></>}/><section className="payslip-paper"><div className="payslip-brand"><div className="wordmark"><span>P</span> PayME</div><div><strong>Merdeka Coffee Sdn. Bhd.</strong><small>Document issuer · 202001028884</small></div></div><div className="net-block"><span>Net pay</span><strong>{money(slip.netPaySen)}</strong><small>Finalised payroll record</small></div><div className="payslip-columns"><section><h2>Earnings</h2><dl><div><dt>Base pay</dt><dd>{money(b.basePaySen)}</dd></div><div><dt>Overtime</dt><dd>{money(b.overtimePaySen)}</dd></div><div><dt>Allowances</dt><dd>{money(b.allowanceSen)}</dd></div><div className="total"><dt>Gross pay</dt><dd>{money(slip.grossPaySen)}</dd></div></dl></section><section><h2>Deductions</h2><dl><div><dt>EPF</dt><dd>{money(b.epfEmployeeSen)}</dd></div><div><dt>SOCSO</dt><dd>{money(b.socsoEmployeeSen)}</dd></div><div><dt>EIS</dt><dd>{money(b.eisEmployeeSen)}</dd></div><div><dt>PCB</dt><dd>{money(b.pcbSen)}</dd></div><div className="total"><dt>Total deductions</dt><dd>{money(slip.totalDeductionsSen)}</dd></div></dl></section></div><p className="payslip-note">Generated from the finalised payroll record. PCB values reflect verified tax schedules.</p></section></>}
 
 function EmployeeProfile({employee}:{employee:Employee}){
+	const actionResult = useActionData<typeof action>();
 	const [showEdit, setShowEdit] = useState(false);
+	const [email, setEmail] = useState(employee.email);
+	const [phone, setPhone] = useState(employee.phone);
+	const [bankAccountNumber, setBankAccountNumber] = useState(employee.bankAccountNumber ?? "");
+	const editButtonRef = useRef<HTMLButtonElement>(null);
+	const emailRef = useRef<HTMLInputElement>(null);
+	const dirty = email !== employee.email || phone !== employee.phone || bankAccountNumber !== (employee.bankAccountNumber ?? "");
+	useEffect(()=>{
+		if(showEdit) emailRef.current?.focus();
+	},[showEdit]);
+	useEffect(()=>{
+		if(!dirty) return;
+		const warn=(event:BeforeUnloadEvent)=>event.preventDefault();
+		window.addEventListener("beforeunload",warn);
+		return()=>window.removeEventListener("beforeunload",warn);
+	},[dirty]);
+	const closeEdit=()=>{
+		setEmail(employee.email);setPhone(employee.phone);setBankAccountNumber(employee.bankAccountNumber ?? "");setShowEdit(false);
+		requestAnimationFrame(()=>editButtonRef.current?.focus());
+	};
+	useEffect(()=>{
+		if(showEdit && actionResult && "ok" in actionResult && actionResult.ok === "Profile information updated successfully.") closeEdit();
+	},[actionResult]);
 	return <>
-		<PageHeader eyebrow="Self-service" title="Profile" description="Your personal and employment details." action={<button className="button primary" onClick={()=>setShowEdit(true)}><Plus/>Edit contact</button>}/>
+		<PageHeader eyebrow="Self-service" title="Profile" description="Your personal and employment details." action={!showEdit?<button ref={editButtonRef} className="button primary" onClick={()=>setShowEdit(true)}><Plus/>Edit contact</button>:undefined}/>
 		<div className="profile-grid">
 			<section className="surface profile-card">
 				<div className="profile-hero">
@@ -806,26 +863,26 @@ function EmployeeProfile({employee}:{employee:Employee}){
 			</section>
 		</div>
 
-		<details id="edit-contact" className="surface employee-form" open={showEdit} style={{marginTop:"20px"}}>
-			<summary onClick={(e)=>{ e.preventDefault(); setShowEdit(!showEdit); }}>Update contact & bank details <ChevronRight/></summary>
+		{showEdit&&<section id="edit-contact" className="surface employee-form profile-edit" style={{marginTop:"20px"}} aria-labelledby="edit-contact-title">
+			<div className="section-head"><div><p className="eyebrow">Profile details</p><h2 id="edit-contact-title">Update contact & bank details</h2></div><button type="button" className="text-button" onClick={closeEdit}>Cancel</button></div>
 			<Form method="post" className="form-stack" style={{marginTop:"12px"}}>
 				<input type="hidden" name="intent" value="update-self-profile"/>
 				<div className="form-pair">
 					<label>Email address
-						<input name="email" type="email" defaultValue={employee.email} required/>
+						<input ref={emailRef} name="email" type="email" value={email} onChange={(event)=>setEmail(event.target.value)} required/>
 					</label>
 					<label>Phone number
-						<input name="phone" defaultValue={employee.phone} required/>
+						<input name="phone" value={phone} onChange={(event)=>setPhone(event.target.value)} required/>
 					</label>
 				</div>
 				<div className="form-pair">
 					<label>Disbursement Bank Account No.
-						<input name="bankAccountNumber" defaultValue={employee.bankAccountNumber ?? ""} placeholder="e.g. 514012384910"/>
+						<input name="bankAccountNumber" value={bankAccountNumber} onChange={(event)=>setBankAccountNumber(event.target.value)} placeholder="e.g. 514012384910"/>
 					</label>
 					<div/>
 				</div>
 				<button className="button primary">Save profile updates</button>
 			</Form>
-		</details>
+		</section>}
 	</>;
 }

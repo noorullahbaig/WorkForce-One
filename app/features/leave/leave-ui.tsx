@@ -24,7 +24,7 @@ import {
 } from "../../domain/leave";
 import { addCalendarDays, todayInTimeZone } from "../../lib/date";
 import { date, initials } from "../../lib/format";
-import { PendingButton } from "../../components/portal-ui";
+import { PendingButton, ScrollableRegion, TaskWorkspace } from "../../components/portal-ui";
 
 export type LeaveRecord = {
   id: string;
@@ -78,6 +78,25 @@ type CalendarEvent = {
   confirmedAway?: boolean;
   staffingLabel?: string;
 };
+
+function useListPageSize() {
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(max-width: 820px)");
+    const update = () => setCompact(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return compact ? 8 : 10;
+}
+
+function ListPagination({ page, pageCount, total, pageSize, label, onPage }: { page: number; pageCount: number; total: number; pageSize: number; label: string; onPage: (page: number) => void }) {
+  const first = total ? (page - 1) * pageSize + 1 : 0;
+  const last = Math.min(page * pageSize, total);
+  return <div className="payroll-pagination list-pagination"><p>Showing {first}–{last} of {total}</p><nav aria-label={label}><button type="button" disabled={page === 1} onClick={() => onPage(page - 1)}><ChevronLeft />Previous</button>{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <button type="button" key={number} aria-current={number === page ? "page" : undefined} className={number === page ? "active" : ""} onClick={() => onPage(number)}>{number}</button>)}<button type="button" disabled={page === pageCount} onClick={() => onPage(page + 1)}>Next<ChevronRight /></button></nav></div>;
+}
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const halfDays = (value: number) =>
@@ -157,6 +176,7 @@ function CalendarToolbar({
   requestOpen = false,
   admin = false,
   actions,
+  activeView,
 }: {
   month: string;
   basePath: string;
@@ -164,6 +184,7 @@ function CalendarToolbar({
   requestOpen?: boolean;
   admin?: boolean;
   actions?: ReactNode;
+  activeView?: "calendar" | "agenda";
 }) {
   const [params] = useSearchParams();
   const makeHref = (nextMonth: string, view?: string) => {
@@ -214,19 +235,17 @@ function CalendarToolbar({
       <div className="calendar-toolbar-actions">
         <div className="calendar-view-switch" aria-label="Calendar view">
           <Link
-            className={
-              !params.get("view") || params.get("view") === "calendar"
-                ? "active"
-                : ""
-            }
-            to={makeHref(month)}
+            className={(activeView ?? params.get("view") ?? "calendar") === "calendar" ? "active" : ""}
+            to={makeHref(month, "calendar")}
+            aria-current={(activeView ?? params.get("view") ?? "calendar") === "calendar" ? "page" : undefined}
             preventScrollReset
           >
             Calendar
           </Link>
           <Link
-            className={params.get("view") === "agenda" ? "active" : ""}
+            className={(activeView ?? params.get("view")) === "agenda" ? "active" : ""}
             to={makeHref(month, "agenda")}
+            aria-current={(activeView ?? params.get("view")) === "agenda" ? "page" : undefined}
             preventScrollReset
           >
             Agenda
@@ -464,7 +483,18 @@ export function EmployeeLeaveWorkspace({
     resolvedToday,
   );
   const requestOpen = params.get("request") === "new";
-  const agenda = params.get("view") === "agenda";
+  const panel = params.get("panel") === "requests" ? "requests" : "schedule";
+  const [compactViewport, setCompactViewport] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(max-width: 700px)");
+    const update = () => setCompactViewport(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  const explicitView = params.get("view");
+  const agenda = explicitView === "agenda" || (!explicitView && compactViewport);
   const events: CalendarEvent[] = [
     ...holidays
       .filter((h) => h.active)
@@ -519,7 +549,7 @@ export function EmployeeLeaveWorkspace({
         </div>
         <Link
           className="button primary"
-          to={`/employee/leave?month=${month}&date=${selectedDate}&request=new`}
+          to={`/employee/leave?month=${month}&date=${selectedDate}&panel=requests&request=new`}
         >
           <Plus />
           Request leave
@@ -549,19 +579,36 @@ export function EmployeeLeaveWorkspace({
           );
         })}
       </section>
+      <nav className="leave-primary-tabs" aria-label="Leave workspace">
+        <Link
+          className={panel === "schedule" && !requestOpen ? "active" : ""}
+          aria-current={panel === "schedule" && !requestOpen ? "page" : undefined}
+          to={`/employee/leave?month=${month}&date=${selectedDate}&panel=schedule${explicitView ? `&view=${explicitView}` : ""}`}
+        >
+          Schedule
+        </Link>
+        <Link
+          className={panel === "requests" || requestOpen ? "active" : ""}
+          aria-current={panel === "requests" || requestOpen ? "page" : undefined}
+          to={`/employee/leave?month=${month}&panel=requests`}
+        >
+          Requests
+        </Link>
+      </nav>
       {params.get("notice") === "leave-submitted" ? (
         <div className="alert success" role="status">
           <Check />
           <span>Leave request sent for approval.</span>
         </div>
       ) : null}
-      <section className="leave-workspace">
+      {panel === "schedule" || requestOpen ? <section className={`leave-workspace${requestOpen ? " request-open" : ""}`}>
         <div className="calendar-canvas surface">
           <CalendarToolbar
             month={month}
             basePath="/employee/leave"
             today={resolvedToday}
             requestOpen={requestOpen}
+            activeView={agenda ? "agenda" : "calendar"}
           />
           {agenda ? (
             <Agenda events={events} month={month} />
@@ -592,8 +639,8 @@ export function EmployeeLeaveWorkspace({
             <DayPanel selectedDate={selectedDate} events={selectedEvents} />
           )}
         </aside>
-      </section>
-      <section className="request-history">
+      </section> : null}
+      {panel === "requests" && !requestOpen ? <section className="request-history">
         <div className="section-head">
           <div>
             <p className="eyebrow">Your activity</p>
@@ -635,10 +682,10 @@ export function EmployeeLeaveWorkspace({
           <div className="leave-empty">
             <CalendarDays />
             <strong>No requests yet</strong>
-            <span>Select a date in the calendar to plan your first leave.</span>
+            <span>Use Request leave to plan your first leave.</span>
           </div>
         )}
-      </section>
+      </section> : null}
     </>
   );
 }
@@ -683,7 +730,7 @@ function DayPanel({
       )}
       <Link
         className="button primary wide"
-        to={`/employee/leave?month=${selectedDate.slice(0, 7)}&date=${selectedDate}&request=new`}
+        to={`/employee/leave?month=${selectedDate.slice(0, 7)}&date=${selectedDate}&panel=requests&request=new`}
       >
         Request this date
       </Link>
@@ -840,7 +887,7 @@ function RequestPanel({
       </PendingButton>
       <Link
         className="button ghost wide"
-        to={`/employee/leave?month=${selectedDate.slice(0, 7)}&date=${selectedDate}`}
+        to={`/employee/leave?month=${selectedDate.slice(0, 7)}&date=${selectedDate}&panel=schedule`}
       >
         Cancel
       </Link>
@@ -884,9 +931,7 @@ export function AdminLeaveWorkspace({
   const mobilePanel =
     params.get("panel") === "requests" ? "requests" : "calendar";
   const agenda = params.get("view") === "agenda";
-  const selected =
-    records.find((r) => r.id === selectedId) ??
-    records.find((r) => r.status === "pending");
+  const selected = selectedId ? records.find((r) => r.id === selectedId) : undefined;
   const filtered = records.filter(
     (r) =>
       (departmentFilter === "all" || r.department === departmentFilter) &&
@@ -991,7 +1036,7 @@ export function AdminLeaveWorkspace({
       <header className="leave-page-header admin-leave-header">
         <div>
           <p className="eyebrow">People / Leave</p>
-          <h1>Leave calendar</h1>
+          <h1>{mobilePanel === "requests" ? "Leave requests" : "Leave schedule"}</h1>
         </div>
         <div className="page-actions">
           <DropdownMenu.Root open={manageOpen} onOpenChange={setManageOpen}>
@@ -1028,15 +1073,17 @@ export function AdminLeaveWorkspace({
           </DropdownMenu.Root>
         </div>
       </header>
-      <nav className="admin-mobile-tabs" aria-label="Admin leave workspace">
+      <nav className="leave-primary-tabs admin-mobile-tabs" aria-label="Admin leave workspace">
         <Link
           className={mobilePanel === "calendar" ? "active" : ""}
-          to={`/admin/leave?month=${month}&panel=calendar`}
+          aria-current={mobilePanel === "calendar" ? "page" : undefined}
+          to={`/admin/leave?month=${month}&panel=schedule`}
         >
-          Calendar
+          Schedule
         </Link>
         <Link
           className={mobilePanel === "requests" ? "active" : ""}
+          aria-current={mobilePanel === "requests" ? "page" : undefined}
           to={`/admin/leave?month=${month}&panel=requests`}
         >
           Requests
@@ -1199,7 +1246,7 @@ export function AdminLeaveWorkspace({
               pending.map((record) => (
                 <Link
                   className={record.id === selected?.id ? "active" : ""}
-                  to={`/admin/leave?month=${month}&request=${record.id}`}
+                  to={`/admin/leave?month=${month}&panel=requests&request=${record.id}`}
                   key={record.id}
                 >
                   <i>{initials(record.fullName)}</i>
@@ -1227,6 +1274,7 @@ export function AdminLeaveWorkspace({
               records={records}
               employees={employees}
               balances={balances}
+              returnHref={`/admin/leave?month=${month}&panel=requests`}
             />
           ) : null}
         </aside>
@@ -1294,11 +1342,13 @@ function ReviewInspector({
   records,
   employees,
   balances,
+  returnHref,
 }: {
   record: LeaveRecord;
   records: LeaveRecord[];
   employees: Array<{ id: string; fullName: string; department: string }>;
   balances: LeaveBalanceSummary[];
+  returnHref: string;
 }) {
   const headcount = employees.filter(
     (e) => e.department === record.department,
@@ -1323,6 +1373,9 @@ function ReviewInspector({
       className="review-inspector"
       aria-label={`Review ${record.fullName} request`}
     >
+      <Link className="leave-inspector-back" to={returnHref}>
+        <ChevronLeft /> Back to requests
+      </Link>
       <div className="review-person">
         <i>{initials(record.fullName)}</i>
         <div>
@@ -1434,8 +1487,16 @@ function ReviewInspector({
 
 export function HolidayAdmin({ holidays, today }: { holidays: HolidayRecord[]; today?: string }) {
   const resolvedToday = today ?? todayInTimeZone(new Date(), "Asia/Kuala_Lumpur");
+  const [params, setParams] = useSearchParams();
+  const pageSize = useListPageSize();
+  const query = params.get("q") ?? "";
+  const activeHolidays = holidays.filter((holiday) => holiday.active && (!query.trim() || `${holiday.name} ${holiday.category} ${holiday.date}`.toLowerCase().includes(query.trim().toLowerCase()))).sort((a, b) => a.date.localeCompare(b.date));
+  const pageCount = Math.max(1, Math.ceil(activeHolidays.length / pageSize));
+  const page = Math.min(Math.max(1, Number(params.get("page")) || 1), pageCount);
+  const visibleHolidays = activeHolidays.slice((page - 1) * pageSize, page * pageSize);
+  const setListParam = (name: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(name, value); else next.delete(name); if (name !== "page") next.delete("page"); setParams(next, { preventScrollReset: true }); };
   return (
-    <>
+    <TaskWorkspace label="Holiday administration" scrollMode="list">
       <header className="leave-page-header">
         <div>
           <p className="eyebrow">Leave / Settings</p>
@@ -1464,15 +1525,13 @@ export function HolidayAdmin({ holidays, today }: { holidays: HolidayRecord[]; t
           </label>
           <PendingButton intent="save-holiday" pendingLabel="Adding holiday…">Add holiday</PendingButton>
         </Form>
-        <section className="surface holiday-list">
+        <ScrollableRegion label="Holiday results" className="surface holiday-list">
           <div className="section-head">
             <h2>2026 calendar</h2>
-            <span>Penang</span>
+            <span>{activeHolidays.length} results · Penang</span>
           </div>
-          {holidays
-            .filter((h) => h.active)
-            .sort((a, b) => a.date.localeCompare(b.date))
-            .map((h) => (
+          <label className="settings-list-search"><span className="sr-only">Search holidays</span><input aria-label="Search holidays" placeholder="Search holiday or date" value={query} onChange={(event) => setListParam("q", event.target.value)} /></label>
+          {visibleHolidays.map((h) => (
               <article key={h.id}>
                 <time>{date(h.date, { day: "numeric", month: "short" })}</time>
                 <div>
@@ -1505,9 +1564,11 @@ export function HolidayAdmin({ holidays, today }: { holidays: HolidayRecord[]; t
                 )}
               </article>
             ))}
-        </section>
+          {!activeHolidays.length ? <div className="leave-empty"><CalendarDays /><strong>No matching holidays</strong><span>Clear the search to view the holiday calendar.</span></div> : null}
+          <ListPagination page={page} pageCount={pageCount} total={activeHolidays.length} pageSize={pageSize} label="Holiday pages" onPage={(nextPage) => setListParam("page", String(nextPage))} />
+        </ScrollableRegion>
       </div>
-    </>
+    </TaskWorkspace>
   );
 }
 export function BalanceAdmin({
@@ -1517,8 +1578,20 @@ export function BalanceAdmin({
   balances: LeaveBalanceSummary[];
   employees: Array<{ id: string; fullName: string; department: string }>;
 }) {
+  const [params, setParams] = useSearchParams();
+  const pageSize = useListPageSize();
+  const query = params.get("q") ?? "";
+  const paidBalances = balances.filter((balance) => {
+    if (!balance.paid) return false;
+    const employee = employees.find((item) => item.id === balance.employeeId);
+    return !query.trim() || `${employee?.fullName ?? ""} ${employee?.department ?? ""} ${balance.name}`.toLowerCase().includes(query.trim().toLowerCase());
+  });
+  const pageCount = Math.max(1, Math.ceil(paidBalances.length / pageSize));
+  const page = Math.min(Math.max(1, Number(params.get("page")) || 1), pageCount);
+  const visibleBalances = paidBalances.slice((page - 1) * pageSize, page * pageSize);
+  const setListParam = (name: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(name, value); else next.delete(name); if (name !== "page") next.delete("page"); setParams(next, { preventScrollReset: true }); };
   return (
-    <>
+    <TaskWorkspace label="Leave balance administration" scrollMode="list">
       <header className="leave-page-header">
         <div>
           <p className="eyebrow">Leave / Settings</p>
@@ -1566,7 +1639,8 @@ export function BalanceAdmin({
         </label>
         <PendingButton intent="adjust-leave-balance" pendingLabel="Saving adjustment…">Save adjustment</PendingButton>
       </Form>
-      <section className="surface balance-table">
+      <ScrollableRegion label="Leave balance results" className="surface balance-table">
+        <label className="settings-list-search"><span className="sr-only">Search leave balances</span><input aria-label="Search leave balances" placeholder="Search employee, team or leave type" value={query} onChange={(event) => setListParam("q", event.target.value)} /></label>
         <div className="balance-row head">
           <span>Employee</span>
           <span>Leave type</span>
@@ -1574,9 +1648,7 @@ export function BalanceAdmin({
           <span>Pending</span>
           <span>Projected</span>
         </div>
-        {balances
-          .filter((b) => b.paid)
-          .map((b) => {
+        {visibleBalances.map((b) => {
             const employee = employees.find((item) => item.id === b.employeeId);
             const summary = calculateProjectedBalance(b);
             return (
@@ -1597,8 +1669,10 @@ export function BalanceAdmin({
               </div>
             );
           })}
-      </section>
-    </>
+        {!paidBalances.length ? <div className="leave-empty"><Users /><strong>No matching balances</strong><span>Clear the search to view employee balances.</span></div> : null}
+        <ListPagination page={page} pageCount={pageCount} total={paidBalances.length} pageSize={pageSize} label="Leave balance pages" onPage={(nextPage) => setListParam("page", String(nextPage))} />
+      </ScrollableRegion>
+    </TaskWorkspace>
   );
 }
 export type { LeaveDayPart };

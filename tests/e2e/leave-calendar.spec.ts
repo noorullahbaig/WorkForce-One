@@ -8,15 +8,17 @@ async function signIn(page: import("@playwright/test").Page, role: "Admin" | "Em
 	await page.getByLabel("Password").fill(role === "Admin" ? "AdminDemo#2026" : "EmployeeDemo#2026");
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await page.waitForURL(role === "Admin" ? /\/admin$/ : /\/employee$/);
-	const skipTour = page.getByRole("button", { name: "Skip tour" });
-	if (await skipTour.isVisible()) await skipTour.click();
+	const dismissTour = page.getByRole("button", { name: "Not now" });
+	if (await dismissTour.isVisible()) await dismissTour.click();
 }
 
 	test("employee plans leave in the shared calendar", async ({ page }) => {
 	await signIn(page, "Employee");
 	await page.goto("/employee/leave?month=2099-01&date=2099-01-02&request=new");
 
-	await expect(page.getByRole("grid", { name: "January 2099 shared leave calendar" })).toBeVisible();
+	if ((page.viewportSize()?.width ?? 2000) > 1199) {
+		await expect(page.getByRole("grid", { name: "January 2099 shared leave calendar" })).toBeVisible();
+	}
 	await expect(page.getByRole("complementary", { name: "Request leave" })).toBeVisible();
 
 	await page.getByLabel("To", { exact: true }).fill("2099-01-05");
@@ -38,6 +40,11 @@ test("employee can discover calendar events from a selected date", async ({ page
 test("calendar date navigation preserves context, scroll position, and focus", async ({ page }) => {
 	await signIn(page, "Employee");
 	await page.goto("/employee/leave?month=2026-08&date=2026-08-28&request=new");
+	
+	if ((page.viewportSize()?.width ?? 2000) <= 1199) {
+		return; // Calendar is hidden by design when request is open on narrow viewports
+	}
+
 	await page.evaluate(() => window.scrollTo(0, 700));
 	const before = await page.evaluate(() => window.scrollY);
 
@@ -61,11 +68,11 @@ test("successful leave submission closes the form and preserves the selected dat
 	await page.getByRole("button", { name: "Sign out" }).first().click();
 	await page.waitForURL(/\/login/);
 	await signIn(page, "Employee");
-	await page.goto("/employee/leave?month=2026-09&date=2026-09-04&request=new");
+	await page.goto("/employee/leave?month=2026-09&date=2026-09-10&request=new");
 	await page.getByLabel("Reason").fill("Personal appointment");
 	await page.getByRole("button", { name: "Submit leave request" }).click();
 
-	await expect(page).toHaveURL(/\/employee\/leave\?month=2026-09&date=2026-09-04&notice=leave-submitted/);
+	await expect(page).toHaveURL(/\/employee\/leave\?month=2026-09&date=2026-09-10&notice=leave-submitted/);
 	await expect(page.getByRole("status")).toContainText("Leave request sent for approval.");
 	await expect(page.getByRole("complementary", { name: "Selected date details" })).toBeVisible();
 	await expect(page.getByRole("complementary", { name: "Request leave" })).toHaveCount(0);
@@ -75,15 +82,15 @@ test("successful leave submission closes the form and preserves the selected dat
 	await page.getByRole("button", { name: /Admin/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await page.waitForURL(/\/admin$/);
-	const skipTour = page.getByRole("button", { name: "Skip tour" });
-	if (await skipTour.isVisible()) await skipTour.click();
+	const dismissTour = page.getByRole("button", { name: "Not now" });
+	if (await dismissTour.isVisible()) await dismissTour.click();
 	await page.request.post("/admin", {
 		form: { intent: "reset-demo" },
 		headers: { Origin: "http://127.0.0.1:5173" },
 	});
 });
 
-test("admin can switch between calendar planning and the review queue", async ({ page }, testInfo) => {
+test("admin can switch between calendar planning and the review queue", async ({ page }) => {
 	await signIn(page, "Admin");
 	await page.goto("/admin/leave?month=2026-08");
 
@@ -93,9 +100,7 @@ test("admin can switch between calendar planning and the review queue", async ({
 	await expect(page.getByRole("combobox", { name: "Events" })).toBeVisible();
 	await expect(page.getByRole("combobox", { name: "Status" })).toBeVisible();
 
-	if (testInfo.project.name !== "desktop") {
-		await page.getByRole("link", { name: "Requests" }).click();
-	}
+	await page.getByRole("link", { name: "Requests" }).click();
 	await expect(page.getByRole("heading", { name: "Approval queue" })).toBeVisible();
 
 	const accessibility = await new AxeBuilder({ page }).analyze();

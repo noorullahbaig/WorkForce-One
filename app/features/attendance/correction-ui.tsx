@@ -10,6 +10,7 @@ import { LoaderCircle } from "lucide-react";
 import {
   Status,
   Empty,
+  ScrollableRegion,
   TaskWorkspace,
   WorkspaceHeader,
 } from "../../components/portal-ui";
@@ -159,7 +160,7 @@ export function CorrectionForm({
             />
           </label>
         </div>
-        <div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <label htmlFor="correction-reason">Reason for correction</label>
           <textarea
             id="correction-reason"
@@ -188,7 +189,7 @@ export function CorrectionForm({
             <p>
               {clockIn && clockOut
                 ? validation
-                : "Enter both times to preview worked time and overtime."}
+                : "Enter proposed times to preview calculated hours."}
             </p>
           )}
         </div>
@@ -300,7 +301,7 @@ export function EmployeeCorrectionHistory({
                     Correction pending admin review
                   </p>
                 ) : (
-                  <Link className="text-button" to={`?correct=${r.id}`}>
+                  <Link className="text-button" to={`?correct=${r.id}`} preventScrollReset>
                     Request correction
                   </Link>
                 ))}
@@ -323,9 +324,11 @@ export function EmployeeCorrectionHistory({
 function Review({
   request,
   periods,
+  backHref,
 }: {
   request: CorrectionRequest;
   periods: PayrollPeriod[];
+  backHref: string;
 }) {
   const [note, setNote] = useState("");
   const navigation = useNavigation();
@@ -348,6 +351,9 @@ function Review({
       className="surface correction-panel"
       aria-labelledby="correction-review-title"
     >
+      <Link className="correction-back" to={backHref}>
+        ← Back to corrections
+      </Link>
       <div className="section-head">
         <div>
           <p className="eyebrow">
@@ -441,7 +447,7 @@ function Review({
             value="review-attendance-correction"
           />
           <input type="hidden" name="id" value={request.id} />
-          <div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <label htmlFor="rejection-reason">
               Rejection reason (required to reject)
             </label>
@@ -497,7 +503,7 @@ export function AdminCorrections({
   const filtered = requests.filter((r) => r.status === status);
   const selected = requests.find((r) => r.id === params.get("request"));
   return (
-    <TaskWorkspace label="Attendance corrections">
+    <TaskWorkspace label="Attendance corrections" scrollMode={selected ? "split" : "list"}>
       <WorkspaceHeader
         eyebrow="Time / Review"
         title="Attendance corrections"
@@ -520,42 +526,44 @@ export function AdminCorrections({
           </Link>
         ))}
       </nav>
-      {selected && (
-        <Review key={selected.id} request={selected} periods={periods} />
-      )}
-      <section
-        className="surface correction-queue"
-        aria-label={`${status} corrections`}
-      >
-        {filtered.map((r) => (
-          <Link
-            className="correction-queue-row"
-            key={r.id}
-            to={`?status=${status}&request=${r.id}`}
-            aria-current={r.id === selected?.id ? "true" : undefined}
-          >
-            <div>
-              <strong>{r.fullName}</strong>
-              <small>
-                {r.employeeCode} · {date(r.workDate)}
-              </small>
-            </div>
-            <span className="correction-queue-reason">{r.reason}</span>
-            <Status value={r.status} />
-            <span>Review →</span>
-          </Link>
-        ))}
-        {!filtered.length && (
-          <Empty
-            title={`No ${status} corrections`}
-            body={
-              status === "pending"
-                ? "New employee requests will appear here for review."
-                : "Reviewed requests will appear here."
-            }
-          />
+      <div className={`correction-review-layout${selected ? " has-selection" : ""}`}>
+        <ScrollableRegion
+          className="surface correction-queue"
+          label={`${status} corrections`}
+        >
+          {filtered.map((r) => (
+            <Link
+              className="correction-queue-row"
+              key={r.id}
+              to={`?status=${status}&request=${r.id}`}
+              aria-current={r.id === selected?.id ? "true" : undefined}
+            >
+              <div>
+                <strong>{r.fullName}</strong>
+                <small>
+                  {r.employeeCode} · {date(r.workDate)}
+                </small>
+              </div>
+              <span className="correction-queue-reason">{r.reason}</span>
+              <Status value={r.status} />
+              <span>Review →</span>
+            </Link>
+          ))}
+          {!filtered.length && (
+            <Empty
+              title={`No ${status} corrections`}
+              body={
+                status === "pending"
+                  ? "New employee requests will appear here for review."
+                  : "Reviewed requests will appear here."
+              }
+            />
+          )}
+        </ScrollableRegion>
+        {selected && (
+          <Review key={selected.id} request={selected} periods={periods} backHref={`?status=${status}`} />
         )}
-      </section>
+      </div>
     </TaskWorkspace>
   );
 }

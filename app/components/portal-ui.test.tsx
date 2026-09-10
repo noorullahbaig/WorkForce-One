@@ -8,6 +8,7 @@ import {
   ActionToast,
   navigationFeedbackMessage,
   PendingButton,
+  ScrollableRegion,
   TaskWorkspace,
   WorkspaceHeader,
   WorkspaceToolbar,
@@ -58,7 +59,7 @@ describe("ActionToast", () => {
 describe("task workspace", () => {
   test("keeps orientation, actions, and commands in named workspace regions", () => {
     render(
-      <TaskWorkspace label="Employee directory" bounded>
+      <TaskWorkspace label="Employee directory" scrollMode="list">
         <WorkspaceHeader
           eyebrow="People"
           title="Employee directory"
@@ -72,12 +73,24 @@ describe("task workspace", () => {
     );
 
     const workspace = screen.getByRole("region", { name: "Employee directory" });
-    expect(workspace).toHaveClass("task-workspace", "is-bounded");
+    expect(workspace).toHaveClass("task-workspace", "scroll-list");
     expect(screen.getByRole("heading", { name: "Employee directory" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add employee" })).toBeInTheDocument();
     expect(screen.getByRole("toolbar", { name: "Employee controls" })).toContainElement(
       screen.getByRole("textbox", { name: "Search employees" }),
     );
+  });
+
+  test("gives long content one named keyboard-scrollable owner", () => {
+    render(
+      <ScrollableRegion label="Employee results">
+        <p>Last employee</p>
+      </ScrollableRegion>,
+    );
+
+    const region = screen.getByRole("region", { name: "Employee results" });
+    expect(region).toHaveClass("scrollable-region");
+    expect(region).toHaveAttribute("tabindex", "0");
   });
 });
 

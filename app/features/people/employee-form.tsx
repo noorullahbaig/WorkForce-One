@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
-import { Form } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Form, useActionData, useNavigation } from "react-router";
 
 import { PendingButton } from "../../components/portal-ui";
 
@@ -39,14 +39,40 @@ export function EmployeeForm({
   returnFocusRef,
 }: EmployeeFormProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const submittedHere = useRef(false);
+  const [dirty, setDirty] = useState(false);
+  const actionData = useActionData<{ ok?: string; error?: string }>();
+  const navigation = useNavigation();
 
   useEffect(() => {
     if (open) headingRef.current?.focus();
   }, [open]);
 
+  useEffect(() => {
+    if (navigation.state === "submitting" && navigation.formData?.get("intent") === "save-employee") {
+      submittedHere.current = true;
+      return;
+    }
+    if (navigation.state === "idle" && submittedHere.current && actionData?.ok?.startsWith("Employee ")) {
+      submittedHere.current = false;
+      setDirty(false);
+      onClose();
+      window.requestAnimationFrame(() => returnFocusRef?.current?.focus());
+    }
+  }, [actionData, navigation.formData, navigation.state, onClose, returnFocusRef]);
+
+  useEffect(() => {
+    if (!open || !dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty, open]);
+
   if (!open) return null;
 
   function close() {
+    if (dirty && !window.confirm("Discard unsaved employee changes?")) return;
+    setDirty(false);
     onClose();
     window.requestAnimationFrame(() => returnFocusRef?.current?.focus());
   }
@@ -73,7 +99,7 @@ export function EmployeeForm({
           <X aria-hidden="true" />
         </button>
       </div>
-      <Form method="post" className="form-stack">
+      <Form method="post" className="form-stack" onChange={() => setDirty(true)}>
         <input type="hidden" name="intent" value="save-employee" />
         {employee && <input type="hidden" name="employeeId" value={employee.id} />}
         <div className="form-pair">

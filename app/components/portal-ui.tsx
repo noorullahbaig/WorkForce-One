@@ -129,22 +129,43 @@ export function PageHeader({
 
 export function TaskWorkspace({
   label,
-  bounded = false,
+  scrollMode = "page",
   children,
   className = "",
 }: {
   label: string;
-  bounded?: boolean;
+  scrollMode?: "page" | "list" | "split";
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <section
-      className={`task-workspace${bounded ? " is-bounded" : ""}${className ? ` ${className}` : ""}`}
+      className={`task-workspace scroll-${scrollMode}${className ? ` ${className}` : ""}`}
       aria-label={label}
     >
       {children}
     </section>
+  );
+}
+
+export function ScrollableRegion({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`scrollable-region${className ? ` ${className}` : ""}`}
+      role="region"
+      aria-label={label}
+      tabIndex={0}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -235,7 +256,7 @@ export function Empty({ title, body }: { title: string; body: string }) {
   return (
     <div className="empty">
       <FileText />
-      <h3>{title}</h3>
+      <h2>{title}</h2>
       <p>{body}</p>
     </div>
   );
