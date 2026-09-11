@@ -1221,7 +1221,6 @@ export function AdminLeaveWorkspace({
             <>
               <div className="approval-queue-head">
                 <div>
-                  <p className="eyebrow">Action queue</p>
                   <h2>Approval queue</h2>
                 </div>
                 <div className="queue-filter-pills" aria-label="Filter requests">
@@ -1254,7 +1253,7 @@ export function AdminLeaveWorkspace({
                       <span>
                         <strong>{record.fullName}</strong>
                         <small>
-                          {record.typeName} · {halfDays(record.durationHalfDays)}{" "}
+                          {date(record.startDate, { month: "short", day: "numeric" })} · {halfDays(record.durationHalfDays)}{" "}
                           day{record.durationHalfDays === 2 ? "" : "s"}
                         </small>
                       </span>
@@ -1414,23 +1413,23 @@ function ReviewInspector({
         <span>Employee note</span>
         <p>“{record.reason}”</p>
       </div>
-      <div
-        className={`coverage-context${coverage.awayCount ? " caution" : ""}`}
-      >
+      <div className={`coverage-context${coverage.awayCount ? " caution" : " clear"}`}>
         <Users />
         <div>
-          <strong>
-            {coverage.awayCount} of {coverage.departmentHeadcount}{" "}
-            {record.department} employees already away
-          </strong>
-          <p>
-            {coverage.awayCount
-              ? coverage.overlapping
+          {coverage.awayCount > 0 ? (
+            <>
+              <strong>
+                {coverage.awayCount} of {coverage.departmentHeadcount} {record.department} employees also away
+              </strong>
+              <p>
+                {coverage.overlapping
                   .map((item) => `${item.fullName} (${item.status})`)
-                  .join(", ")
-              : "No approved or pending overlap in this department."}
-          </p>
-          <small>Coverage is advisory and does not block approval.</small>
+                  .join(", ")}
+              </p>
+            </>
+          ) : (
+            <strong>No overlapping leave in {record.department}</strong>
+          )}
         </div>
       </div>
       {record.status === "pending" ? (

@@ -538,7 +538,7 @@ describe("admin leave workspace", () => {
 
 
     expect(
-      screen.getByText("0 of 2 Sales employees already away"),
+      screen.getByText("No overlapping leave in Sales"),
     ).not.toBeNull();
     expect(
       screen.getByRole("button", { name: "Approve request" }),
