@@ -959,7 +959,7 @@ export function AdminLeaveWorkspace({
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const selected = selectedId
     ? records.find((r) => r.id === selectedId)
-    : (records.find((r) => rangesOverlap(selectedDate, selectedDate, r.startDate, r.endDate)) ?? pending[0]);
+    : undefined;
   const displayQueue = queueFilter === "pending" ? pending : records;
   const approvedThisMonth = records.filter(
     (record) =>
@@ -1205,58 +1205,11 @@ export function AdminLeaveWorkspace({
             />
           )}
         </div>
-        <aside className="approval-rail surface">
-          <div className="approval-queue-head">
-            <div>
-              <p className="eyebrow">Action queue</p>
-              <h2>Approval queue</h2>
-            </div>
-            <div className="queue-filter-pills" aria-label="Filter requests">
-              <button
-                type="button"
-                className={`queue-pill${queueFilter === "pending" ? " active" : ""}`}
-                onClick={() => setQueueFilter("pending")}
-              >
-                Pending ({pending.length})
-              </button>
-              <button
-                type="button"
-                className={`queue-pill${queueFilter === "all" ? " active" : ""}`}
-                onClick={() => setQueueFilter("all")}
-              >
-                All ({records.length})
-              </button>
-            </div>
-          </div>
-          <div className="approval-queue">
-            {displayQueue.length ? (
-              displayQueue.map((record) => (
-                <Link
-                  className={record.id === selected?.id ? "active" : ""}
-                  to={`/admin/leave?month=${month}&date=${record.startDate}&request=${record.id}`}
-                  preventScrollReset
-                  key={record.id}
-                >
-                  <i>{initials(record.fullName)}</i>
-                  <span>
-                    <strong>{record.fullName}</strong>
-                    <small>
-                      {record.typeName} · {halfDays(record.durationHalfDays)}{" "}
-                      day{record.durationHalfDays === 2 ? "" : "s"}
-                    </small>
-                  </span>
-                  <StatusBadge status={record.status} />
-                </Link>
-              ))
-            ) : (
-              <div className="leave-empty compact">
-                <Check />
-                <strong>All caught up</strong>
-                <span>No leave requests need a decision.</span>
-              </div>
-            )}
-          </div>
-          {selected ? (
+        <aside
+          className="approval-rail surface"
+          aria-label="Pending and approved leave requests"
+        >
+          {selected && !filtersOpen && !settingsOpen ? (
             <ReviewInspector
               record={selected}
               records={records}
@@ -1264,7 +1217,60 @@ export function AdminLeaveWorkspace({
               balances={balances}
               returnHref={`/admin/leave?month=${month}`}
             />
-          ) : null}
+          ) : (
+            <>
+              <div className="approval-queue-head">
+                <div>
+                  <p className="eyebrow">Action queue</p>
+                  <h2>Approval queue</h2>
+                </div>
+                <div className="queue-filter-pills" aria-label="Filter requests">
+                  <button
+                    type="button"
+                    className={`queue-pill${queueFilter === "pending" ? " active" : ""}`}
+                    onClick={() => setQueueFilter("pending")}
+                  >
+                    Pending ({pending.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`queue-pill${queueFilter === "all" ? " active" : ""}`}
+                    onClick={() => setQueueFilter("all")}
+                  >
+                    All ({records.length})
+                  </button>
+                </div>
+              </div>
+              <div className="approval-queue">
+                {displayQueue.length ? (
+                  displayQueue.map((record) => (
+                    <Link
+                      className={record.id === selected?.id ? "active" : ""}
+                      to={`/admin/leave?month=${month}&date=${record.startDate}&request=${record.id}`}
+                      preventScrollReset
+                      key={record.id}
+                    >
+                      <i>{initials(record.fullName)}</i>
+                      <span>
+                        <strong>{record.fullName}</strong>
+                        <small>
+                          {record.typeName} · {halfDays(record.durationHalfDays)}{" "}
+                          day{record.durationHalfDays === 2 ? "" : "s"}
+                        </small>
+                      </span>
+                      <StatusBadge status={record.status} />
+                    </Link>
+                  ))
+                ) : (
+                  <div className="leave-empty">
+                    <CalendarDays />
+                    <strong>No requests to review</strong>
+                    <span>You’re all caught up for this view.</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </aside>
       </section>
       <Dialog.Root

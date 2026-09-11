@@ -536,14 +536,7 @@ describe("admin leave workspace", () => {
       "/admin/leave?month=2026-08&request=lr-1",
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Approval queue" }),
-    ).not.toBeNull();
-    await user.click(screen.getByRole("button", { name: "Filters" }));
-    expect(screen.getByRole("combobox", { name: "Employee" })).not.toBeNull();
-    expect(screen.getByRole("combobox", { name: "Events" })).not.toBeNull();
-    expect(screen.getByRole("button", { name: /Pending/ })).not.toBeNull();
-    expect(screen.getByRole("button", { name: /All/ })).not.toBeNull();
+
     expect(
       screen.getByText("0 of 2 Sales employees already away"),
     ).not.toBeNull();
@@ -554,6 +547,11 @@ describe("admin leave workspace", () => {
       screen.getByRole("button", { name: "Reject request" }),
     ).not.toBeNull();
     expect(screen.getByText("12 days")).not.toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    expect(screen.getByRole("combobox", { name: "Employee" })).not.toBeNull();
+    expect(screen.getByRole("combobox", { name: "Events" })).not.toBeNull();
+
   });
 
   test("places compact leave counts in the calendar command area", () => {
