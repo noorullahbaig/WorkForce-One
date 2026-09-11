@@ -1089,7 +1089,7 @@ export function AdminLeaveWorkspace({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [filtersOpen]);
   return (
-    <TaskWorkspace label="Leave schedule" scrollMode="page">
+    <TaskWorkspace label="Leave schedule" scrollMode="list">
       <AdminLeaveHeader 
         title="Leave schedule" 
         onOpenSettings={() => setSettingsOpen(true)}
