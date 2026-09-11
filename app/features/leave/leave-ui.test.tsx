@@ -87,13 +87,11 @@ describe("employee leave workspace", () => {
         holidays={holidays}
         today="2026-08-27"
       />,
-      "/employee/leave?month=2026-08&panel=requests",
+      "/employee/leave?month=2026-08",
     );
 
-    expect(screen.getByRole("link", { name: "Schedule" })).toHaveAttribute("href", expect.stringContaining("panel=schedule"));
-    expect(screen.getByRole("link", { name: "Requests" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("heading", { name: "Request history" })).toBeVisible();
-    expect(screen.queryByRole("grid")).not.toBeInTheDocument();
+    expect(screen.getByRole("grid")).toBeVisible();
   });
 
   test("makes an explicit calendar URL available for the mobile agenda default", () => {

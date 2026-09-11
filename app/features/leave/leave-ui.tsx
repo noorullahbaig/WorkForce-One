@@ -579,29 +579,13 @@ export function EmployeeLeaveWorkspace({
           );
         })}
       </section>
-      <nav className="leave-primary-tabs" aria-label="Leave workspace">
-        <Link
-          className={panel === "schedule" && !requestOpen ? "active" : ""}
-          aria-current={panel === "schedule" && !requestOpen ? "page" : undefined}
-          to={`/employee/leave?month=${month}&date=${selectedDate}&panel=schedule${explicitView ? `&view=${explicitView}` : ""}`}
-        >
-          Schedule
-        </Link>
-        <Link
-          className={panel === "requests" || requestOpen ? "active" : ""}
-          aria-current={panel === "requests" || requestOpen ? "page" : undefined}
-          to={`/employee/leave?month=${month}&panel=requests`}
-        >
-          Requests
-        </Link>
-      </nav>
       {params.get("notice") === "leave-submitted" ? (
         <div className="alert success" role="status">
           <Check />
           <span>Leave request sent for approval.</span>
         </div>
       ) : null}
-      {panel === "schedule" || requestOpen ? <section className={`leave-workspace${requestOpen ? " request-open" : ""}`}>
+      <section className={`leave-workspace${requestOpen ? " request-open" : ""}`}>
         <div className="calendar-canvas surface">
           <CalendarToolbar
             month={month}
@@ -625,7 +609,7 @@ export function EmployeeLeaveWorkspace({
         </div>
         <aside
           className={`leave-inspector surface${requestOpen ? " open" : ""}`}
-          aria-label={requestOpen ? "Request leave" : "Selected date details"}
+          aria-label={requestOpen ? "Request leave" : "Selected date details and request history"}
         >
           {requestOpen ? (
             <RequestPanel
@@ -636,56 +620,58 @@ export function EmployeeLeaveWorkspace({
               backdateDays={backdateDays}
             />
           ) : (
-            <DayPanel selectedDate={selectedDate} events={selectedEvents} />
+            <>
+              <DayPanel selectedDate={selectedDate} events={selectedEvents} />
+              <section className="request-history">
+                <div className="section-head">
+                  <div>
+                    <p className="eyebrow">Your activity</p>
+                    <h2>Request history</h2>
+                  </div>
+                  <span>{ownRecords.length} total</span>
+                </div>
+                {ownRecords.length ? (
+                  ownRecords.map((record) => (
+                    <article key={record.id}>
+                      <div className="request-date">
+                        <b>{Number(record.startDate.slice(8))}</b>
+                        <small>{date(record.startDate, { month: "short" })}</small>
+                      </div>
+                      <div>
+                        <strong>{record.typeName}</strong>
+                        <small>
+                          {halfDays(record.durationHalfDays)} day
+                          {record.durationHalfDays === 2 ? "" : "s"} · {record.reason}
+                        </small>
+                      </div>
+                      <StatusBadge status={record.status} />
+                      {record.status === "pending" ? (
+                        <Form method="post">
+                          <input type="hidden" name="intent" value="withdraw-leave" />
+                          <input type="hidden" name="id" value={record.id} />
+                          <button
+                            className="button ghost"
+                            aria-label={`Withdraw ${record.typeName} request`}
+                          >
+                            <X />
+                            Withdraw
+                          </button>
+                        </Form>
+                      ) : null}
+                    </article>
+                  ))
+                ) : (
+                  <div className="leave-empty">
+                    <CalendarDays />
+                    <strong>No requests yet</strong>
+                    <span>Use Request leave to plan your first leave.</span>
+                  </div>
+                )}
+              </section>
+            </>
           )}
         </aside>
-      </section> : null}
-      {panel === "requests" && !requestOpen ? <section className="request-history">
-        <div className="section-head">
-          <div>
-            <p className="eyebrow">Your activity</p>
-            <h2>Request history</h2>
-          </div>
-          <span>{ownRecords.length} total</span>
-        </div>
-        {ownRecords.length ? (
-          ownRecords.map((record) => (
-            <article key={record.id}>
-              <div className="request-date">
-                <b>{Number(record.startDate.slice(8))}</b>
-                <small>{date(record.startDate, { month: "short" })}</small>
-              </div>
-              <div>
-                <strong>{record.typeName}</strong>
-                <small>
-                  {halfDays(record.durationHalfDays)} day
-                  {record.durationHalfDays === 2 ? "" : "s"} · {record.reason}
-                </small>
-              </div>
-              <StatusBadge status={record.status} />
-              {record.status === "pending" ? (
-                <Form method="post">
-                  <input type="hidden" name="intent" value="withdraw-leave" />
-                  <input type="hidden" name="id" value={record.id} />
-                  <button
-                    className="button ghost"
-                    aria-label={`Withdraw ${record.typeName} request`}
-                  >
-                    <X />
-                    Withdraw
-                  </button>
-                </Form>
-              ) : null}
-            </article>
-          ))
-        ) : (
-          <div className="leave-empty">
-            <CalendarDays />
-            <strong>No requests yet</strong>
-            <span>Use Request leave to plan your first leave.</span>
-          </div>
-        )}
-      </section> : null}
+      </section>
     </>
   );
 }
