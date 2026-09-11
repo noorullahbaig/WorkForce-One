@@ -1472,7 +1472,7 @@ function ReviewInspector({
           <input type="hidden" name="id" value={record.id} />
           <label>
             Decision note
-            <textarea name="reviewNote" placeholder="Required when rejecting" />
+            <textarea name="reviewNote" placeholder="Optional note to employee..." />
           </label>
           <div>
             <button
