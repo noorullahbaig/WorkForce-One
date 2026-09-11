@@ -881,6 +881,72 @@ function RequestPanel({
   );
 }
 
+export function AdminLeaveHeader({
+  title,
+  description,
+  onOpenSettings,
+}: {
+  title: string;
+  description?: string;
+  onOpenSettings?: () => void;
+}) {
+  const [manageOpen, setManageOpen] = useState(false);
+  
+  return (
+    <header className="leave-page-header admin-leave-header">
+      <div>
+        <p className="eyebrow">People / Leave</p>
+        <h1>{title}</h1>
+        {description && <p>{description}</p>}
+      </div>
+      <div className="page-actions">
+        <DropdownMenu.Root open={manageOpen} onOpenChange={setManageOpen}>
+          <div className="manage-leave">
+            <DropdownMenu.Trigger asChild>
+              <button className="button secondary" type="button" id="manage-leave-button">
+                Manage leave
+                <ChevronDown />
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content className="manage-leave-menu" align="end" sideOffset={7}>
+                <DropdownMenu.Item asChild>
+                  <Link to="/admin/leave">
+                    <CalendarDays />
+                    Leave schedule
+                  </Link>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item asChild>
+                  <Link to="/admin/leave/balances">
+                    <SlidersHorizontal />
+                    Adjust balances
+                  </Link>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item asChild>
+                  <Link to="/admin/leave/holidays">
+                    <CalendarDays />
+                    Manage holidays
+                  </Link>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="manage-leave-settings"
+                  asChild
+                >
+                  {onOpenSettings ? (
+                    <button type="button" onClick={onOpenSettings}>Leave settings</button>
+                  ) : (
+                    <Link to="/admin/leave?settings=open">Leave settings</Link>
+                  )}
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </div>
+        </DropdownMenu.Root>
+      </div>
+    </header>
+  );
+}
+
 export function AdminLeaveWorkspace({
   records,
   employees,
@@ -898,10 +964,8 @@ export function AdminLeaveWorkspace({
 }) {
   const [params] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
-  const manageButtonRef = useRef<HTMLButtonElement>(null);
   const resolvedToday = today ?? todayInTimeZone(new Date(), "Asia/Kuala_Lumpur");
   const month = validMonth(params.get("month"), resolvedToday);
   const selectedDate = selectedDateForMonth(
@@ -1006,10 +1070,13 @@ export function AdminLeaveWorkspace({
     setFiltersOpen(false);
     filtersButtonRef.current?.focus();
   };
-  const closeSettings = () => {
-    setSettingsOpen(false);
-    manageButtonRef.current?.focus();
-  };
+
+  useEffect(() => {
+    if (params.get("settings") === "open") {
+      setSettingsOpen(true);
+    }
+  }, [params]);
+
   useEffect(() => {
     if (!filtersOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1021,46 +1088,10 @@ export function AdminLeaveWorkspace({
   }, [filtersOpen]);
   return (
     <>
-      <header className="leave-page-header admin-leave-header">
-        <div>
-          <p className="eyebrow">People / Leave</p>
-          <h1>Leave schedule</h1>
-        </div>
-        <div className="page-actions">
-          <DropdownMenu.Root open={manageOpen} onOpenChange={setManageOpen}>
-            <div className="manage-leave">
-              <DropdownMenu.Trigger asChild>
-                <button ref={manageButtonRef} className="button secondary" type="button">
-                  Manage leave
-                  <ChevronDown />
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content className="manage-leave-menu" align="end" sideOffset={7}>
-                  <DropdownMenu.Item asChild>
-                    <Link to="/admin/leave/balances">
-                      <SlidersHorizontal />
-                      Adjust balances
-                    </Link>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item asChild>
-                    <Link to="/admin/leave/holidays">
-                      <CalendarDays />
-                      Manage holidays
-                    </Link>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    className="manage-leave-settings"
-                    onSelect={() => setSettingsOpen(true)}
-                  >
-                    Leave settings
-                  </DropdownMenu.Item>
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </div>
-          </DropdownMenu.Root>
-        </div>
-      </header>
+      <AdminLeaveHeader 
+        title="Leave schedule" 
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
       <section className="admin-leave-workspace">
         <div className="calendar-canvas surface">
           <div className="calendar-command-area" role="region" aria-label="Calendar commands">
@@ -1275,8 +1306,9 @@ export function AdminLeaveWorkspace({
       <Dialog.Root
         open={settingsOpen}
         onOpenChange={(open) => {
-          if (open) setSettingsOpen(true);
-          else closeSettings();
+          if (!open) {
+            setSettingsOpen(false);
+          }
         }}
       >
         <Dialog.Portal>
@@ -1286,7 +1318,7 @@ export function AdminLeaveWorkspace({
             aria-describedby="leave-settings-description"
             onCloseAutoFocus={(event) => {
               event.preventDefault();
-              manageButtonRef.current?.focus();
+              document.getElementById("manage-leave-button")?.focus();
             }}
           >
             <div className="leave-settings-heading">
@@ -1490,20 +1522,10 @@ export function HolidayAdmin({ holidays, today }: { holidays: HolidayRecord[]; t
   const setListParam = (name: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(name, value); else next.delete(name); if (name !== "page") next.delete("page"); setParams(next, { preventScrollReset: true }); };
   return (
     <TaskWorkspace label="Holiday administration" scrollMode="list">
-      <header className="leave-page-header">
-        <div>
-          <p className="eyebrow">Leave / Settings</p>
-          <h1>Holiday calendar</h1>
-          <p>
-            Penang public holidays and company closure days used in leave
-            calculations.
-          </p>
-        </div>
-        <Link className="button secondary" to="/admin/leave">
-          <ChevronLeft />
-          Back to calendar
-        </Link>
-      </header>
+      <AdminLeaveHeader 
+        title="Holiday calendar"
+        description="Penang public holidays and company closure days used in leave calculations."
+      />
       <div className="holiday-admin-grid">
         <Form method="post" className="surface leave-settings-form">
           <h2>Add company holiday</h2>
@@ -1585,19 +1607,10 @@ export function BalanceAdmin({
   const setListParam = (name: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(name, value); else next.delete(name); if (name !== "page") next.delete("page"); setParams(next, { preventScrollReset: true }); };
   return (
     <TaskWorkspace label="Leave balance administration" scrollMode="list">
-      <header className="leave-page-header">
-        <div>
-          <p className="eyebrow">Leave / Settings</p>
-          <h1>Balance adjustments</h1>
-          <p>
-            Apply traceable corrections without changing leave policy defaults.
-          </p>
-        </div>
-        <Link className="button secondary" to="/admin/leave">
-          <ChevronLeft />
-          Back to calendar
-        </Link>
-      </header>
+      <AdminLeaveHeader 
+        title="Balance adjustments"
+        description="Apply traceable corrections without changing leave policy defaults."
+      />
       <Form method="post" className="surface balance-adjust-form">
         <input type="hidden" name="intent" value="adjust-leave-balance" />
         <label>
