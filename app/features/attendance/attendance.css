@@ -339,24 +339,46 @@
 
 /* ─── History rows (employee view) ─── */
 .correction-history-row {
-  padding: 18px 0;
+  padding: 14px 0;
   border-top: 1px solid var(--line);
 }
 .correction-history-heading {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 10px;
+  gap: 16px;
+  align-items: center;
 }
-.correction-history-heading p {
+.correction-history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.correction-history-date-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.correction-history-date-row strong {
+  font-size: .88rem;
+  font-weight: 750;
+  color: var(--ink);
+}
+.history-time-range {
   font-size: .8rem;
-  line-height: 1.6;
-  margin: 4px 0;
+  color: var(--muted);
+  font-weight: 500;
 }
-.correction-history-heading small {
+.history-worked-meta {
   color: var(--muted);
   font-size: .72rem;
+}
+.correction-history-status-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 /* ─── Request details (expandable summary) ─── */
@@ -487,6 +509,12 @@
   }
   .correction-history-heading {
     flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .correction-history-status-block {
+    width: 100%;
+    justify-content: space-between;
   }
   .correction-queue-row {
     padding: 14px 16px;

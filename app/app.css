@@ -441,15 +441,11 @@ button.review-row:focus-visible{position:relative;z-index:1;outline:3px solid ok
   .leave-balance-rail article:nth-child(2n){border-right:0}
   .leave-balance-rail article:last-child{grid-column:1/-1;border-bottom:0}
   .leave-inspector.open{position:static!important;inset:auto!important;max-height:none!important;box-shadow:none!important;overflow:visible!important}
-  .employee-attendance-primary{display:block;margin-bottom:16px;padding:20px;border-radius:12px;background:var(--ink);color:#fff}
-  .employee-attendance-primary .employee-clock-card,.employee-attendance-primary .attendance-today{margin:0;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none}
-  .employee-attendance-primary .employee-clock-card{display:block}
-  .employee-attendance-primary .employee-clock-actions{align-items:stretch!important;margin-top:16px}
-  .employee-attendance-primary .employee-clock-actions .button{width:100%}
-  .employee-attendance-primary .attendance-today{display:grid;grid-template-columns:1fr auto;gap:16px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.13)}
-  .employee-attendance-primary .attendance-today h2{font-size:1rem}
-  .employee-attendance-primary .attendance-today p{font-size:.72rem}
-  .employee-attendance-primary .timeline{margin:0}
+  .employee-clock-card{flex-direction:column;align-items:stretch;gap:16px;padding:20px}
+  .employee-clock-actions{align-items:stretch!important;width:100%}
+  .employee-clock-actions .button{width:100%}
+  .clock-in-group{align-items:stretch!important;width:100%}
+  .clock-in-group .button{width:100%}
 }
 .queue-filter-pills{display:inline-flex;gap:4px;background:#eceee9;padding:2px;border-radius:7px}
 .queue-pill{border:0;background:transparent;border-radius:5px;padding:3px 8px;font-size:.65rem;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}

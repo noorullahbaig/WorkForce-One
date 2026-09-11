@@ -14,7 +14,7 @@ import {
   TaskWorkspace,
   WorkspaceHeader,
 } from "../../components/portal-ui";
-import { date, initials } from "../../lib/format";
+import { date, initials, time } from "../../lib/format";
 import {
   calculateAttendance,
   NORMAL_DAY_MINUTES,
@@ -281,34 +281,44 @@ export function EmployeeCorrectionHistory({
           return (
             <article className="correction-history-row" key={r.id}>
               <div className="correction-history-heading">
-                <div>
-                  <strong>
-                    {date(r.workDate, {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </strong>
-                  <p>
-                    {timestamp(r.clockIn)} – {timestamp(r.clockOut)}
-                  </p>
-                  <small>
-                    {duration(r.workedMinutes)} worked ·{" "}
-                    {duration(r.overtimeMinutes)} overtime
+                <div className="correction-history-info">
+                  <div className="correction-history-date-row">
+                    <strong>
+                      {date(r.workDate, {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </strong>
+                    <span className="history-time-range">
+                      {time(r.clockIn)} – {r.clockOut ? time(r.clockOut) : "Not recorded"}
+                    </span>
+                  </div>
+                  <small className="history-worked-meta">
+                    {r.workedMinutes !== null ? (
+                      <>
+                        {duration(r.workedMinutes)} worked
+                        {r.overtimeMinutes && r.overtimeMinutes > 0 ? ` · ${duration(r.overtimeMinutes)} overtime` : ""}
+                      </>
+                    ) : (
+                      "Incomplete shift hours"
+                    )}
                   </small>
                 </div>
-                <Status value={r.status} />
+                <div className="correction-history-status-block">
+                  <Status value={r.status} />
+                  {r.status !== "on_leave" &&
+                    (pending ? (
+                      <p className="correction-hint">
+                        Correction pending admin review
+                      </p>
+                    ) : (
+                      <Link className="text-button" to={`?correct=${r.id}`} preventScrollReset>
+                        Request correction
+                      </Link>
+                    ))}
+                </div>
               </div>
-              {r.status !== "on_leave" &&
-                (pending ? (
-                  <p className="correction-hint">
-                    Correction pending admin review
-                  </p>
-                ) : (
-                  <Link className="text-button" to={`?correct=${r.id}`} preventScrollReset>
-                    Request correction
-                  </Link>
-                ))}
               {requests.map((request) => (
                 <RequestSummary key={request.id} request={request} />
               ))}

@@ -345,119 +345,89 @@ export function EmployeeAttendance({
         description="Your workday history in Malaysia time."
       />
 
-      <div className="employee-attendance-primary">
-        <section className="employee-clock-card">
-          <div className="employee-clock-info">
-            <p className="eyebrow light">Shift Terminal</p>
-            <h2>
-              {openSession
-                ? "Currently on shift"
-                : todayRecords.length > 0
-                  ? `${(totalWorkedMins / 60).toFixed(1)}h worked today`
-                  : "Ready to start shift"}
-            </h2>
-            <p>
-              {openSession
-                ? `Active session started at ${time(openSession.clockIn)} (${openSession.clockInMethod === "qr" ? "QR Code" : "Fingerprint"} scan)`
-                : todayRecords.length > 0
-                  ? `Total cumulative time: ${(totalWorkedMins / 60).toFixed(1)} hours across ${completedCount} completed shift${completedCount === 1 ? "" : "s"}.`
-                  : "Select scan method and clock in."}
-            </p>
-            <div className="clock-method-toggle">
-              <button
-                type="button"
-                aria-pressed={method === "fingerprint"}
-                onClick={() => setMethod("fingerprint")}
-                className={`button small ${method === "fingerprint" ? "paper" : "ghost"}`}
-              >
-                <Fingerprint size={14} /> Fingerprint
-              </button>
-              <button
-                type="button"
-                aria-pressed={method === "qr"}
-                onClick={() => setMethod("qr")}
-                className={`button small ${method === "qr" ? "paper" : "ghost"}`}
-              >
-                <QrCode size={14} /> QR Code
-              </button>
-            </div>
-          </div>
-
-          <div className="employee-clock-actions">
-            {openSession ? (
-              <Form method="post" style={{ margin: 0 }}>
-                <input type="hidden" name="intent" value="employee-clock" />
-                <input type="hidden" name="actionType" value="clock-out" />
-                <input type="hidden" name="method" value={method} />
-                <button className="button paper">
-                  <Square size={16} /> Clock Out
-                </button>
-              </Form>
-            ) : (
-              <div className="clock-in-group">
-                <Form method="post" style={{ margin: 0 }}>
-                  <input type="hidden" name="intent" value="employee-clock" />
-                  <input type="hidden" name="actionType" value="clock-in" />
-                  <input type="hidden" name="method" value={method} />
-                  <button className="button paper">
-                    <Play size={16} />{" "}
-                    {todayRecords.length > 0 ? "Clock In — Next shift" : "Clock In"}
-                  </button>
-                </Form>
-                {todayRecords.length > 0 &&
-                  !corrections.some((c) =>
-                    todayRecords.some((r) => r.id === c.attendanceId),
-                  ) && (
-                    <Form method="post" style={{ margin: 0 }}>
-                      <input type="hidden" name="intent" value="employee-clock" />
-                      <input type="hidden" name="actionType" value="reset" />
-                      <button className="button ghost clock-reset-btn">
-                        <RotateCcw size={14} /> Reset today
-                      </button>
-                    </Form>
-                  )}
-              </div>
+      <section className="employee-clock-card">
+        <div className="employee-clock-info">
+          <div className="shift-badge-row">
+            <span className={`status ${openSession ? "active" : todayRecords.length > 0 ? "active" : "pending"}`}>
+              <i /> {openSession ? "On shift" : todayRecords.length > 0 ? "Shift completed" : "Off shift"}
+            </span>
+            {todayRecords.length > 0 && (
+              <span className="shift-time-chip">
+                {(totalWorkedMins / 60).toFixed(1)}h worked today
+              </span>
             )}
           </div>
-        </section>
+          <h2>
+            {openSession
+              ? `Clocked in at ${time(openSession.clockIn)}`
+              : todayRecords.length > 0
+                ? `${(totalWorkedMins / 60).toFixed(1)}h across ${completedCount} completed shift${completedCount === 1 ? "" : "s"}`
+                : "Ready to start shift"}
+          </h2>
+          <p>
+            {openSession
+              ? `Authenticated via ${openSession.clockInMethod === "qr" ? "QR code" : "fingerprint"}. Tap Clock Out when your shift ends.`
+              : todayRecords.length > 0
+                ? "Daily cumulative hours are recorded in Malaysia Standard Time."
+                : "Choose your verification method and tap Clock In."}
+          </p>
+          <div className="clock-method-toggle">
+            <button
+              type="button"
+              aria-pressed={method === "fingerprint"}
+              onClick={() => setMethod("fingerprint")}
+              className={`button small ${method === "fingerprint" ? "paper" : "ghost"}`}
+            >
+              <Fingerprint size={14} /> Fingerprint
+            </button>
+            <button
+              type="button"
+              aria-pressed={method === "qr"}
+              onClick={() => setMethod("qr")}
+              className={`button small ${method === "qr" ? "paper" : "ghost"}`}
+            >
+              <QrCode size={14} /> QR Code
+            </button>
+          </div>
+        </div>
 
-        <section className="attendance-today">
-          <div>
-            <p className="eyebrow light">
-              Today's Summary · {date(today, { day: "numeric", month: "short" })}
-            </p>
-            <h2>
-              {openSession
-                ? "Shift in progress"
-                : todayRecords.length > 0
-                  ? `${(totalWorkedMins / 60).toFixed(1)} hours recorded`
-                  : "No activity recorded"}
-            </h2>
-            <p>
-              {todayRecords.length > 0
-                ? `${todayRecords.length} recorded session${todayRecords.length === 1 ? "" : "s"} · Cumulative daily total`
-                : "Ready for next shift scan."}
-            </p>
-          </div>
-          <div className="timeline">
-            <span className="active">
-              <i />
-              <small>{openSession ? "Latest in" : "First in"}</small>
-              <strong>{time(todayRecords[0]?.clockIn)}</strong>
-            </span>
-            <b />
-            <span className={todayRecords.some((r) => r.clockOut) ? "active" : ""}>
-              <i />
-              <small>{openSession ? "Current" : "Latest out"}</small>
-              <strong>
-                {openSession
-                  ? "On shift"
-                  : time(todayRecords[todayRecords.length - 1]?.clockOut)}
-              </strong>
-            </span>
-          </div>
-        </section>
-      </div>
+        <div className="employee-clock-actions">
+          {openSession ? (
+            <Form method="post" style={{ margin: 0 }}>
+              <input type="hidden" name="intent" value="employee-clock" />
+              <input type="hidden" name="actionType" value="clock-out" />
+              <input type="hidden" name="method" value={method} />
+              <button className="button paper">
+                <Square size={16} /> Clock Out
+              </button>
+            </Form>
+          ) : (
+            <div className="clock-in-group">
+              <Form method="post" style={{ margin: 0 }}>
+                <input type="hidden" name="intent" value="employee-clock" />
+                <input type="hidden" name="actionType" value="clock-in" />
+                <input type="hidden" name="method" value={method} />
+                <button className="button paper">
+                  <Play size={16} />{" "}
+                  {todayRecords.length > 0 ? "Clock In — Next shift" : "Clock In"}
+                </button>
+              </Form>
+              {todayRecords.length > 0 &&
+                !corrections.some((c) =>
+                  todayRecords.some((r) => r.id === c.attendanceId),
+                ) && (
+                  <Form method="post" style={{ margin: 0 }}>
+                    <input type="hidden" name="intent" value="employee-clock" />
+                    <input type="hidden" name="actionType" value="reset" />
+                    <button className="button ghost clock-reset-btn">
+                      <RotateCcw size={14} /> Reset today
+                    </button>
+                  </Form>
+                )}
+            </div>
+          )}
+        </div>
+      </section>
 
       <EmployeeCorrectionHistory records={records} corrections={corrections} />
     </>
