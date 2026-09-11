@@ -25,7 +25,7 @@ import {
 	Form, Link, redirect, useActionData, useLoaderData, useLocation, useNavigation, useSearchParams,
 } from "react-router";
 import {
-	Bell, CalendarDays, Check, ChevronRight, Clock3, Coffee, Compass, Download,
+	Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Coffee, Compass, Download,
 	FileText, Fingerprint, Landmark, LogOut, Menu, Plus,
 	RotateCcw, Search, ShieldCheck, Trash2, UserCheck,
 	UserMinus, UserRound, Users, WalletCards, X,
@@ -623,8 +623,48 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections,payslip
 		setParams(next,{preventScrollReset:true});
 	};
 
+	const currentTab = params.get("tab") === "adjustments" ? "adjustments" : "employees";
+	const setTab = (t: string) => {
+		const next = new URLSearchParams(params);
+		if (t === "employees") {
+			next.delete("tab");
+		} else {
+			next.set("tab", t);
+		}
+		setParams(next, { preventScrollReset: true });
+	};
+
 	return <TaskWorkspace label={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll review`}>
-		<WorkspaceHeader eyebrow="Payroll / Run" title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`} description={`Pay date ${date(run.payDate)} · ${run.policyName}`} action={run.status==="finalised"?<><a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download/>CSV</a><a className="button secondary" href={`/resources/payroll/${run.id}.bank.csv`}><Landmark size={16}/>Bank CSV</a><a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText/>PDF report</a></>:undefined}/>
+		<WorkspaceHeader
+			eyebrow={<p className="eyebrow"><Link to="/admin/payroll">Payroll</Link> / Run</p>}
+			title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`}
+			description={`Pay date ${date(run.payDate)} · ${run.policyName}`}
+			action={
+				<>
+					<Link className="button secondary" to="/admin/payroll">
+						<ChevronLeft size={16}/>All payroll runs
+					</Link>
+					{run.status==="finalised" ? (
+						<>
+							<a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download size={15}/>CSV</a>
+							<a className="button secondary" href={`/resources/payroll/${run.id}.bank.csv`}><Landmark size={15}/>Bank CSV</a>
+							<a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText size={15}/>PDF report</a>
+						</>
+					) : (
+						<button
+							ref={finaliseButtonRef}
+							type="button"
+							className="button primary"
+							disabled={hasBlockers}
+							onClick={() => setConfirmFinalise(true)}
+						>
+							<ShieldCheck size={16} />
+							Finalise payroll
+						</button>
+					)}
+				</>
+			}
+		/>
 		
 		<div className="metric-strip" style={{ marginBottom: "16px" }}>
 			<article>
@@ -651,14 +691,37 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections,payslip
 		{run.status==="draft"&&missing.length>0&&<div className="alert warning"><Clock3/><div><strong>{missing.length} attendance exception{missing.length===1?"":"s"} block finalisation</strong><p>{missing.map((r)=>r.fullName).join(", ")} need a clock-out.</p></div><Link className="button secondary" to="/admin/attendance">Resolve now</Link></div>}
 
 		{run.status==="draft"&&pendingCorrections.length>0&&<div className="alert warning"><Clock3/><div><strong>{pendingCorrections.length} pending attendance corrections block finalisation</strong><p>Approve or reject the requests before freezing payroll.</p></div><Link className="button secondary" to="/admin/attendance/corrections">Review corrections</Link></div>}
-		<PayrollEmployeeReview employees={employees} attendance={attendanceTotals} adjustments={runAdjustments} storedResults={storedResults} runStatus={run.status === "finalised" ? "finalised" : "draft"} policyName={run.policyName} blocked={hasBlockers} payrollRunId={run.id} selectedEmployeeId={selectedEmployeeId} onSelectEmployee={selectEmployee} onClearSelection={clearEmployee}/>
 
-		{run.status === "draft" && (
-			<section className="surface adjustment-panel">
+		<nav className="tabs" aria-label="Payroll view" style={{ marginBottom: "16px" }}>
+			<button
+				type="button"
+				className={currentTab === "employees" ? "active" : ""}
+				onClick={() => setTab("employees")}
+			>
+				Employees <b>{employees.length}</b>
+			</button>
+			<button
+				type="button"
+				className={currentTab === "adjustments" ? "active" : ""}
+				onClick={() => setTab("adjustments")}
+			>
+				Ad-hoc adjustments <b>{runAdjustments.length}</b>
+			</button>
+		</nav>
+
+		{currentTab === "employees" ? (
+			<PayrollEmployeeReview employees={employees} attendance={attendanceTotals} adjustments={runAdjustments} storedResults={storedResults} runStatus={run.status === "finalised" ? "finalised" : "draft"} policyName={run.policyName} blocked={hasBlockers} payrollRunId={run.id} selectedEmployeeId={selectedEmployeeId} onSelectEmployee={selectEmployee} onClearSelection={clearEmployee}/>
+		) : (
+			<section className="surface adjustment-panel" aria-label="Ad-hoc adjustments ledger">
 				<div className="section-head">
 					<div>
-						<p className="eyebrow">Adjustments</p>
-						<h2>Ad-hoc allowances & deductions</h2>
+						<p className="eyebrow">Adjustments ledger</p>
+						<h2>All ad-hoc allowances & deductions</h2>
+						<p className="muted" style={{ margin: "4px 0 0", fontSize: ".76rem" }}>
+							{run.status === "draft"
+								? "Add or remove ad-hoc bonuses, allowances, and deductions before finalising payroll."
+								: "Immutable adjustment records finalized with this payroll run."}
+						</p>
 					</div>
 				</div>
 				{runAdjustments.length > 0 ? (
@@ -668,58 +731,71 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections,payslip
 								<span><strong>{a.fullName}</strong><small>{a.description}</small></span>
 								<span style={{textTransform:"capitalize"}}><b>{a.type}</b></span>
 								<span>{money(a.amountSen)}</span>
-								<Form method="post" style={{margin:0}}>
-									<input type="hidden" name="intent" value="delete-adjustment"/>
-									<input type="hidden" name="id" value={a.id}/>
-									<button className="icon-button" style={{color:"var(--danger)"}} aria-label="Delete adjustment"><Trash2 size={16}/></button>
-								</Form>
+								{run.status === "draft" && (
+									<Form method="post" style={{margin:0}}>
+										<input type="hidden" name="intent" value="delete-adjustment"/>
+										<input type="hidden" name="id" value={a.id}/>
+										<button className="icon-button" style={{color:"var(--danger)"}} aria-label="Delete adjustment"><Trash2 size={16}/></button>
+									</Form>
+								)}
 							</div>
 						))}
 					</div>
 				) : (
-					<p className="muted" style={{fontSize:".8rem",margin:"8px 0 16px"}}>No ad-hoc adjustments added to this run yet.</p>
+					<p className="muted" style={{fontSize:".8rem",margin:"16px 0"}}>No ad-hoc adjustments added to this run yet. You can add them below or directly inside an employee's inspector card.</p>
 				)}
 
-				<details style={{marginTop:"16px"}} className="employee-form">
-					<summary>Add an adjustment to this run <ChevronRight/></summary>
-					<Form method="post" className="form-stack" style={{marginTop:"12px"}}>
-						<input type="hidden" name="intent" value="add-adjustment"/>
-						<input type="hidden" name="payrollRunId" value={run.id}/>
-						<div className="form-pair">
-							<label>Employee
-								<select name="employeeId" required>
-									{employees.map((e)=><option key={e.id} value={e.id}>{e.fullName} ({e.employeeCode})</option>)}
-								</select>
+				{run.status === "draft" && (
+					<details style={{marginTop:"20px"}} className="employee-form">
+						<summary>Add an adjustment to this run <ChevronRight size={16}/></summary>
+						<Form method="post" className="form-stack" style={{marginTop:"12px"}}>
+							<input type="hidden" name="intent" value="add-adjustment"/>
+							<input type="hidden" name="payrollRunId" value={run.id}/>
+							<div className="form-pair">
+								<label>Employee
+									<select name="employeeId" required>
+										{employees.map((e)=><option key={e.id} value={e.id}>{e.fullName} ({e.employeeCode})</option>)}
+									</select>
+								</label>
+								<label>Type
+									<select name="type" required>
+										<option value="allowance">Allowance (Transport / Meal)</option>
+										<option value="bonus">Bonus / Incentive</option>
+										<option value="deduction">Deduction (Advance / Unpaid)</option>
+										<option value="pcb">PCB Tax adjustment</option>
+									</select>
+								</label>
+							</div>
+							<div className="form-pair">
+								<label>Description
+									<input name="description" placeholder="e.g. Performance bonus Q3" required/>
+								</label>
+								<label>Amount (RM)
+									<input name="amountRm" type="number" step="0.01" min="1" placeholder="250.00" required/>
+								</label>
+							</div>
+							<label>Reason / Notes
+								<input name="reason" placeholder="Optional audit memo"/>
 							</label>
-							<label>Type
-								<select name="type" required>
-									<option value="allowance">Allowance (Transport / Meal)</option>
-									<option value="bonus">Bonus / Incentive</option>
-									<option value="deduction">Deduction (Advance / Unpaid)</option>
-									<option value="pcb">PCB Tax adjustment</option>
-								</select>
-							</label>
-						</div>
-						<div className="form-pair">
-							<label>Description
-								<input name="description" placeholder="e.g. Performance bonus Q3" required/>
-							</label>
-							<label>Amount (RM)
-								<input name="amountRm" type="number" step="0.01" min="1" placeholder="250.00" required/>
-							</label>
-						</div>
-						<label>Reason / Notes
-							<input name="reason" placeholder="Optional audit memo"/>
-						</label>
-						<PendingButton intent="add-adjustment" pendingLabel="Adding adjustment…">
-							Add to draft run
-						</PendingButton>
-					</Form>
-				</details>
+							<PendingButton intent="add-adjustment" pendingLabel="Adding adjustment…">
+								Add to draft run
+							</PendingButton>
+						</Form>
+					</details>
+				)}
 			</section>
 		)}
 
-		{run.status==="draft"?<div className="finalise-bar"><div><ShieldCheck/><span><strong>{hasBlockers?"Resolve outstanding items":"Ready to finalise"}</strong><small>{hasBlockers?"Finalisation becomes available after attendance exceptions and correction requests are resolved.":"Finalising locks payroll results and publishes employee payslips."}</small></span></div><button ref={finaliseButtonRef} type="button" className="button primary" disabled={hasBlockers} onClick={()=>setConfirmFinalise(true)}>Finalise payroll</button></div>:<div className="finalised-banner"><Check/><div><strong>Payroll finalised {date(run.finalisedAt)}</strong><span>Net pay {money(run.netTotalSen)} · stored calculation results retained for audit</span></div></div>}
+		{run.status === "finalised" && (
+			<div className="finalised-banner" style={{ marginTop: "16px" }}>
+				<Check/>
+				<div>
+					<strong>Payroll finalised {date(run.finalisedAt)}</strong>
+					<span>Net pay {money(run.netTotalSen)} · stored calculation results retained for audit</span>
+				</div>
+			</div>
+		)}
+
 		{run.status==="draft"&&confirmFinalise&&<div className="confirmation-overlay" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget){setConfirmFinalise(false);requestAnimationFrame(()=>finaliseButtonRef.current?.focus());}}}><section className="surface confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="finalise-title"><p className="eyebrow">Final confirmation</p><h2 id="finalise-title">Finalise {date(run.periodStart,{month:"long",year:"numeric"})} payroll?</h2><p>This freezes the stored payroll results and publishes payslips to employees. The run cannot be recalculated after finalisation.</p><div><button type="button" className="button secondary" onClick={()=>{setConfirmFinalise(false);requestAnimationFrame(()=>finaliseButtonRef.current?.focus());}}>Cancel</button><Form method="post"><input type="hidden" name="intent" value="finalise-payroll"/><input type="hidden" name="id" value={run.id}/><PendingButton intent="finalise-payroll" pendingLabel="Finalising payroll…">Confirm finalisation</PendingButton></Form></div></section></div>}
 	</TaskWorkspace>;
 }
@@ -732,7 +808,21 @@ function Policy({policies}:{policies:PolicyRecord[]}){
 		requestAnimationFrame(() => createButtonRef.current?.focus());
 	};
 	return <>
-		<PageHeader eyebrow="Payroll / Policies" title="Statutory Policies" description="Statutory contribution schedules for Malaysian employees under 60." action={<button ref={createButtonRef} className="button primary" onClick={()=>setShowCreate(true)}><Plus/>Clone custom policy</button>}/>
+		<PageHeader
+			eyebrow={<p className="eyebrow"><Link to="/admin/payroll">Payroll</Link> / Policies</p>}
+			title="Statutory Policies"
+			description="Statutory contribution schedules for Malaysian employees under 60."
+			action={
+				<>
+					<Link className="button secondary" to="/admin/payroll">
+						<ChevronLeft size={16}/>Back to payroll
+					</Link>
+					<button ref={createButtonRef} className="button primary" onClick={()=>setShowCreate(true)}>
+						<Plus size={16}/>Clone custom policy
+					</button>
+				</>
+			}
+		/>
 		{showCreate?<section id="create-policy" className="surface employee-form policy-create" style={{marginBottom:"20px"}} aria-labelledby="create-policy-title">
 			<div className="policy-create-head"><div><p className="eyebrow">New policy</p><h2 id="create-policy-title">Create from the current policy</h2></div><button type="button" className="button secondary" onClick={closeCreate}>Cancel</button></div>
 			<Form method="post" className="form-stack" style={{marginTop:"14px"}}>

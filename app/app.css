@@ -157,11 +157,8 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .review-state{flex:0 0 auto;border-radius:999px;background:var(--mint);color:var(--emerald-dark);padding:6px 9px;font-size:.67rem;font-weight:750}
 .payroll-review-toolbar{display:flex;align-items:center;gap:12px;padding:0 23px 18px;flex-wrap:wrap}
 .payroll-review-toolbar .balance-search-pill{flex:1;max-width:340px}
-.payroll-review-toolbar input,.payroll-review-toolbar select{width:100%;height:38px;border:1px solid #cbd2cd;border-radius:8px;background-color:#fff;color:var(--ink);padding:0 10px;font:inherit;font-size:.74rem;font-weight:500}
-.payroll-review-toolbar input:focus-visible,.payroll-review-toolbar select:focus-visible,.payroll-pagination button:focus-visible,.tour-skip:focus-visible{outline:3px solid rgba(8,127,91,.22);outline-offset:1px;border-color:var(--emerald)}
-.payroll-review-toolbar .review-search{position:relative;align-self:end}
-.review-search svg{position:absolute;left:11px;bottom:11px;color:var(--muted);pointer-events:none}
-.review-search input{padding-left:35px}
+.eyebrow a{color:inherit;text-decoration:none}
+.eyebrow a:hover{text-decoration:underline;color:var(--emerald-dark)}
 .payroll-review-empty{display:flex;min-height:150px;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted);font-size:.74rem;border-top:1px solid var(--line)}
 .payroll-review-empty strong{color:var(--ink);font-size:.82rem}
 .payroll-pagination{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 23px;border-top:1px solid var(--line)}
