@@ -1636,6 +1636,20 @@ export function BalanceAdmin({
       gridTemplateColumns: `minmax(180px, 1.4fr) repeat(${Math.max(1, uniqueLeaveTypes.length)}, minmax(100px, 1fr))`
   };
 
+  const [selectedLeaveTypeId, setSelectedLeaveTypeId] = useState<string | null>(null);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const [days, setDays] = useState<number>(1);
+
+  const activeLeaveTypeId = (selectedLeaveTypeId && selectedEmployeeBalances.some(b => b.leaveTypeId === selectedLeaveTypeId)) 
+    ? selectedLeaveTypeId 
+    : selectedEmployeeBalances[0]?.leaveTypeId;
+
+  const activeBalance = selectedEmployeeBalances.find(b => b.leaveTypeId === activeLeaveTypeId);
+  const currentHalfDays = activeBalance ? calculateProjectedBalance(activeBalance).projectedHalfDays : 0;
+  const deltaHalfDays = direction * Math.round(days * 2);
+  const newProjectedHalfDays = currentHalfDays + deltaHalfDays;
+  const isNegative = newProjectedHalfDays < 0;
+
   return (
     <TaskWorkspace label="Leave balance administration" scrollMode="list">
       <AdminLeaveHeader 
@@ -1722,48 +1736,131 @@ export function BalanceAdmin({
         <aside className="approval-rail surface">
           {selectedEmployee ? (
             <>
-              <div className="inspector-heading">
-                <h2>Adjust balance</h2>
-                <p>Apply corrections for {selectedEmployee.fullName}</p>
+              <div className="review-person" style={{ marginBottom: "16px", paddingBottom: "14px", borderBottom: "1px solid var(--line)" }}>
+                <i>{initials(selectedEmployee.fullName)}</i>
+                <div>
+                  <strong>{selectedEmployee.fullName}</strong>
+                  <small>{selectedEmployee.department} · {selectedEmployee.id}</small>
+                </div>
               </div>
 
-              <div style={{ display: "flex", gap: "10px", margin: "20px 0 24px", overflowX: "auto" }}>
-                  {selectedEmployeeBalances.map(b => (
-                      <div key={b.leaveTypeId} style={{ padding: "12px 14px", border: "1px solid var(--line)", borderRadius: "9px", flex: "1 1 auto", background: "#fafbf9" }}>
-                         <span style={{ display: "block", fontSize: ".62rem", color: "var(--muted)", fontWeight: 800, textTransform: "uppercase", marginBottom: "4px" }}>{b.name}</span>
-                         <strong style={{ fontSize: "1.05rem" }}>{halfDays(calculateProjectedBalance(b).projectedHalfDays)}</strong> <small className="muted" style={{ fontSize: ".65rem", fontWeight: 600 }}>days</small>
-                      </div>
-                  ))}
+              <div className="balance-select-group">
+                <span className="balance-field-label">Select balance to adjust</span>
+                <div className="balance-select-cards">
+                  {selectedEmployeeBalances.map(b => {
+                    const isSelected = b.leaveTypeId === activeLeaveTypeId;
+                    const bSummary = calculateProjectedBalance(b);
+                    return (
+                      <button
+                        key={b.leaveTypeId}
+                        type="button"
+                        className={`balance-select-card ${isSelected ? "active" : ""}`}
+                        onClick={() => setSelectedLeaveTypeId(b.leaveTypeId)}
+                      >
+                        <span className="card-name">{b.name}</span>
+                        <strong className="card-days">{halfDays(bSummary.projectedHalfDays)} <small>days</small></strong>
+                        {isSelected && <span className="card-badge">Selected</span>}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <Form method="post" className="review-actions" key={selectedEmployee.id}>
+              <Form method="post" className="review-actions" key={`${selectedEmployee.id}-${activeLeaveTypeId}`}>
                 <input type="hidden" name="intent" value="adjust-leave-balance" />
                 <input type="hidden" name="employeeId" value={selectedEmployee.id} />
-                
-                <label>
-                  Leave type
-                  <select name="leaveTypeId" required defaultValue={selectedEmployeeBalances[0]?.leaveTypeId}>
-                    {selectedEmployeeBalances.map(b => (
-                        <option key={b.leaveTypeId} value={b.leaveTypeId}>{b.name}</option>
+                <input type="hidden" name="leaveTypeId" value={activeLeaveTypeId} />
+                <input type="hidden" name="deltaHalfDays" value={deltaHalfDays} />
+
+                <div className="adjustment-section">
+                  <span className="balance-field-label">Action</span>
+                  <div className="adjustment-direction-toggle">
+                    <button
+                      type="button"
+                      className={`direction-btn add ${direction === 1 ? "active" : ""}`}
+                      onClick={() => setDirection(1)}
+                    >
+                      + Credit days
+                    </button>
+                    <button
+                      type="button"
+                      className={`direction-btn deduct ${direction === -1 ? "active" : ""}`}
+                      onClick={() => setDirection(-1)}
+                    >
+                      − Deduct days
+                    </button>
+                  </div>
+                </div>
+
+                <div className="adjustment-section">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span className="balance-field-label" style={{ margin: 0 }}>Amount</span>
+                    <div className="amount-input-wrap">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0.5"
+                        max="10"
+                        value={days}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val > 0) setDays(Math.min(10, Math.max(0.5, val)));
+                        }}
+                      />
+                      <span>days</span>
+                    </div>
+                  </div>
+                  <div className="amount-preset-chips">
+                    {[0.5, 1, 2, 3, 5].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        className={`amount-chip ${days === preset ? "active" : ""}`}
+                        onClick={() => setDays(preset)}
+                      >
+                        {preset === 0.5 ? "½ day" : `${preset} ${preset === 1 ? "day" : "days"}`}
+                      </button>
                     ))}
-                  </select>
-                </label>
+                  </div>
+                </div>
+
+                <div className={`balance-preview-strip ${isNegative ? "is-negative" : ""}`}>
+                  <div className="preview-stat">
+                    <span>Current</span>
+                    <strong>{halfDays(currentHalfDays)}d</strong>
+                  </div>
+                  <span className="preview-arrow">→</span>
+                  <div className="preview-stat">
+                    <span>Adjustment</span>
+                    <strong className={direction === 1 ? "add-text" : "deduct-text"}>
+                      {direction === 1 ? `+${days}` : `−${days}`}d
+                    </strong>
+                  </div>
+                  <span className="preview-arrow">→</span>
+                  <div className="preview-stat">
+                    <span>Projected</span>
+                    <strong className="result-text">{halfDays(Math.max(0, newProjectedHalfDays))}d</strong>
+                  </div>
+                </div>
+                {isNegative && (
+                  <p className="negative-balance-alert">
+                    Adjustment exceeds available balance. Resulting balance cannot be negative.
+                  </p>
+                )}
 
                 <label>
-                  Adjustment
-                  <select name="deltaHalfDays" required>
-                    <option value="2">Add 1 day</option>
-                    <option value="1">Add half day</option>
-                    <option value="-1">Remove half day</option>
-                    <option value="-2">Remove 1 day</option>
-                  </select>
-                </label>
-                <label>
                   Reason
-                  <textarea name="reason" required placeholder="Explain this correction" rows={2} />
+                  <textarea name="reason" required placeholder="Explain this correction (e.g. Compensatory off, policy correction)" rows={2} />
                 </label>
-                <div style={{ marginTop: "8px" }}>
-                  <PendingButton intent="adjust-leave-balance" pendingLabel="Saving…">Save adjustment</PendingButton>
+
+                <div style={{ marginTop: "6px" }}>
+                  <PendingButton 
+                    intent="adjust-leave-balance" 
+                    pendingLabel="Saving…" 
+                    disabled={isNegative}
+                  >
+                    Save
+                  </PendingButton>
                 </div>
               </Form>
             </>
