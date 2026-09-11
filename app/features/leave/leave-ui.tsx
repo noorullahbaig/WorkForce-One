@@ -6,6 +6,7 @@ import {
   ChevronRight,
   MousePointerClick,
   Plus,
+  Search,
   SlidersHorizontal,
   Users,
   X,
@@ -1645,16 +1646,31 @@ export function BalanceAdmin({
       
       <section className="admin-leave-workspace">
         <div className="calendar-canvas surface" style={{ minHeight: 0, display: "flex", flexDirection: "column" }}>
-          <div className="calendar-command-area" style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)", flex: "0 0 auto" }}>
-            <label className="settings-list-search" style={{ margin: 0 }}>
-              <span className="sr-only">Search employees</span>
+          <div className="balance-toolbar">
+            <div className="balance-search-pill">
+              <Search size={15} aria-hidden="true" />
               <input 
                 aria-label="Search employees" 
-                placeholder="Search employee, team or leave type" 
+                placeholder="Search employees or departments…" 
                 value={query} 
                 onChange={(event) => setListParam("q", event.target.value)} 
               />
-            </label>
+              {query ? (
+                <button 
+                  type="button" 
+                  className="balance-search-clear" 
+                  aria-label="Clear search" 
+                  onClick={() => setListParam("q", "")}
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+            <span className="balance-count-badge">
+              {query 
+                ? `Showing ${visibleEmployees.length} of ${groupedEmployees.length}` 
+                : `${groupedEmployees.length} employees`}
+            </span>
           </div>
           <div className="balance-row head" style={{ ...gridStyle, flex: "0 0 auto", background: "#eceee9", minHeight: "38px" }}>
             <span>Employee</span>
