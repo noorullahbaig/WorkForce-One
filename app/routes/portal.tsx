@@ -634,7 +634,7 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections,payslip
 		setParams(next, { preventScrollReset: true });
 	};
 
-	return <TaskWorkspace label={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll review`}>
+	return <TaskWorkspace scrollMode="split" label={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll review`}>
 		<WorkspaceHeader
 			eyebrow={<p className="eyebrow"><Link to="/admin/payroll">Payroll</Link> / Run</p>}
 			title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`}
@@ -666,48 +666,64 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections,payslip
 			}
 		/>
 		
-		<div className="metric-strip" style={{ marginBottom: "16px" }}>
-			<article>
-				<span>Headcount</span>
-				<strong>{employees.length}</strong>
-				<small>{run.status === "finalised" ? "Employees paid" : "Eligible employees"}</small>
-			</article>
-			<article>
-				<span>{run.status === "finalised" ? "Total Gross" : "Readiness"}</span>
-				<strong style={{ fontSize: run.status === "finalised" ? undefined : "1.2rem" }}>
-					{run.status === "finalised" ? money(run.grossTotalSen) : (hasBlockers ? "Blocked" : "Ready")}
-				</strong>
-				<small>{run.status === "finalised" ? "Taxable earnings" : (hasBlockers ? `${missing.length + pendingCorrections.length} items to resolve` : "All inputs clear")}</small>
-			</article>
-			<article>
-				<span>{run.status === "finalised" ? "Total Net Pay" : "Ad-hoc Adjustments"}</span>
-				<strong>
-					{run.status === "finalised" ? money(run.netTotalSen) : `${runAdjustments.length}`}
-				</strong>
-				<small>{run.status === "finalised" ? "Bank disbursement" : "Bonuses & deductions"}</small>
-			</article>
+		<div className="payroll-status-rail">
+			<nav className="tabs" aria-label="Payroll view">
+				<button
+					type="button"
+					className={currentTab === "employees" ? "active" : ""}
+					onClick={() => setTab("employees")}
+				>
+					Employees <b>{employees.length}</b>
+				</button>
+				<button
+					type="button"
+					className={currentTab === "adjustments" ? "active" : ""}
+					onClick={() => setTab("adjustments")}
+				>
+					Ad-hoc adjustments <b>{runAdjustments.length}</b>
+				</button>
+			</nav>
+
+			<div className="payroll-status-diagnostics">
+				{run.status === "draft" && missing.length > 0 && (
+					<div className="status-capsule warning">
+						<Clock3 size={14} />
+						<span>
+							<strong>{missing.length} attendance exception{missing.length === 1 ? "" : "s"} block finalisation</strong>
+						</span>
+						<Link className="status-capsule-action" to="/admin/attendance">
+							Resolve now <ChevronRight size={13} />
+						</Link>
+					</div>
+				)}
+
+				{run.status === "draft" && pendingCorrections.length > 0 && (
+					<div className="status-capsule warning">
+						<Clock3 size={14} />
+						<span>
+							<strong>{pendingCorrections.length} pending attendance corrections block finalisation</strong>
+						</span>
+						<Link className="status-capsule-action" to="/admin/attendance/corrections">
+							Review corrections <ChevronRight size={13} />
+						</Link>
+					</div>
+				)}
+
+				{run.status === "draft" && !hasBlockers && (
+					<div className="status-capsule ready">
+						<ShieldCheck size={14} />
+						<span>Ready to finalise · All inputs clear</span>
+					</div>
+				)}
+
+				{run.status === "finalised" && (
+					<div className="status-capsule finalised">
+						<Check size={14} />
+						<span>Net pay <strong>{money(run.netTotalSen)}</strong> · Gross <strong>{money(run.grossTotalSen)}</strong></span>
+					</div>
+				)}
+			</div>
 		</div>
-
-		{run.status==="draft"&&missing.length>0&&<div className="alert warning"><Clock3/><div><strong>{missing.length} attendance exception{missing.length===1?"":"s"} block finalisation</strong><p>{missing.map((r)=>r.fullName).join(", ")} need a clock-out.</p></div><Link className="button secondary" to="/admin/attendance">Resolve now</Link></div>}
-
-		{run.status==="draft"&&pendingCorrections.length>0&&<div className="alert warning"><Clock3/><div><strong>{pendingCorrections.length} pending attendance corrections block finalisation</strong><p>Approve or reject the requests before freezing payroll.</p></div><Link className="button secondary" to="/admin/attendance/corrections">Review corrections</Link></div>}
-
-		<nav className="tabs" aria-label="Payroll view" style={{ marginBottom: "16px" }}>
-			<button
-				type="button"
-				className={currentTab === "employees" ? "active" : ""}
-				onClick={() => setTab("employees")}
-			>
-				Employees <b>{employees.length}</b>
-			</button>
-			<button
-				type="button"
-				className={currentTab === "adjustments" ? "active" : ""}
-				onClick={() => setTab("adjustments")}
-			>
-				Ad-hoc adjustments <b>{runAdjustments.length}</b>
-			</button>
-		</nav>
 
 		{currentTab === "employees" ? (
 			<PayrollEmployeeReview employees={employees} attendance={attendanceTotals} adjustments={runAdjustments} storedResults={storedResults} runStatus={run.status === "finalised" ? "finalised" : "draft"} policyName={run.policyName} blocked={hasBlockers} payrollRunId={run.id} selectedEmployeeId={selectedEmployeeId} onSelectEmployee={selectEmployee} onClearSelection={clearEmployee}/>

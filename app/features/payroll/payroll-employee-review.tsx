@@ -190,6 +190,7 @@ export function PayrollEmployeeReview({
             <span>{runStatus === "finalised" ? "Deductions" : "Attendance input"}</span>
             <span>{runStatus === "finalised" ? "Net pay" : "Adjustments & Status"}</span>
           </div>
+          <div className="payroll-review-rows">
           {filtered.length ? (
             filtered.map((employee) => {
               const input = attendanceByEmployee.get(employee.id);
@@ -266,6 +267,7 @@ export function PayrollEmployeeReview({
               <span>{runStatus === "finalised" ? "This run has no published employee results matching your search." : "Adjust your search or filters to see payroll inputs."}</span>
             </div>
           )}
+          </div>
         </div>
 
         {selectedEmployee && (
@@ -300,6 +302,7 @@ export function PayrollEmployeeReview({
               </span>
             </div>
 
+            <div className="payroll-inspector-body">
             {runStatus === "finalised" && selectedResult ? (
               <>
                 <p className="balance-field-label" style={{ marginTop: "16px" }}>Stored finalised result</p>
@@ -440,6 +443,7 @@ export function PayrollEmployeeReview({
                 </div>
               </>
             )}
+            </div>
           </aside>
         )}
       </div>
