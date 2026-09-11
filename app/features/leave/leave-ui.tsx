@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  MousePointerClick,
   Plus,
   SlidersHorizontal,
   Users,
@@ -1597,17 +1598,26 @@ export function BalanceAdmin({
   employees: Array<{ id: string; fullName: string; department: string }>;
 }) {
   const [params, setParams] = useSearchParams();
-  const pageSize = useListPageSize();
   const query = params.get("q") ?? "";
+  
   const paidBalances = balances.filter((balance) => {
     if (!balance.paid) return false;
     const employee = employees.find((item) => item.id === balance.employeeId);
     return !query.trim() || `${employee?.fullName ?? ""} ${employee?.department ?? ""} ${balance.name}`.toLowerCase().includes(query.trim().toLowerCase());
   });
-  const pageCount = Math.max(1, Math.ceil(paidBalances.length / pageSize));
-  const page = Math.min(Math.max(1, Number(params.get("page")) || 1), pageCount);
-  const visibleBalances = paidBalances.slice((page - 1) * pageSize, page * pageSize);
-  const setListParam = (name: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(name, value); else next.delete(name); if (name !== "page") next.delete("page"); setParams(next, { preventScrollReset: true }); };
+
+  const setListParam = (name: string, value: string) => { 
+    const next = new URLSearchParams(params); 
+    if (value) next.set(name, value); 
+    else next.delete(name); 
+    setParams(next, { preventScrollReset: true }); 
+  };
+
+  const selectedEmployeeId = params.get("employeeId");
+  const selectedLeaveTypeId = params.get("leaveTypeId");
+  const selectedBalance = paidBalances.find(b => b.employeeId === selectedEmployeeId && b.leaveTypeId === selectedLeaveTypeId);
+  const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
+
   return (
     <TaskWorkspace label="Leave balance administration" scrollMode="list">
       <AdminLeaveHeader 
@@ -1615,73 +1625,118 @@ export function BalanceAdmin({
         description="Apply traceable corrections without changing leave policy defaults."
         activeOption="Adjust balances"
       />
-      <Form method="post" className="surface balance-adjust-form">
-        <input type="hidden" name="intent" value="adjust-leave-balance" />
-        <label>
-          Employee
-          <select name="employeeId" required>
-            {employees.map((e) => (
-              <option value={e.id} key={e.id}>
-                {e.fullName} · {e.department}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Leave type
-          <select name="leaveTypeId">
-            <option value="leave-annual">Annual leave</option>
-            <option value="leave-medical">Medical leave</option>
-          </select>
-        </label>
-        <label>
-          Adjustment
-          <select name="deltaHalfDays">
-            <option value="2">Add 1 day</option>
-            <option value="1">Add half day</option>
-            <option value="-1">Remove half day</option>
-            <option value="-2">Remove 1 day</option>
-          </select>
-        </label>
-        <label>
-          Reason
-          <input name="reason" required placeholder="Explain this correction" />
-        </label>
-        <PendingButton intent="adjust-leave-balance" pendingLabel="Saving adjustment…">Save adjustment</PendingButton>
-      </Form>
-      <ScrollableRegion label="Leave balance results" className="surface balance-table">
-        <label className="settings-list-search"><span className="sr-only">Search leave balances</span><input aria-label="Search leave balances" placeholder="Search employee, team or leave type" value={query} onChange={(event) => setListParam("q", event.target.value)} /></label>
-        <div className="balance-row head">
-          <span>Employee</span>
-          <span>Leave type</span>
-          <span>Available</span>
-          <span>Pending</span>
-          <span>Projected</span>
-        </div>
-        {visibleBalances.map((b) => {
-            const employee = employees.find((item) => item.id === b.employeeId);
-            const summary = calculateProjectedBalance(b);
-            return (
-              <div
-                className="balance-row"
-                key={`${b.employeeId}-${b.leaveTypeId}`}
-              >
-                <span>
-                  <strong>{employee?.fullName}</strong>
-                  <small>{employee?.department}</small>
-                </span>
-                <span>{b.name}</span>
-                <span>{halfDays(summary.availableHalfDays)} days</span>
-                <span>{halfDays(b.pendingHalfDays)} days</span>
-                <span>
-                  <strong>{halfDays(summary.projectedHalfDays)} days</strong>
-                </span>
+      
+      <section className="admin-leave-workspace">
+        <div className="calendar-canvas surface" style={{ minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <div className="calendar-command-area" style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)", flex: "0 0 auto" }}>
+            <label className="settings-list-search" style={{ margin: 0 }}>
+              <span className="sr-only">Search leave balances</span>
+              <input 
+                aria-label="Search leave balances" 
+                placeholder="Search employee, team or leave type" 
+                value={query} 
+                onChange={(event) => setListParam("q", event.target.value)} 
+              />
+            </label>
+          </div>
+          <div className="balance-row head" style={{ flex: "0 0 auto", background: "#eceee9", minHeight: "38px" }}>
+            <span>Employee</span>
+            <span>Leave type</span>
+            <span>Available</span>
+            <span>Pending</span>
+            <span>Projected</span>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {paidBalances.map((b) => {
+              const employee = employees.find((item) => item.id === b.employeeId);
+              const summary = calculateProjectedBalance(b);
+              const isActive = selectedEmployeeId === b.employeeId && selectedLeaveTypeId === b.leaveTypeId;
+              return (
+                <a
+                  href={`?employeeId=${b.employeeId}&leaveTypeId=${b.leaveTypeId}`}
+                  className={`balance-row ${isActive ? "active" : ""}`}
+                  key={`${b.employeeId}-${b.leaveTypeId}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const next = new URLSearchParams(params);
+                    next.set("employeeId", b.employeeId);
+                    next.set("leaveTypeId", b.leaveTypeId);
+                    setParams(next, { preventScrollReset: true });
+                  }}
+                >
+                  <span>
+                    <strong>{employee?.fullName}</strong>
+                    <small>{employee?.department}</small>
+                  </span>
+                  <span>{b.name}</span>
+                  <span>{halfDays(summary.availableHalfDays)} days</span>
+                  <span>{halfDays(b.pendingHalfDays)} days</span>
+                  <span>
+                    <strong>{halfDays(summary.projectedHalfDays)} days</strong>
+                  </span>
+                </a>
+              );
+            })}
+            {!paidBalances.length ? (
+              <div className="leave-empty">
+                <Users />
+                <strong>No matching balances</strong>
+                <span>Clear the search to view employee balances.</span>
               </div>
-            );
-          })}
-        {!paidBalances.length ? <div className="leave-empty"><Users /><strong>No matching balances</strong><span>Clear the search to view employee balances.</span></div> : null}
-        <ListPagination page={page} pageCount={pageCount} total={paidBalances.length} pageSize={pageSize} label="Leave balance pages" onPage={(nextPage) => setListParam("page", String(nextPage))} />
-      </ScrollableRegion>
+            ) : null}
+          </div>
+        </div>
+
+        <aside className="approval-rail surface">
+          {selectedEmployee && selectedBalance ? (
+            <>
+              <div className="inspector-heading">
+                <h2>Adjust balance</h2>
+                <p>Apply corrections for {selectedEmployee.fullName}</p>
+              </div>
+              <Form method="post" className="review-actions" style={{ marginTop: "20px" }} key={`${selectedEmployeeId}-${selectedLeaveTypeId}`}>
+                <input type="hidden" name="intent" value="adjust-leave-balance" />
+                <input type="hidden" name="employeeId" value={selectedEmployee.id} />
+                <input type="hidden" name="leaveTypeId" value={selectedBalance.leaveTypeId} />
+                
+                <div className="review-details" style={{ margin: "0 0 16px" }}>
+                  <div>
+                    <dt>Leave type</dt>
+                    <dd>{selectedBalance.name}</dd>
+                  </div>
+                  <div>
+                    <dt>Current balance</dt>
+                    <dd>{halfDays(calculateProjectedBalance(selectedBalance).projectedHalfDays)} days</dd>
+                  </div>
+                </div>
+
+                <label>
+                  Adjustment
+                  <select name="deltaHalfDays" required>
+                    <option value="2">Add 1 day</option>
+                    <option value="1">Add half day</option>
+                    <option value="-1">Remove half day</option>
+                    <option value="-2">Remove 1 day</option>
+                  </select>
+                </label>
+                <label>
+                  Reason
+                  <textarea name="reason" required placeholder="Explain this correction" rows={2} />
+                </label>
+                <div style={{ marginTop: "8px" }}>
+                  <PendingButton intent="adjust-leave-balance" pendingLabel="Saving…">Save adjustment</PendingButton>
+                </div>
+              </Form>
+            </>
+          ) : (
+            <div className="leave-empty">
+              <MousePointerClick />
+              <strong>Select a balance</strong>
+              <span>Choose an employee balance from the list to make adjustments.</span>
+            </div>
+          )}
+        </aside>
+      </section>
     </TaskWorkspace>
   );
 }
