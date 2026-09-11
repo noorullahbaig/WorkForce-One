@@ -110,7 +110,7 @@ export function PageHeader({
   description,
   action,
 }: {
-  eyebrow?: string;
+  eyebrow?: React.ReactNode;
   title: string;
   description?: string;
   action?: React.ReactNode;
@@ -118,7 +118,7 @@ export function PageHeader({
   return (
     <div className="page-header">
       <div>
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+        {eyebrow && (typeof eyebrow === "string" ? <p className="eyebrow">{eyebrow}</p> : eyebrow)}
         <h1>{title}</h1>
         {description && <p>{description}</p>}
       </div>
@@ -139,12 +139,13 @@ export function TaskWorkspace({
   className?: string;
 }) {
   return (
-    <section
-      className={`task-workspace scroll-${scrollMode}${className ? ` ${className}` : ""}`}
+    <div
+      className={`task-workspace scroll-${scrollMode} ${className}`.trim()}
+      role="region"
       aria-label={label}
     >
       {children}
-    </section>
+    </div>
   );
 }
 
@@ -175,7 +176,7 @@ export function WorkspaceHeader({
   description,
   action,
 }: {
-  eyebrow?: string;
+  eyebrow?: React.ReactNode;
   title: string;
   description?: string;
   action?: React.ReactNode;
@@ -183,7 +184,7 @@ export function WorkspaceHeader({
   return (
     <header className="workspace-header">
       <div>
-        {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
+        {eyebrow ? (typeof eyebrow === "string" ? <p className="eyebrow">{eyebrow}</p> : eyebrow) : null}
         <h1>{title}</h1>
         {description ? <p>{description}</p> : null}
       </div>

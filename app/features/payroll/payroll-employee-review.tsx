@@ -276,36 +276,41 @@ export function PayrollEmployeeReview({
             role="region"
             aria-label={`${selectedEmployee.fullName} payroll detail`}
           >
-            <div className="inspector-heading">
-              <div className="inspector-heading-text">
-                <p className="eyebrow">{runStatus === "finalised" ? "Finalised profile" : "Draft payroll profile"}</p>
-                <h2 id="inspector-employee-title">{selectedEmployee.fullName}</h2>
+            <header className="inspector-pinned-header">
+              <div className="inspector-top-bar">
+                <span className="inspector-eyebrow-chip">
+                  {runStatus === "finalised" ? "Finalised profile" : "Draft payroll profile"}
+                </span>
+                <button
+                  type="button"
+                  className="inspector-close-btn"
+                  aria-label="Close employee detail"
+                  onClick={onClearSelection}
+                >
+                  <X size={15} aria-hidden="true" />
+                </button>
               </div>
-              <button
-                type="button"
-                className="inspector-close"
-                aria-label="Close employee detail"
-                onClick={onClearSelection}
-              >
-                <X size={16} aria-hidden="true" />
-              </button>
-            </div>
 
-            <div className="review-person">
-              <i className="review-avatar">{initials(selectedEmployee.fullName)}</i>
-              <div>
-                <strong>{selectedEmployee.fullName}</strong>
-                <small>{selectedEmployee.employeeCode} · {selectedEmployee.salaryType.toUpperCase()}</small>
+              <div className="inspector-person-banner">
+                <i className="review-avatar">{initials(selectedEmployee.fullName)}</i>
+                <div className="inspector-person-meta">
+                  <h2 id="inspector-employee-title" className="inspector-person-name">
+                    {selectedEmployee.fullName}
+                  </h2>
+                  <span className="inspector-person-code">
+                    {selectedEmployee.employeeCode} · {selectedEmployee.salaryType.toUpperCase()}
+                  </span>
+                </div>
+                <span className={`status ${runStatus === "finalised" ? "finalised" : "draft"}`}>
+                  <i /> {runStatus === "finalised" ? "Finalised" : "Draft"}
+                </span>
               </div>
-              <span className={`status ${runStatus === "finalised" ? "finalised" : "draft"}`}>
-                <i /> {runStatus === "finalised" ? "Finalised" : "Draft"}
-              </span>
-            </div>
+            </header>
 
             <div className="payroll-inspector-body">
             {runStatus === "finalised" && selectedResult ? (
               <>
-                <p className="balance-field-label" style={{ marginTop: "16px" }}>Stored finalised result</p>
+                <p className="balance-field-label" style={{ marginTop: "2px" }}>Stored finalised result</p>
                 <div className="payroll-net-result"><span>Net pay</span><strong>{money(selectedResult.netPaySen)}</strong></div>
                 <dl className="payroll-inspector-values">
                   <div><dt>Gross pay</dt><dd>{money(selectedResult.grossPaySen)}</dd></div>
@@ -318,7 +323,7 @@ export function PayrollEmployeeReview({
               </>
             ) : (
               <>
-                <p className="balance-field-label" style={{ marginTop: "16px" }}>Pay &amp; attendance inputs</p>
+                <p className="balance-field-label" style={{ marginTop: "2px" }}>Pay &amp; attendance inputs</p>
                 <dl className="payroll-inspector-values">
                   <div><dt>Pay basis</dt><dd>{selectedEmployee.salaryType}</dd></div>
                   <div><dt>Current rate</dt><dd>{selectedEmployee.salaryType === "monthly" ? money(selectedEmployee.monthlySalarySen) : `${money(selectedEmployee.hourlyRateSen)}/hr`}</dd></div>
