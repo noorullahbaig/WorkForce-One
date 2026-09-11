@@ -155,9 +155,8 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .payroll-review-title h2{margin:2px 0 5px}
 .payroll-review-title>div>p:last-child{margin:0;color:var(--muted);font-size:.76rem}
 .review-state{flex:0 0 auto;border-radius:999px;background:var(--mint);color:var(--emerald-dark);padding:6px 9px;font-size:.67rem;font-weight:750}
-.payroll-review-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 170px 190px;gap:10px;padding:0 23px 18px}
-.payroll-review-toolbar.is-finalised{grid-template-columns:minmax(220px,1fr)}
-.payroll-review-toolbar>label{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:.64rem;font-weight:700}
+.payroll-review-toolbar{display:flex;align-items:center;gap:12px;padding:0 23px 18px;flex-wrap:wrap}
+.payroll-review-toolbar .balance-search-pill{flex:1;max-width:340px}
 .payroll-review-toolbar input,.payroll-review-toolbar select{width:100%;height:38px;border:1px solid #cbd2cd;border-radius:8px;background-color:#fff;color:var(--ink);padding:0 10px;font:inherit;font-size:.74rem;font-weight:500}
 .payroll-review-toolbar input:focus-visible,.payroll-review-toolbar select:focus-visible,.payroll-pagination button:focus-visible,.tour-skip:focus-visible{outline:3px solid rgba(8,127,91,.22);outline-offset:1px;border-color:var(--emerald)}
 .payroll-review-toolbar .review-search{position:relative;align-self:end}
@@ -299,6 +298,13 @@ button.review-row:focus-visible{position:relative;z-index:1;outline:3px solid ok
 .payroll-net-result{padding:18px;border-radius:10px;background:var(--ink);color:#fff;display:flex;flex-direction:column;gap:4px}.payroll-net-result span{font-size:.68rem;color:oklch(80% .02 170)}.payroll-net-result strong{font-size:1.65rem;font-variant-numeric:tabular-nums}
 .payroll-inspector-values{display:grid;grid-template-columns:1fr 1fr;margin:14px 0}.payroll-inspector-values>div{padding:12px 0;border-bottom:1px solid var(--line)}.payroll-inspector-values>div:nth-child(odd){padding-right:12px}.payroll-inspector-values .wide{grid-column:1/-1}.payroll-inspector-values dt{font-size:.65rem;color:var(--muted)}.payroll-inspector-values dd{margin:4px 0 0;font-size:.77rem;font-weight:700;font-variant-numeric:tabular-nums}.payroll-inspector-values dd small{display:block;margin-top:3px;color:var(--muted);font-weight:500}
 .payroll-input-adjustments h3{font-size:.8rem}.payroll-input-adjustments>div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:.72rem}.payroll-input-adjustments>div>span{display:flex;flex-direction:column;gap:2px}.payroll-input-adjustments small,.payroll-input-adjustments p{color:var(--muted)}
+.inspector-adjustment-form{background:#f4f7f5;border:1px solid #d5e0da;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.inspector-adjustment-form label{display:flex;flex-direction:column;gap:3px;font-size:.68rem;font-weight:700;color:var(--muted)}
+.inspector-adjustment-form input,.inspector-adjustment-form select{height:34px;border:1px solid #cbd2cd;border-radius:6px;background:#fff;padding:0 8px;font:inherit;font-size:.74rem}
+.inspector-adjustment-form .form-pair.tight{display:grid;grid-template-columns:1.1fr .9fr;gap:8px}
+.inspector-adjustment-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:.74rem}
+.inspector-adjustment-item strong{display:block}
+.inspector-adjustment-item small{color:var(--muted);font-size:.66rem;text-transform:capitalize}
 .finalise-bar{position:sticky;bottom:14px;z-index:12}
 @media(min-width:1200px){.payroll-review-layout.has-selection{display:grid;grid-template-columns:minmax(0,1fr) 400px}.payroll-review-layout.has-selection .payroll-review-list{border-right:0}.payroll-review-inspector{max-height:600px}}
 @media(max-width:1199px){.payroll-review-layout.has-selection .payroll-review-list{display:none}.payroll-review-inspector{border-left:0}.inspector-back{display:inline-flex}.payroll-review-toolbar:has(+ .payroll-review-layout.has-selection){display:none}}

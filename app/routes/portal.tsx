@@ -539,11 +539,63 @@ function EmployeeInspector({employee}:{employee?:Employee}) {
 }
 
 function PayrollList({runs}:{runs:Payroll[]}) {
+	const [query, setQuery] = useState("");
+	const [statusFilter, setStatusFilter] = useState("all");
+
+	const filteredRuns = runs.filter((r) => {
+		const periodName = date(r.periodStart, { month: "long", year: "numeric" }).toLowerCase();
+		const policy = r.policyName.toLowerCase();
+		const matchesQuery = !query || periodName.includes(query.toLowerCase()) || policy.includes(query.toLowerCase());
+		const matchesStatus = statusFilter === "all" || r.status === statusFilter;
+		return matchesQuery && matchesStatus;
+	});
+
 	return <TaskWorkspace label="Payroll runs" scrollMode="list">
 		<WorkspaceHeader eyebrow="Payroll" title="Payroll runs" description="Review calculation inputs and finalised payroll records." action={<Link className="button secondary" to="/admin/payroll/policies"><ShieldCheck/>Statutory policy</Link>}/>
+		<WorkspaceToolbar label="Payroll run controls">
+			<div className="balance-search-pill">
+				<Search size={15} />
+				<input
+					aria-label="Search payroll runs"
+					placeholder="Search month or policy…"
+					value={query}
+					onChange={(e) => setQuery(e.target.value)}
+				/>
+				{query && (
+					<button
+						type="button"
+						aria-label="Clear search"
+						className="balance-search-clear"
+						onClick={() => setQuery("")}
+					>
+						<X size={13} />
+					</button>
+				)}
+				<span className="balance-count-badge">
+					{query || statusFilter !== "all"
+						? `Showing ${filteredRuns.length} of ${runs.length}`
+						: `${runs.length} runs`}
+				</span>
+			</div>
+			<div className="people-filter-row">
+				<select
+					aria-label="Filter status"
+					value={statusFilter}
+					onChange={(e) => setStatusFilter(e.target.value)}
+				>
+					<option value="all">All statuses</option>
+					<option value="draft">Draft</option>
+					<option value="finalised">Finalised</option>
+				</select>
+			</div>
+		</WorkspaceToolbar>
 		<ScrollableRegion label="Payroll run results" className="surface table payroll-table">
 			<div className="table-head"><span>Pay period</span><span>Policy</span><span>Gross</span><span>Net pay</span><span>Status</span><span/></div>
-			{runs.map((r)=><Link className="table-row" key={r.id} to={`/admin/payroll/${r.id}`}><span><strong>{date(r.periodStart,{month:"long",year:"numeric"})}</strong><small>Pay date · {date(r.payDate)}</small></span><span><strong>{r.policyName}</strong><small>Verified 26 Aug 2026</small></span><span>{r.status==="finalised"?money(r.grossTotalSen):"Calculated on review"}</span><span><strong>{r.status==="finalised"?money(r.netTotalSen):"—"}</strong></span><Status value={r.status}/><ChevronRight/></Link>)}
+			{filteredRuns.length ? (
+				filteredRuns.map((r)=><Link className="table-row" key={r.id} to={`/admin/payroll/${r.id}`}><span><strong>{date(r.periodStart,{month:"long",year:"numeric"})}</strong><small>Pay date · {date(r.payDate)}</small></span><span><strong>{r.policyName}</strong><small>Verified 26 Aug 2026</small></span><span>{r.status==="finalised"?money(r.grossTotalSen):"Calculated on review"}</span><span><strong>{r.status==="finalised"?money(r.netTotalSen):"—"}</strong></span><Status value={r.status}/><ChevronRight/></Link>)
+			) : (
+				<Empty title="No payroll runs found" body="Try changing your search or status filter." />
+			)}
 		</ScrollableRegion>
 	</TaskWorkspace>;
 }
@@ -573,10 +625,33 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections,payslip
 
 	return <TaskWorkspace label={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll review`}>
 		<WorkspaceHeader eyebrow="Payroll / Run" title={`${date(run.periodStart,{month:"long",year:"numeric"})} payroll`} description={`Pay date ${date(run.payDate)} · ${run.policyName}`} action={run.status==="finalised"?<><a className="button secondary" href={`/resources/payroll/${run.id}.csv`}><Download/>CSV</a><a className="button secondary" href={`/resources/payroll/${run.id}.bank.csv`}><Landmark size={16}/>Bank CSV</a><a className="button primary" href={`/resources/payroll/${run.id}.pdf`}><FileText/>PDF report</a></>:undefined}/>
+		
+		<div className="metric-strip" style={{ marginBottom: "16px" }}>
+			<article>
+				<span>Headcount</span>
+				<strong>{employees.length}</strong>
+				<small>{run.status === "finalised" ? "Employees paid" : "Eligible employees"}</small>
+			</article>
+			<article>
+				<span>{run.status === "finalised" ? "Total Gross" : "Readiness"}</span>
+				<strong style={{ fontSize: run.status === "finalised" ? undefined : "1.2rem" }}>
+					{run.status === "finalised" ? money(run.grossTotalSen) : (hasBlockers ? "Blocked" : "Ready")}
+				</strong>
+				<small>{run.status === "finalised" ? "Taxable earnings" : (hasBlockers ? `${missing.length + pendingCorrections.length} items to resolve` : "All inputs clear")}</small>
+			</article>
+			<article>
+				<span>{run.status === "finalised" ? "Total Net Pay" : "Ad-hoc Adjustments"}</span>
+				<strong>
+					{run.status === "finalised" ? money(run.netTotalSen) : `${runAdjustments.length}`}
+				</strong>
+				<small>{run.status === "finalised" ? "Bank disbursement" : "Bonuses & deductions"}</small>
+			</article>
+		</div>
+
 		{run.status==="draft"&&missing.length>0&&<div className="alert warning"><Clock3/><div><strong>{missing.length} attendance exception{missing.length===1?"":"s"} block finalisation</strong><p>{missing.map((r)=>r.fullName).join(", ")} need a clock-out.</p></div><Link className="button secondary" to="/admin/attendance">Resolve now</Link></div>}
 
 		{run.status==="draft"&&pendingCorrections.length>0&&<div className="alert warning"><Clock3/><div><strong>{pendingCorrections.length} pending attendance corrections block finalisation</strong><p>Approve or reject the requests before freezing payroll.</p></div><Link className="button secondary" to="/admin/attendance/corrections">Review corrections</Link></div>}
-		<PayrollEmployeeReview employees={employees} attendance={attendanceTotals} adjustments={runAdjustments} storedResults={storedResults} runStatus={run.status === "finalised" ? "finalised" : "draft"} policyName={run.policyName} blocked={hasBlockers} selectedEmployeeId={selectedEmployeeId} onSelectEmployee={selectEmployee} onClearSelection={clearEmployee}/>
+		<PayrollEmployeeReview employees={employees} attendance={attendanceTotals} adjustments={runAdjustments} storedResults={storedResults} runStatus={run.status === "finalised" ? "finalised" : "draft"} policyName={run.policyName} blocked={hasBlockers} payrollRunId={run.id} selectedEmployeeId={selectedEmployeeId} onSelectEmployee={selectEmployee} onClearSelection={clearEmployee}/>
 
 		{run.status === "draft" && (
 			<section className="surface adjustment-panel">

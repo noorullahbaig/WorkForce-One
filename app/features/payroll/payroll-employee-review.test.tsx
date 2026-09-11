@@ -23,37 +23,31 @@ const attendance = employees.map((employee, index) => ({
 }));
 
 describe("PayrollEmployeeReview", () => {
-  test("paginates employee rows ten at a time without changing the source collection", async () => {
-    const user = userEvent.setup();
+  test("renders all employee rows for continuous scrolling review", () => {
     render(<PayrollEmployeeReview employees={employees} attendance={attendance} />);
 
     expect(screen.getByRole("heading", { name: "Employee pay review" })).toBeVisible();
-    expect(screen.getByText("Showing 1–10 of 23 employees")).toBeVisible();
-    expect(screen.getByText("Employee 10")).toBeVisible();
-    expect(screen.queryByText("Employee 11")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Page 2" }));
-    expect(screen.getByText("Showing 11–20 of 23 employees")).toBeVisible();
-    expect(screen.getByText("Employee 11")).toBeVisible();
+    expect(screen.getByText("23 employees")).toBeVisible();
+    expect(screen.getByText("Employee 01")).toBeVisible();
+    expect(screen.getByText("Employee 23")).toBeVisible();
     expect(employees).toHaveLength(23);
   });
 
-  test("searches and filters the review and returns to the first page", async () => {
+  test("searches and filters the review list with instant counts", async () => {
     const user = userEvent.setup();
     render(<PayrollEmployeeReview employees={employees} attendance={attendance} />);
 
-    await user.click(screen.getByRole("button", { name: "Page 3" }));
     await user.type(screen.getByLabelText("Search employees"), "MC-0023");
-    expect(screen.getByText("Showing 1–1 of 1 employee")).toBeVisible();
+    expect(screen.getByText("Showing 1 of 23")).toBeVisible();
     expect(screen.getByText("Employee 23")).toBeVisible();
 
     await user.clear(screen.getByLabelText("Search employees"));
     await user.selectOptions(screen.getByLabelText("Pay basis"), "hourly");
-    expect(screen.getByText("Showing 1–10 of 11 employees")).toBeVisible();
+    expect(screen.getByText("Showing 11 of 23")).toBeVisible();
     expect(screen.queryByText("Employee 01")).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("Attendance input"), "overtime");
-    expect(screen.getByText("Showing 1–2 of 2 employees")).toBeVisible();
+    expect(screen.getByText("Showing 2 of 23")).toBeVisible();
     expect(screen.getByText("Employee 06")).toBeVisible();
     expect(screen.getByText("Employee 16")).toBeVisible();
   });
@@ -110,7 +104,7 @@ describe("PayrollEmployeeReview", () => {
     expect(screen.queryByRole("button", { name: /Review Employee 02/ })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Pay basis")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Attendance input")).not.toBeInTheDocument();
-    expect(screen.getByText("Showing 1–1 of 1 employee")).toBeVisible();
+    expect(screen.getByText("1 employee")).toBeVisible();
     expect(inspector).toHaveTextContent(/RM\s5,392\.00/);
     expect(inspector).toHaveTextContent(/RM\s6,123\.00/);
     expect(inspector).toHaveTextContent("Stored finalised result");
