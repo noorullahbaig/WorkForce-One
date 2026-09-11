@@ -337,6 +337,16 @@ button.review-row:focus-visible{position:relative;z-index:1;outline:3px solid ok
 .adj-empty-state svg{color:var(--emerald);flex-shrink:0}
 .adj-add-btn{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;color:var(--emerald-dark);background:var(--mint);border:1px solid rgba(8,127,91,.18);border-radius:6px;padding:4px 9px;cursor:pointer;transition:all .15s ease}
 .adj-add-btn:hover{background:#dcf2e8;color:var(--emerald-dark)}
+.employee-shift-banner{background:var(--canvas);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.shift-badge-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px}
+.shift-time-chip{font-size:.68rem;font-weight:700;color:var(--muted);background:var(--paper);border:1px solid var(--line);padding:2px 8px;border-radius:6px}
+.shift-status-title{margin:0;font-size:1.05rem;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.shift-status-desc{margin:0;font-size:.76rem;color:var(--muted);line-height:1.45}
+.employee-balance-card{background:var(--canvas);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.balance-card-info{display:flex;flex-direction:column;gap:3px}
+.balance-card-label{font-size:.64rem;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.balance-card-value{font-size:1.45rem;font-weight:800;color:var(--ink);letter-spacing:-.03em;line-height:1.2}
+.balance-card-sub{font-size:.68rem;color:var(--muted);font-weight:500}
 .payroll-status-rail{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap}
 .payroll-status-rail .tabs{margin:0;border-bottom:0}
 .payroll-status-diagnostics{display:flex;align-items:center;gap:8px;flex-wrap:wrap}

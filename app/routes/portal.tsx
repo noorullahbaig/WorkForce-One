@@ -962,7 +962,126 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 	const totalMins=todayRecords.reduce((sum,r)=>sum+(r.workedMinutes??0),0);
 	const annual=data.balances.find((b)=>b.leaveTypeId==="leave-annual");
 	const annualAvailable=annual?calculateProjectedBalance(annual).availableHalfDays/2:0;
-	return <><div className="employee-hello"><div><p>{date(data.today,{weekday:"long",day:"numeric",month:"long"})}</p><h1>Good morning, {employee.fullName.split(" ")[0]}</h1></div><div className="avatar large">{initials(employee.fullName)}</div></div><section className="employee-hero"><div><p className="eyebrow light">Today’s attendance</p><h2>{activeShift?"You’re clocked in":todayRecords.length>0?`${(totalMins/60).toFixed(1)}h worked today`:"Ready when you are"}</h2><p>{activeShift?`Since ${time(activeShift.clockIn)} · ${activeShift.clockInMethod === "qr" ? "QR" : "Fingerprint"} scan`:todayRecords.length>0?`Completed ${todayRecords.length} shift session${todayRecords.length===1?"":"s"} today`:"Start your workday with a secure scan."}</p></div><Link className="button paper" to="/employee/attendance">View activity <ChevronRight/></Link><span className="hero-orbit"><Clock3/></span></section><div className="employee-stats"><Link to="/employee/leave"><span><CalendarDays/></span><div><small>Annual leave</small><strong>{annualAvailable} days</strong></div><ChevronRight/></Link><Link to="/employee/payslips"><span><WalletCards/></span><div><small>Latest net pay</small><strong>{money(data.payslips[0]?.netPaySen)}</strong></div><ChevronRight/></Link></div><section className="employee-section"><div className="section-head"><div><p className="eyebrow">For you</p><h2>Recent updates</h2></div><Link to="/employee/notifications">View all</Link></div>{data.notifications.slice(0,3).map((n)=><Link className="update-row" to={n.href??"/employee/notifications"} key={n.id}><span className="action-icon emerald"><Bell/></span><span><strong>{n.title}</strong><small>{n.body}</small></span><ChevronRight/></Link>)}</section></>}
+	const latestPayslip=data.payslips[0];
+	const todayLabel=`${date(data.today,{weekday:"long"})} · ${date(data.today,{day:"numeric",month:"long"})}`;
+
+	return <>
+		<PageHeader
+			eyebrow={todayLabel}
+			title={`Good morning, ${employee.fullName.split(" ")[0]}`}
+			description="Here’s your workday summary, leave balance, and recent updates."
+			action={
+				<Link className="button primary" to="/employee/attendance">
+					<Fingerprint size={16}/>Clock in / out
+				</Link>
+			}
+		/>
+
+		<div className="dashboard-grid">
+			<section className="surface">
+				<div className="section-head">
+					<div>
+						<p className="eyebrow">Today’s workday</p>
+						<h2>Attendance &amp; shift</h2>
+					</div>
+					<Link to="/employee/attendance">Shift activity</Link>
+				</div>
+
+				<div className="employee-shift-banner">
+					<div className="shift-badge-row">
+						<span className={`status ${activeShift ? "active" : todayRecords.length > 0 ? "active" : "pending"}`}>
+							<i /> {activeShift ? "On shift" : todayRecords.length > 0 ? "Shift completed" : "Off shift"}
+						</span>
+						<span className="shift-time-chip">
+							{todayRecords.length > 0 ? `${(totalMins / 60).toFixed(1)}h worked today` : "Ready to clock in"}
+						</span>
+					</div>
+					<h3 className="shift-status-title">
+						{activeShift
+							? `Clocked in at ${time(activeShift.clockIn)}`
+							: todayRecords.length > 0
+							? `${todayRecords.length} completed session${todayRecords.length === 1 ? "" : "s"} today`
+							: "Ready to start your workday"}
+					</h3>
+					<p className="shift-status-desc">
+						{activeShift
+							? `Authenticated via ${activeShift.clockInMethod === "qr" ? "QR code" : "fingerprint"} biometric scan.`
+							: todayRecords.length > 0
+							? `Total cumulative time: ${(totalMins / 60).toFixed(1)} hours recorded in Malaysia Standard Time.`
+							: "Start your workday with a secure QR code or fingerprint scan."}
+					</p>
+				</div>
+
+				<div className="section-head" style={{ marginTop: "24px", marginBottom: "12px" }}>
+					<div>
+						<p className="eyebrow">For you</p>
+						<h2>Recent updates</h2>
+					</div>
+					<Link to="/employee/notifications">View all</Link>
+				</div>
+				{data.notifications.length ? (
+					data.notifications.slice(0, 3).map((n) => (
+						<Link className="update-row" to={n.href ?? "/employee/notifications"} key={n.id}>
+							<span className="action-icon emerald"><Bell size={18}/></span>
+							<span>
+								<strong>{n.title}</strong>
+								<small>{n.body}</small>
+							</span>
+							<ChevronRight size={16}/>
+						</Link>
+					))
+				) : (
+					<p className="muted" style={{ margin: "14px 0 0", fontSize: ".76rem" }}>
+						No new updates. Everything is up to date.
+					</p>
+				)}
+			</section>
+
+			<section className="surface">
+				<div className="section-head">
+					<div>
+						<p className="eyebrow">Personal overview</p>
+						<h2>Balances &amp; pay</h2>
+					</div>
+					<Link to="/employee/profile">My profile</Link>
+				</div>
+
+				<div className="employee-balance-card">
+					<div className="balance-card-info">
+						<span className="balance-card-label">Annual leave balance</span>
+						<strong className="balance-card-value">{annualAvailable} days</strong>
+						<small className="balance-card-sub">Available for scheduling</small>
+					</div>
+					<Link className="button secondary" to="/employee/leave" style={{ alignSelf: "center" }}>
+						<CalendarDays size={14}/>Request leave
+					</Link>
+				</div>
+
+				{latestPayslip ? (
+					<Link
+						to={`/employee/payslips/${latestPayslip.id}`}
+						className="payroll-pulse compact"
+						style={{ marginTop: "18px", textDecoration: "none", cursor: "pointer", display: "flex" }}
+					>
+						<span>Latest payslip · {date(`${latestPayslip.period}-01`, { month: "long", year: "numeric" })}</span>
+						<strong>{money(latestPayslip.netPaySen)}</strong>
+						<small>Net pay distributed · {date(latestPayslip.payDate)}</small>
+						<div>
+							<span>Gross <b>{money(latestPayslip.grossPaySen)}</b></span>
+							<span>Deductions <b>{money(latestPayslip.totalDeductionsSen)}</b></span>
+						</div>
+					</Link>
+				) : (
+					<div className="payroll-pulse compact" style={{ marginTop: "18px" }}>
+						<span>Payroll status</span>
+						<strong>No payslips yet</strong>
+						<small>Finalised records will appear here</small>
+					</div>
+				)}
+			</section>
+		</div>
+	</>;
+}
 
 function Payslips({slips}:{slips:Payslip[]}){return <><PageHeader eyebrow="Self-service" title="Payslips" description="Your protected, finalised payroll records."/><section className="payslip-list">{slips.length?slips.map((s)=><Link className="surface payslip-row" to={`/employee/payslips/${s.id}`} key={s.id}><div className="document-icon"><FileText/></div><span><strong>{date(`${s.period}-01`,{month:"long",year:"numeric"})}</strong><small>Paid {date(s.payDate)}</small></span><span><small>Net pay</small><strong>{money(s.netPaySen)}</strong></span><Status value="finalised"/><ChevronRight/></Link>):<Empty title="No payslips yet" body="Finalised payroll records will appear here."/>}</section></>}
 
