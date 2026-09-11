@@ -23,7 +23,7 @@ test("complete attendance to payslip acceptance journey", async ({ page }, testI
 	await expect(page.getByText(/Clock-out captured/)).toBeVisible();
 
 	await page.goto("/admin/leave?panel=requests");
-	await page.getByRole("link", { name: /Sarah Lim.*Annual leave/ }).click();
+	await page.getByRole("link", { name: /Sarah Lim/ }).click();
 	await page.getByRole("button", { name: "Approve request" }).click();
 	await expect(page.getByText("Leave request approved.")).toBeVisible();
 
