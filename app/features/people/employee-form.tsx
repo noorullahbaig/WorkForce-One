@@ -83,38 +83,40 @@ export function EmployeeForm({
       aria-labelledby="employee-form-title"
       data-testid="employee-form-inspector"
     >
-      <div className="employee-form-heading">
-        <div>
-          <p className="eyebrow">People · Employee record</p>
+      <div className="inspector-heading">
+        <div className="inspector-heading-text">
+          <p className="eyebrow">{employee ? "Edit employee" : "New employee"}</p>
           <h2 id="employee-form-title" ref={headingRef} tabIndex={-1}>
-            {employee ? "Edit employee profile" : "Add an employee"}
+            {employee ? employee.fullName : "Add an employee"}
           </h2>
-          <p>
-            {employee
-              ? "Keep employment, pay and statutory details up to date."
-              : "Add employment, pay and statutory details to the directory."}
-          </p>
         </div>
-        <button className="employee-form-close" type="button" aria-label="Close employee form" onClick={close}>
-          <X aria-hidden="true" />
+        <button className="inspector-close" type="button" aria-label="Close employee form" onClick={close}>
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
-      <Form method="post" className="form-stack" onChange={() => setDirty(true)}>
+
+      <Form method="post" className="employee-add-form review-actions" onChange={() => setDirty(true)}>
         <input type="hidden" name="intent" value="save-employee" />
         {employee && <input type="hidden" name="employeeId" value={employee.id} />}
-        <div className="form-pair">
+
+        <p className="balance-field-label">Identity</p>
+        <div className="form-pair tight">
           <label>Full name<input name="fullName" defaultValue={employee?.fullName} required /></label>
           <label>Employee ID<input name="employeeCode" defaultValue={employee?.employeeCode ?? "MC-1011"} required /></label>
         </div>
-        <div className="form-pair">
+        <div className="form-pair tight">
           <label>Email<input name="email" type="email" defaultValue={employee?.email} required /></label>
           <label>Phone<input name="phone" defaultValue={employee?.phone ?? "+60 "} required /></label>
         </div>
-        <div className="form-pair">
+
+        <p className="balance-field-label">Role</p>
+        <div className="form-pair tight">
           <label>Department<input name="department" defaultValue={employee?.department} required /></label>
           <label>Position<input name="position" defaultValue={employee?.position} required /></label>
         </div>
-        <div className="form-pair">
+
+        <p className="balance-field-label">Pay</p>
+        <div className="form-pair tight">
           <label>Employment
             <select name="employmentType" defaultValue={employee?.employmentType ?? "full_time"}>
               <option value="full_time">Full time</option>
@@ -129,20 +131,23 @@ export function EmployeeForm({
             </select>
           </label>
         </div>
-        <div className="form-pair">
+        <div className="form-pair tight">
           <label>Rate (RM)<input name="rateRm" type="number" min="1" step="0.01" defaultValue={((employee?.monthlySalarySen ?? employee?.hourlyRateSen ?? 450000) / 100).toFixed(2)} required /></label>
           <label>Start date<input name="startDate" type="date" defaultValue={employee?.startDate ?? "2026-08-26"} required /></label>
         </div>
-        <div className="form-pair">
+
+        <p className="balance-field-label">Statutory &amp; banking</p>
+        <div className="form-pair tight">
           <label>MyKad / IC No.<input name="icNumber" defaultValue={employee?.icNumber ?? ""} placeholder="920315-10-5542" /></label>
-          <label>KWSP / EPF Member No.<input name="epfNumber" defaultValue={employee?.epfNumber ?? ""} placeholder="21498102" /></label>
+          <label>KWSP / EPF No.<input name="epfNumber" defaultValue={employee?.epfNumber ?? ""} placeholder="21498102" /></label>
         </div>
-        <div className="form-pair">
+        <div className="form-pair tight">
           <label>LHDN Tax No.<input name="taxNumber" defaultValue={employee?.taxNumber ?? ""} placeholder="SG 291048201" /></label>
-          <label>Bank Name<input name="bankName" defaultValue={employee?.bankName ?? "Maybank"} placeholder="Maybank / CIMB / Public Bank" /></label>
+          <label>Bank name<input name="bankName" defaultValue={employee?.bankName ?? "Maybank"} placeholder="Maybank / CIMB" /></label>
         </div>
-        <label>Bank Account Number<input name="bankAccountNumber" defaultValue={employee?.bankAccountNumber ?? ""} placeholder="514012384910" /></label>
-        <PendingButton className="button primary" intent="save-employee" pendingLabel="Saving employee…">
+        <label>Bank account number<input name="bankAccountNumber" defaultValue={employee?.bankAccountNumber ?? ""} placeholder="514012384910" /></label>
+
+        <PendingButton className="button primary" intent="save-employee" pendingLabel="Saving…">
           {employee ? "Save changes" : "Add employee"}
         </PendingButton>
       </Form>

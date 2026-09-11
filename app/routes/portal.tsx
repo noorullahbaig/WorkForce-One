@@ -25,10 +25,10 @@ import {
 	Form, Link, redirect, useActionData, useLoaderData, useLocation, useNavigation, useSearchParams,
 } from "react-router";
 import {
-	Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Coffee, Compass, Download,
+	Bell, CalendarDays, Check, ChevronRight, Clock3, Coffee, Compass, Download,
 	FileText, Fingerprint, Landmark, LogOut, Menu, Plus,
-	RotateCcw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserCheck,
-	UserMinus, UserRound, Users, WalletCards,
+	RotateCcw, Search, ShieldCheck, Trash2, UserCheck,
+	UserMinus, UserRound, Users, WalletCards, X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -419,20 +419,13 @@ function AdminHome({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	const [params,setParams]=useSearchParams();
 	const query=params.get("q")??"";
-	const [showFilters, setShowFilters]=useState(false);
 	const [showAddForm, setShowAddForm]=useState(false);
-	const [compactList,setCompactList]=useState(false);
 	const addEmployeeButtonRef=useRef<HTMLButtonElement>(null);
 	const dept=params.get("department")??"all";
 	const type=params.get("type")??"all";
 	const status=params.get("status")??"all";
-	const requestedPage=Math.max(1,Number(params.get("page")??"1")||1);
-	useEffect(()=>{
-		const media=window.matchMedia("(max-width: 820px)");
-		const sync=()=>setCompactList(media.matches);sync();media.addEventListener("change",sync);return()=>media.removeEventListener("change",sync);
-	},[]);
 	const updateListParam=(name:string,value:string,defaultValue="")=>{
-		const next=new URLSearchParams(params);if(value===defaultValue||!value)next.delete(name);else next.set(name,value);next.delete("page");setParams(next,{preventScrollReset:true});
+		const next=new URLSearchParams(params);if(value===defaultValue||!value)next.delete(name);else next.set(name,value);setParams(next,{preventScrollReset:true});
 	};
 
 	const departments = Array.from(new Set(data.employees.map((e)=>e.department))).sort();
@@ -445,68 +438,46 @@ function People({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 		const matchesStatus = status === "all" || e.status === status;
 		return matchesQuery && matchesDept && matchesType && matchesStatus;
 	});
-	const pageSize=compactList?8:10;
-	const pageCount=Math.max(1,Math.ceil(filtered.length/pageSize));
-	const page=Math.min(requestedPage,pageCount);
-	const visible=filtered.slice((page-1)*pageSize,page*pageSize);
-	const setPage=(value:number)=>{const next=new URLSearchParams(params);if(value<=1)next.delete("page");else next.set("page",String(value));setParams(next,{preventScrollReset:true});};
 
-	return <TaskWorkspace label="Employee directory" scrollMode="split">
+	return <TaskWorkspace label="Employee directory" scrollMode="list">
 		<WorkspaceHeader eyebrow="People" title="Employee directory" description={`${data.employees.length} people · employment, pay and statutory profiles`} action={<button ref={addEmployeeButtonRef} type="button" className="button primary" onClick={()=>setShowAddForm(true)}><Plus/>Add employee</button>}/>
 		<WorkspaceToolbar label="Employee controls">
-			<div className="search">
-				<Search/>
-				<input aria-label="Search employees" placeholder="Search name, role or employee ID" value={query} onChange={(event)=>updateListParam("q",event.target.value)}/>
+			<div className="balance-search-pill">
+				<Search size={15}/>
+				<input
+					aria-label="Search employees"
+					placeholder="Search name, role or ID…"
+					value={query}
+					onChange={(e)=>updateListParam("q",e.target.value)}
+				/>
+				{query && <button type="button" aria-label="Clear search" className="balance-search-clear" onClick={()=>updateListParam("q","")}><X size={13}/></button>}
+				<span className="balance-count-badge">{query||hasActiveFilters?`Showing ${filtered.length} of ${data.employees.length}`:`${data.employees.length} employees`}</span>
 			</div>
-			<button className={`button ${showFilters || hasActiveFilters ? "primary" : "secondary"}`} onClick={()=>setShowFilters(!showFilters)}>
-				<SlidersHorizontal/>Filters {hasActiveFilters ? "(Active)" : ""}
-			</button>
+			<div className="people-filter-row">
+				<select aria-label="Department" value={dept} onChange={(e)=>updateListParam("department",e.target.value,"all")}>
+					<option value="all">All departments</option>
+					{departments.map((d)=><option key={d} value={d}>{d}</option>)}
+				</select>
+				<select aria-label="Employment type" value={type} onChange={(e)=>updateListParam("type",e.target.value,"all")}>
+					<option value="all">All types</option>
+					<option value="full_time">Full time</option>
+					<option value="part_time">Part time</option>
+					<option value="contract">Contract</option>
+				</select>
+				<select aria-label="Status" value={status} onChange={(e)=>updateListParam("status",e.target.value,"all")}>
+					<option value="all">All statuses</option>
+					<option value="active">Active</option>
+					<option value="on_leave">On leave</option>
+					<option value="inactive">Inactive</option>
+				</select>
+				{hasActiveFilters && <button className="text-button" onClick={()=>{const next=new URLSearchParams(params);["department","type","status"].forEach((key)=>next.delete(key));setParams(next,{preventScrollReset:true});}}><RotateCcw size={13}/>Reset</button>}
+			</div>
 		</WorkspaceToolbar>
-
-		{showFilters && (
-			<div className="filter-panel">
-				<div className="filter-grid">
-					<label>
-						Department
-						<select value={dept} onChange={(e)=>updateListParam("department",e.target.value,"all")}>
-							<option value="all">All departments</option>
-							{departments.map((d)=><option key={d} value={d}>{d}</option>)}
-						</select>
-					</label>
-					<label>
-						Employment type
-						<select value={type} onChange={(e)=>updateListParam("type",e.target.value,"all")}>
-							<option value="all">All types</option>
-							<option value="full_time">Full time</option>
-							<option value="part_time">Part time</option>
-							<option value="contract">Contract</option>
-						</select>
-					</label>
-					<label>
-						Status
-						<select value={status} onChange={(e)=>updateListParam("status",e.target.value,"all")}>
-							<option value="all">All statuses</option>
-							<option value="active">Active</option>
-							<option value="on_leave">On leave</option>
-							<option value="inactive">Inactive</option>
-						</select>
-					</label>
-				</div>
-				{hasActiveFilters && (
-					<div className="filter-actions">
-						<button className="text-button" onClick={()=>{const next=new URLSearchParams(params);["department","type","status","page"].forEach((key)=>next.delete(key));setParams(next,{preventScrollReset:true});}}>
-							<RotateCcw size={14}/> Reset filters
-						</button>
-					</div>
-				)}
-			</div>
-		)}
 
 		<div className={`people-workspace${showAddForm ? " has-inspector" : ""}`}>
 		<ScrollableRegion label="Employee results" className="table surface">
-			<div className="table-head"><span>Employee</span><span>Team & role</span><span>Pay profile</span><span>Status</span><span/></div>
-			{visible.length ? visible.map((e)=><Link className="table-row" to={`/admin/employees/${e.id}?${params.toString()}`} key={e.id}><span className="person"><i>{initials(e.fullName)}</i><span><strong>{e.fullName}</strong><small>{e.employeeCode} · {e.email}</small></span></span><span><strong>{e.department}</strong><small>{e.position}</small></span><span><strong>{e.salaryType==="monthly"?money(e.monthlySalarySen):`${money(e.hourlyRateSen)}/hr`}</strong><small>{e.employmentType.replace("_"," ")}</small></span><Status value={e.status}/><ChevronRight/></Link>) : <Empty title="No matching employees" body="Try adjusting your search or filters."/>}
-			{filtered.length>0&&<div className="payroll-pagination list-pagination"><p>Showing {(page-1)*pageSize+1}–{Math.min(page*pageSize,filtered.length)} of {filtered.length} employees</p><nav aria-label="Employee directory pages"><button type="button" disabled={page===1} onClick={()=>setPage(page-1)}><ChevronLeft/>Previous</button>{Array.from({length:pageCount},(_,index)=>index+1).map((number)=><button type="button" key={number} aria-current={number===page?"page":undefined} className={number===page?"active":""} onClick={()=>setPage(number)}>{number}</button>)}<button type="button" disabled={page===pageCount} onClick={()=>setPage(page+1)}>Next<ChevronRight/></button></nav></div>}
+			<div className="table-head"><span>Employee</span><span>Team &amp; role</span><span>Pay profile</span><span>Status</span><span/></div>
+			{filtered.length ? filtered.map((e)=><Link className="table-row" to={`/admin/employees/${e.id}?${params.toString()}`} key={e.id}><span className="person"><i>{initials(e.fullName)}</i><span><strong>{e.fullName}</strong><small>{e.employeeCode} · {e.email}</small></span></span><span><strong>{e.department}</strong><small>{e.position}</small></span><span><strong>{e.salaryType==="monthly"?money(e.monthlySalarySen):`${money(e.hourlyRateSen)}/hr`}</strong><small>{e.employmentType.replace("_"," ")}</small></span><Status value={e.status}/><ChevronRight/></Link>) : <Empty title="No matching employees" body="Try adjusting your search or filters."/>}
 		</ScrollableRegion>
 		<EmployeeForm open={showAddForm} onClose={()=>setShowAddForm(false)} returnFocusRef={addEmployeeButtonRef}/>
 		</div>

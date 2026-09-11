@@ -60,7 +60,7 @@ describe("EmployeeForm", () => {
     const onClose = vi.fn();
     renderForm({ employee, onClose });
 
-    expect(screen.getByRole("heading", { name: "Edit employee profile" })).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "Farah Iskandar" })).toHaveFocus();
     expect(screen.getByDisplayValue("Farah Iskandar")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Close employee form" }));
     expect(onClose).toHaveBeenCalledOnce();
