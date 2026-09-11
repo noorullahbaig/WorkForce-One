@@ -278,6 +278,14 @@ export function PayrollEmployeeReview({
           >
             <header className="inspector-pinned-header">
               <div className="inspector-top-bar">
+                <button
+                  type="button"
+                  className="inspector-back-btn"
+                  onClick={onClearSelection}
+                >
+                  <ChevronLeft size={16} aria-hidden="true" />
+                  <span>Back to employees</span>
+                </button>
                 <span className="inspector-eyebrow-chip">
                   {runStatus === "finalised" ? "Finalised profile" : "Draft payroll profile"}
                 </span>
@@ -330,6 +338,21 @@ export function PayrollEmployeeReview({
                   <div><dt>Worked time</dt><dd>{selectedAttendance?.workedMinutes ?? 0} min</dd></div>
                   <div><dt>Overtime</dt><dd>{selectedAttendance?.overtimeMinutes ?? 0} min</dd></div>
                   <div className="wide"><dt>Statutory policy</dt><dd>{policyName}<small>EPF · SOCSO · EIS</small></dd></div>
+                  <div className="wide">
+                    <dt>Ad-hoc adjustments balance</dt>
+                    <dd>
+                      {selectedAdjustments.length > 0 ? (
+                        <span className={selectedNetAdjSen >= 0 ? "delta-positive" : "delta-negative"} style={{ fontWeight: 750 }}>
+                          {selectedNetAdjSen >= 0 ? "+" : ""}{money(selectedNetAdjSen)}
+                          <small>{selectedAdjustments.length} active item{selectedAdjustments.length === 1 ? "" : "s"}</small>
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--emerald-dark)", fontWeight: 700 }}>
+                          RM 0.00 <small>No active adjustments</small>
+                        </span>
+                      )}
+                    </dd>
+                  </div>
                 </dl>
 
                 <div className="payroll-input-adjustments">

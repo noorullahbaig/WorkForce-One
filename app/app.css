@@ -355,7 +355,8 @@ button.review-row:focus-visible{position:relative;z-index:1;outline:3px solid ok
   .payroll-review-title p{margin:2px 0 0;font-size:.74rem}
   .payroll-review-toolbar{padding:0 20px 10px;flex-shrink:0}
   .payroll-review-layout{height:0;flex:1 1 0;min-height:0;overflow:hidden;display:flex}
-  .payroll-review-layout.has-selection{display:grid;grid-template-columns:minmax(0,1fr) 420px;height:0;flex:1 1 0;min-height:0;overflow:hidden}
+  .payroll-review-layout.has-selection{display:grid;grid-template-columns:minmax(0,1fr) clamp(360px,28vw,420px);height:0;flex:1 1 0;min-height:0;overflow:hidden}
+  .inspector-back-btn{display:none}
   .payroll-review-list{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;flex:1}
   .payroll-review-layout.has-selection .payroll-review-list{border-right:1px solid var(--line)}
   .payroll-review-rows{height:0;flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:contain}
@@ -365,14 +366,29 @@ button.review-row:focus-visible{position:relative;z-index:1;outline:3px solid ok
 }
 @media(max-width:820px){
   .payroll-review-layout.has-selection .payroll-review-list{display:none}
-  .payroll-review-inspector{border-left:0}
-  .inspector-back{display:inline-flex}
+  .payroll-review-inspector{height:auto;min-height:100%;overflow:visible;border-left:0}
+  .payroll-inspector-body{height:auto;flex:none;min-height:auto;overflow:visible;padding:16px 16px 32px}
+  .inspector-back-btn{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;font-weight:750;color:var(--emerald-dark);background:transparent;border:0;padding:4px 0;cursor:pointer}
+  .inspector-back-btn:hover{opacity:.85}
+  .inspector-top-bar .inspector-close-btn{display:none}
   .payroll-review-toolbar:has(+ .payroll-review-layout.has-selection){display:none}
   .review-row>span:nth-child(3),.review-row>span:nth-child(4){display:flex}
-  .finalise-bar{bottom:12px}
+  .finalise-bar{bottom:calc(72px + env(safe-area-inset-bottom, 0px))}
   .app-shell:not(:has(.bottom-nav)) .finalise-bar{bottom:12px}
 }
-@media(max-width:600px){button.review-row{grid-template-columns:1fr 1fr}.review-row>span:not(.person)::before{content:attr(data-label);font-size:.6rem;color:var(--muted);font-weight:600;margin-bottom:3px}.payroll-review-inspector{padding:0}.finalise-bar{position:sticky}.finalise-bar>div>span small{display:block}.finalise-bar>div>svg{display:none}}
+@media(max-width:600px){
+  .payroll-status-rail{flex-direction:column;align-items:stretch;gap:10px}
+  .payroll-status-rail .tabs{width:100%;display:grid;grid-template-columns:1fr 1fr}
+  .payroll-status-rail .tabs button{justify-content:center;text-align:center}
+  .payroll-status-diagnostics{width:100%}
+  .status-capsule{width:100%;justify-content:space-between}
+  button.review-row{grid-template-columns:1fr 1fr}
+  .review-row>span:not(.person)::before{content:attr(data-label);font-size:.6rem;color:var(--muted);font-weight:600;margin-bottom:3px}
+  .payroll-review-inspector{padding:0}
+  .finalise-bar{position:sticky}
+  .finalise-bar>div>span small{display:block}
+  .finalise-bar>div>svg{display:none}
+}
 .login-page{background:var(--paper)}.login-story{background:oklch(25% .04 190);padding:40px clamp(28px,5vw,60px)}.login-card h2{font-size:1.8rem}.login-brand span{border-radius:10px}.demo-divider{text-transform:none;letter-spacing:.02em;font-size:.72rem}.demo-accounts button{border-radius:10px}.story-content h1{font-size:clamp(2rem,3.4vw,3rem)}
 .mobile-menu-sheet{background:var(--paper)}
 .payslip-paper{border-radius:12px;box-shadow:none}.payslip-brand .wordmark span{background:var(--emerald)}
