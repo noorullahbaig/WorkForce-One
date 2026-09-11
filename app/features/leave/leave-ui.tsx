@@ -1600,10 +1600,24 @@ export function BalanceAdmin({
   const [params, setParams] = useSearchParams();
   const query = params.get("q") ?? "";
   
-  const paidBalances = balances.filter((balance) => {
-    if (!balance.paid) return false;
-    const employee = employees.find((item) => item.id === balance.employeeId);
-    return !query.trim() || `${employee?.fullName ?? ""} ${employee?.department ?? ""} ${balance.name}`.toLowerCase().includes(query.trim().toLowerCase());
+  const allPaidBalances = balances.filter(b => b.paid);
+  
+  const uniqueLeaveTypes = Array.from(new Set(allPaidBalances.map(b => b.leaveTypeId)))
+    .map(id => allPaidBalances.find(b => b.leaveTypeId === id)!)
+    .map(b => ({ id: b.leaveTypeId, name: b.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const groupedEmployees = employees.map(emp => {
+      const empBalances = allPaidBalances.filter(b => b.employeeId === emp.id);
+      return { ...emp, balances: empBalances };
+  }).filter(emp => emp.balances.length > 0);
+  
+  const visibleEmployees = groupedEmployees.filter(emp => {
+      if (!query.trim()) return true;
+      const terms = query.toLowerCase();
+      return emp.fullName.toLowerCase().includes(terms) || 
+             emp.department.toLowerCase().includes(terms) || 
+             emp.balances.some(b => b.name.toLowerCase().includes(terms));
   });
 
   const setListParam = (name: string, value: string) => { 
@@ -1614,9 +1628,12 @@ export function BalanceAdmin({
   };
 
   const selectedEmployeeId = params.get("employeeId");
-  const selectedLeaveTypeId = params.get("leaveTypeId");
-  const selectedBalance = paidBalances.find(b => b.employeeId === selectedEmployeeId && b.leaveTypeId === selectedLeaveTypeId);
-  const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
+  const selectedEmployee = groupedEmployees.find(e => e.id === selectedEmployeeId);
+  const selectedEmployeeBalances = selectedEmployee?.balances ?? [];
+
+  const gridStyle = {
+      gridTemplateColumns: `minmax(180px, 1.4fr) repeat(${Math.max(1, uniqueLeaveTypes.length)}, minmax(100px, 1fr))`
+  };
 
   return (
     <TaskWorkspace label="Leave balance administration" scrollMode="list">
@@ -1630,85 +1647,91 @@ export function BalanceAdmin({
         <div className="calendar-canvas surface" style={{ minHeight: 0, display: "flex", flexDirection: "column" }}>
           <div className="calendar-command-area" style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)", flex: "0 0 auto" }}>
             <label className="settings-list-search" style={{ margin: 0 }}>
-              <span className="sr-only">Search leave balances</span>
+              <span className="sr-only">Search employees</span>
               <input 
-                aria-label="Search leave balances" 
+                aria-label="Search employees" 
                 placeholder="Search employee, team or leave type" 
                 value={query} 
                 onChange={(event) => setListParam("q", event.target.value)} 
               />
             </label>
           </div>
-          <div className="balance-row head" style={{ flex: "0 0 auto", background: "#eceee9", minHeight: "38px" }}>
+          <div className="balance-row head" style={{ ...gridStyle, flex: "0 0 auto", background: "#eceee9", minHeight: "38px" }}>
             <span>Employee</span>
-            <span>Leave type</span>
-            <span>Available</span>
-            <span>Pending</span>
-            <span>Projected</span>
+            {uniqueLeaveTypes.map(lt => (
+                <span key={lt.id}>{lt.name}</span>
+            ))}
           </div>
           <div style={{ flex: 1, overflowY: "auto" }}>
-            {paidBalances.map((b) => {
-              const employee = employees.find((item) => item.id === b.employeeId);
-              const summary = calculateProjectedBalance(b);
-              const isActive = selectedEmployeeId === b.employeeId && selectedLeaveTypeId === b.leaveTypeId;
+            {visibleEmployees.map((emp) => {
+              const isActive = selectedEmployeeId === emp.id;
               return (
                 <a
-                  href={`?employeeId=${b.employeeId}&leaveTypeId=${b.leaveTypeId}`}
+                  href={`?employeeId=${emp.id}`}
                   className={`balance-row ${isActive ? "active" : ""}`}
-                  key={`${b.employeeId}-${b.leaveTypeId}`}
+                  key={emp.id}
                   onClick={(e) => {
                     e.preventDefault();
-                    const next = new URLSearchParams(params);
-                    next.set("employeeId", b.employeeId);
-                    next.set("leaveTypeId", b.leaveTypeId);
-                    setParams(next, { preventScrollReset: true });
+                    setListParam("employeeId", emp.id);
                   }}
+                  style={{ ...gridStyle, color: "inherit" }}
                 >
                   <span>
-                    <strong>{employee?.fullName}</strong>
-                    <small>{employee?.department}</small>
+                    <strong>{emp.fullName}</strong>
+                    <small>{emp.department}</small>
                   </span>
-                  <span>{b.name}</span>
-                  <span>{halfDays(summary.availableHalfDays)} days</span>
-                  <span>{halfDays(b.pendingHalfDays)} days</span>
-                  <span>
-                    <strong>{halfDays(summary.projectedHalfDays)} days</strong>
-                  </span>
+                  {uniqueLeaveTypes.map(lt => {
+                      const b = emp.balances.find(x => x.leaveTypeId === lt.id);
+                      if (!b) return <span key={lt.id} className="muted">-</span>;
+                      const summary = calculateProjectedBalance(b);
+                      return (
+                          <span key={lt.id}>
+                            <strong>{halfDays(summary.projectedHalfDays)}</strong> <small className="muted">days</small>
+                          </span>
+                      )
+                  })}
                 </a>
               );
             })}
-            {!paidBalances.length ? (
+            {!visibleEmployees.length ? (
               <div className="leave-empty">
                 <Users />
-                <strong>No matching balances</strong>
-                <span>Clear the search to view employee balances.</span>
+                <strong>No matching employees</strong>
+                <span>Clear the search to view all balances.</span>
               </div>
             ) : null}
           </div>
         </div>
 
         <aside className="approval-rail surface">
-          {selectedEmployee && selectedBalance ? (
+          {selectedEmployee ? (
             <>
               <div className="inspector-heading">
                 <h2>Adjust balance</h2>
                 <p>Apply corrections for {selectedEmployee.fullName}</p>
               </div>
-              <Form method="post" className="review-actions" style={{ marginTop: "20px" }} key={`${selectedEmployeeId}-${selectedLeaveTypeId}`}>
+
+              <div style={{ display: "flex", gap: "10px", margin: "20px 0 24px", overflowX: "auto" }}>
+                  {selectedEmployeeBalances.map(b => (
+                      <div key={b.leaveTypeId} style={{ padding: "12px 14px", border: "1px solid var(--line)", borderRadius: "9px", flex: "1 1 auto", background: "#fafbf9" }}>
+                         <span style={{ display: "block", fontSize: ".62rem", color: "var(--muted)", fontWeight: 800, textTransform: "uppercase", marginBottom: "4px" }}>{b.name}</span>
+                         <strong style={{ fontSize: "1.05rem" }}>{halfDays(calculateProjectedBalance(b).projectedHalfDays)}</strong> <small className="muted" style={{ fontSize: ".65rem", fontWeight: 600 }}>days</small>
+                      </div>
+                  ))}
+              </div>
+
+              <Form method="post" className="review-actions" key={selectedEmployee.id}>
                 <input type="hidden" name="intent" value="adjust-leave-balance" />
                 <input type="hidden" name="employeeId" value={selectedEmployee.id} />
-                <input type="hidden" name="leaveTypeId" value={selectedBalance.leaveTypeId} />
                 
-                <div className="review-details" style={{ margin: "0 0 16px" }}>
-                  <div>
-                    <dt>Leave type</dt>
-                    <dd>{selectedBalance.name}</dd>
-                  </div>
-                  <div>
-                    <dt>Current balance</dt>
-                    <dd>{halfDays(calculateProjectedBalance(selectedBalance).projectedHalfDays)} days</dd>
-                  </div>
-                </div>
+                <label>
+                  Leave type
+                  <select name="leaveTypeId" required defaultValue={selectedEmployeeBalances[0]?.leaveTypeId}>
+                    {selectedEmployeeBalances.map(b => (
+                        <option key={b.leaveTypeId} value={b.leaveTypeId}>{b.name}</option>
+                    ))}
+                  </select>
+                </label>
 
                 <label>
                   Adjustment
@@ -1731,8 +1754,8 @@ export function BalanceAdmin({
           ) : (
             <div className="leave-empty">
               <MousePointerClick />
-              <strong>Select a balance</strong>
-              <span>Choose an employee balance from the list to make adjustments.</span>
+              <strong>Select an employee</strong>
+              <span>Choose a team member from the list to make balance adjustments.</span>
             </div>
           )}
         </aside>
