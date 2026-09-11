@@ -592,7 +592,7 @@ describe("admin leave workspace", () => {
       "/admin/leave?month=2026-08",
     );
 
-    const manageButton = screen.getByRole("button", { name: "Manage leave" });
+    const manageButton = screen.getByRole("button", { name: "Leave schedule" });
     expect(screen.queryByRole("menuitem", { name: "Adjust balances" })).not.toBeInTheDocument();
     await user.click(manageButton);
     expect(screen.getByRole("menuitem", { name: "Adjust balances" })).toHaveAttribute("href", "/admin/leave/balances");

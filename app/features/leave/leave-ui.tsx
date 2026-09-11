@@ -885,10 +885,12 @@ export function AdminLeaveHeader({
   title,
   description,
   onOpenSettings,
+  activeOption = "Leave schedule",
 }: {
   title: string;
   description?: string;
   onOpenSettings?: () => void;
+  activeOption?: "Leave schedule" | "Adjust balances" | "Manage holidays";
 }) {
   const [manageOpen, setManageOpen] = useState(false);
   
@@ -904,7 +906,7 @@ export function AdminLeaveHeader({
           <div className="manage-leave">
             <DropdownMenu.Trigger asChild>
               <button className="button secondary" type="button" id="manage-leave-button">
-                Manage leave
+                {activeOption}
                 <ChevronDown />
               </button>
             </DropdownMenu.Trigger>
@@ -1087,7 +1089,7 @@ export function AdminLeaveWorkspace({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [filtersOpen]);
   return (
-    <>
+    <TaskWorkspace label="Leave schedule" scrollMode="page">
       <AdminLeaveHeader 
         title="Leave schedule" 
         onOpenSettings={() => setSettingsOpen(true)}
@@ -1358,7 +1360,7 @@ export function AdminLeaveWorkspace({
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-    </>
+    </TaskWorkspace>
   );
 }
 
@@ -1525,6 +1527,7 @@ export function HolidayAdmin({ holidays, today }: { holidays: HolidayRecord[]; t
       <AdminLeaveHeader 
         title="Holiday calendar"
         description="Penang public holidays and company closure days used in leave calculations."
+        activeOption="Manage holidays"
       />
       <div className="holiday-admin-grid">
         <Form method="post" className="surface leave-settings-form">
@@ -1610,6 +1613,7 @@ export function BalanceAdmin({
       <AdminLeaveHeader 
         title="Balance adjustments"
         description="Apply traceable corrections without changing leave policy defaults."
+        activeOption="Adjust balances"
       />
       <Form method="post" className="surface balance-adjust-form">
         <input type="hidden" name="intent" value="adjust-leave-balance" />
