@@ -538,6 +538,12 @@ export function EmployeeLeaveWorkspace({
   const selectedEvents = events.filter((event) =>
     rangesOverlap(selectedDate, selectedDate, event.startDate, event.endDate),
   );
+  const [queueFilter, setQueueFilter] = useState<"all" | "pending">("all");
+  const pendingRequests = ownRecords.filter((r) => r.status === "pending");
+  const displayHistory = queueFilter === "pending" ? pendingRequests : ownRecords;
+  const holidaysThisMonth = holidays.filter((h) => h.active && h.date.startsWith(month)).length;
+  const ownApprovedThisMonth = ownRecords.filter((r) => r.status === "approved" && r.startDate.startsWith(month)).length;
+
   return (
     <>
       <header className="leave-page-header">
@@ -589,13 +595,31 @@ export function EmployeeLeaveWorkspace({
       ) : null}
       <section className={`leave-workspace${requestOpen ? " request-open" : ""}`}>
         <div className="calendar-canvas surface">
-          <CalendarToolbar
-            month={month}
-            basePath="/employee/leave"
-            today={resolvedToday}
-            requestOpen={requestOpen}
-            activeView={agenda ? "agenda" : "calendar"}
-          />
+          <div className="calendar-command-area" role="region" aria-label="Calendar commands">
+            <CalendarToolbar
+              month={month}
+              basePath="/employee/leave"
+              today={resolvedToday}
+              requestOpen={requestOpen}
+              activeView={agenda ? "agenda" : "calendar"}
+            />
+            <div className="calendar-command-meta">
+              <div className="leave-command-stats" aria-label="Leave counts">
+                <span><b>{pendingRequests.length}</b> request{pendingRequests.length === 1 ? "" : "s"} pending</span>
+                <span><b>{ownApprovedThisMonth}</b> approved this month</span>
+                <span>
+                  <b>{holidaysThisMonth}</b> holiday{holidaysThisMonth === 1 ? "" : "s"} this month
+                </span>
+              </div>
+              <span className="legend">
+                <i className="approved" />
+                Your leave <i className="pending" />
+                Pending <i className="away" />
+                Team away <i className="holiday" />
+                Holiday
+              </span>
+            </div>
+          </div>
           {agenda ? (
             <Agenda events={events} month={month} />
           ) : (
@@ -630,10 +654,25 @@ export function EmployeeLeaveWorkspace({
                     <p className="eyebrow">Your activity</p>
                     <h2>Request history</h2>
                   </div>
-                  <span>{ownRecords.length} total</span>
+                  <div className="queue-filter-pills" aria-label="Filter requests">
+                    <button
+                      type="button"
+                      className={`queue-pill${queueFilter === "all" ? " active" : ""}`}
+                      onClick={() => setQueueFilter("all")}
+                    >
+                      All ({ownRecords.length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`queue-pill${queueFilter === "pending" ? " active" : ""}`}
+                      onClick={() => setQueueFilter("pending")}
+                    >
+                      Pending ({pendingRequests.length})
+                    </button>
+                  </div>
                 </div>
-                {ownRecords.length ? (
-                  ownRecords.map((record) => (
+                {displayHistory.length ? (
+                  displayHistory.map((record) => (
                     <article key={record.id}>
                       <div className="request-date">
                         <b>{Number(record.startDate.slice(8))}</b>
@@ -665,8 +704,8 @@ export function EmployeeLeaveWorkspace({
                 ) : (
                   <div className="leave-empty">
                     <CalendarDays />
-                    <strong>No requests yet</strong>
-                    <span>Use Request leave to plan your first leave.</span>
+                    <strong>{queueFilter === "pending" ? "No pending requests" : "No requests yet"}</strong>
+                    <span>{queueFilter === "pending" ? "All of your leave requests have been reviewed." : "Use Request leave to plan your first leave."}</span>
                   </div>
                 )}
               </section>
