@@ -962,6 +962,8 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 	const totalMins=todayRecords.reduce((sum,r)=>sum+(r.workedMinutes??0),0);
 	const annual=data.balances.find((b)=>b.leaveTypeId==="leave-annual");
 	const annualAvailable=annual?calculateProjectedBalance(annual).availableHalfDays/2:0;
+	const medical=data.balances.find((b)=>b.leaveTypeId==="leave-medical");
+	const medicalAvailable=medical?calculateProjectedBalance(medical).availableHalfDays/2:0;
 	const latestPayslip=data.payslips[0];
 	const todayLabel=`${date(data.today,{weekday:"long"})} · ${date(data.today,{day:"numeric",month:"long"})}`;
 
@@ -984,7 +986,7 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 						<p className="eyebrow">Today’s workday</p>
 						<h2>Attendance &amp; shift</h2>
 					</div>
-					<Link to="/employee/attendance">Shift activity</Link>
+					<Link to="/employee/attendance">Timesheet →</Link>
 				</div>
 
 				<div className="employee-shift-banner">
@@ -1014,10 +1016,10 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 
 				<div className="section-head" style={{ marginTop: "24px", marginBottom: "12px" }}>
 					<div>
-						<p className="eyebrow">For you</p>
+						<p className="eyebrow">Activity</p>
 						<h2>Recent updates</h2>
 					</div>
-					<Link to="/employee/notifications">View all</Link>
+					<Link to="/employee/notifications">View all →</Link>
 				</div>
 				{data.notifications.length ? (
 					data.notifications.slice(0, 3).map((n) => (
@@ -1043,17 +1045,25 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 						<p className="eyebrow">Personal overview</p>
 						<h2>Balances &amp; pay</h2>
 					</div>
-					<Link to="/employee/profile">My profile</Link>
+					<Link to="/employee/leave">Request leave →</Link>
 				</div>
 
-				<div className="employee-balance-card">
-					<div className="balance-card-info">
-						<span className="balance-card-label">Annual leave balance</span>
-						<strong className="balance-card-value">{annualAvailable} days</strong>
-						<small className="balance-card-sub">Available for scheduling</small>
-					</div>
-					<Link className="button secondary" to="/employee/leave" style={{ alignSelf: "center" }}>
-						<CalendarDays size={14}/>Request leave
+				<div className="employee-balance-grid">
+					<Link to="/employee/leave" className="balance-tile">
+						<div className="balance-tile-head">
+							<span className="balance-tile-tag">Annual</span>
+							<CalendarDays size={14}/>
+						</div>
+						<strong className="balance-tile-num">{annualAvailable}</strong>
+						<small>Days available</small>
+					</Link>
+					<Link to="/employee/leave" className="balance-tile">
+						<div className="balance-tile-head">
+							<span className="balance-tile-tag">Medical</span>
+							<ShieldCheck size={14}/>
+						</div>
+						<strong className="balance-tile-num">{medicalAvailable}</strong>
+						<small>Days available</small>
 					</Link>
 				</div>
 
