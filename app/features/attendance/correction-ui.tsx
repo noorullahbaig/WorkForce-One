@@ -6,7 +6,7 @@ import {
   useSearchParams,
 } from "react-router";
 import { useState } from "react";
-import { LoaderCircle } from "lucide-react";
+import { ChevronRight, LoaderCircle } from "lucide-react";
 import {
   Status,
   Empty,
@@ -14,7 +14,7 @@ import {
   TaskWorkspace,
   WorkspaceHeader,
 } from "../../components/portal-ui";
-import { date } from "../../lib/format";
+import { date, initials } from "../../lib/format";
 import {
   calculateAttendance,
   NORMAL_DAY_MINUTES,
@@ -32,6 +32,7 @@ export const duration = (minutes: number | null) =>
   minutes === null
     ? "Incomplete"
     : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+
 const timestamp = (value: string | null) =>
   value
     ? date(value, {
@@ -40,9 +41,9 @@ const timestamp = (value: string | null) =>
         year: "numeric",
         hour: "numeric",
         minute: "2-digit",
-        second: "2-digit",
       })
     : "Not recorded";
+
 function Comparison({
   originalIn,
   originalOut,
@@ -57,7 +58,7 @@ function Comparison({
   return (
     <div className="correction-comparison">
       <section>
-        <h3>Original record</h3>
+        <p className="balance-field-label">Original record</p>
         <dl>
           <dt>Clock in</dt>
           <dd>{timestamp(originalIn)}</dd>
@@ -66,7 +67,7 @@ function Comparison({
         </dl>
       </section>
       <section>
-        <h3>Proposed correction</h3>
+        <p className="balance-field-label">Proposed correction</p>
         <dl>
           <dt>Clock in</dt>
           <dd>{timestamp(proposedIn)}</dd>
@@ -77,6 +78,7 @@ function Comparison({
     </div>
   );
 }
+
 export function CorrectionForm({
   record,
   records,
@@ -118,7 +120,7 @@ export function CorrectionForm({
         </Link>
       </div>
       <section className="correction-original">
-        <h3>Original record</h3>
+        <p className="balance-field-label">Original record</p>
         <p>
           Clock in: {timestamp(record.clockIn)}
           <br />
@@ -214,6 +216,7 @@ export function CorrectionForm({
     </section>
   );
 }
+
 function RequestSummary({ request }: { request: CorrectionRequest }) {
   return (
     <details className="correction-request-history">
@@ -239,6 +242,7 @@ function RequestSummary({ request }: { request: CorrectionRequest }) {
     </details>
   );
 }
+
 export function EmployeeCorrectionHistory({
   records,
   corrections,
@@ -321,6 +325,7 @@ export function EmployeeCorrectionHistory({
     </>
   );
 }
+
 function Review({
   request,
   periods,
@@ -346,6 +351,12 @@ function Review({
     (p) => p.periodStart <= request.workDate && p.periodEnd >= request.workDate,
   );
   const action = useActionData<CorrectionResult>();
+
+  const workedDelta =
+    request.originalWorkedMinutes !== null
+      ? result.workedMinutes! - request.originalWorkedMinutes
+      : null;
+
   return (
     <section
       className="surface correction-panel"
@@ -354,76 +365,80 @@ function Review({
       <Link className="correction-back" to={backHref}>
         ← Back to corrections
       </Link>
-      <div className="section-head">
+
+      {/* Identity anchor */}
+      <div className="review-person">
+        <i className="review-avatar">{initials(request.fullName)}</i>
         <div>
-          <p className="eyebrow">
-            {request.employeeCode} · {date(request.workDate)}
-          </p>
-          <h2 id="correction-review-title">{request.fullName}</h2>
+          <strong>{request.fullName}</strong>
+          <small>{request.employeeCode} · {date(request.workDate, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</small>
         </div>
         <Status value={request.status} />
       </div>
+
+      {/* Time comparison */}
+      <p className="balance-field-label" style={{ marginTop: "16px" }}>Time comparison</p>
       <Comparison
         originalIn={request.originalClockIn}
         originalOut={request.originalClockOut}
         proposedIn={request.proposedClockIn}
         proposedOut={request.proposedClockOut}
       />
-      <p className="correction-reason">
-        <strong>Employee reason</strong>
-        <br />
-        {request.reason}
-      </p>
-      <div className="correction-preview">
+
+      {/* Impact preview */}
+      <div className="correction-preview" style={{ marginBottom: "16px" }}>
         <strong>
           {duration(result.workedMinutes)} worked ·{" "}
           {duration(result.overtimeMinutes)} overtime
         </strong>
         <p>
-          Original: {duration(request.originalWorkedMinutes)} worked ·{" "}
+          Previously: {duration(request.originalWorkedMinutes)} worked ·{" "}
           {duration(request.originalOvertimeMinutes)} overtime
-        </p>
-        <p>
-          Change:{" "}
-          {request.originalWorkedMinutes === null
-            ? "previously incomplete"
-            : `${result.workedMinutes! - request.originalWorkedMinutes} worked minutes`}
-          ;{" "}
-          {request.originalOvertimeMinutes === null
-            ? "overtime previously incomplete"
-            : `${result.overtimeMinutes! - request.originalOvertimeMinutes} overtime minutes`}
-          .
+          {workedDelta !== null && (
+            <> · <span className={workedDelta >= 0 ? "delta-positive" : "delta-negative"}>{workedDelta >= 0 ? "+" : ""}{workedDelta} min</span></>
+          )}
         </p>
       </div>
-      <section className="correction-payroll">
-        <h3>Payroll context</h3>
-        <p>
-          Pay basis: {request.salaryType}. Attendance changes affect regular and
-          overtime inputs; they are not an exact take-home-pay adjustment.
-        </p>
-        {affected.map((p) => (
-          <p key={p.id}>
-            <Link to={`/admin/payroll/${p.id}`}>{p.period} payroll</Link> ·{" "}
-            <Status value={p.status} />
-          </p>
-        ))}
-        {!affected.length && <p>No payroll run exists for this date.</p>}
-        {affected.some((p) => p.status === "finalised") && (
-          <p className="correction-warning" role="note">
-            <strong>Finalised payroll period</strong>
-            <br />
-            Approval updates attendance only. Finalised payroll calculations
-            and payslips remain unchanged.
-          </p>
-        )}
-        {request.status === "pending" &&
-          affected.some((p) => p.status === "draft") && (
-            <p>
-              This pending request blocks finalisation of the matching payroll
-              period.
+
+      {/* Employee reason */}
+      <p className="balance-field-label">Employee's reason</p>
+      <p className="correction-reason" style={{ marginBottom: "16px", fontSize: ".85rem", lineHeight: 1.6 }}>
+        {request.reason}
+      </p>
+
+      {/* Payroll context */}
+      {affected.length > 0 && (
+        <>
+          <p className="balance-field-label">Payroll context</p>
+          <div className="correction-payroll">
+            <p style={{ fontSize: ".83rem", marginTop: 0 }}>
+              Pay basis: {request.salaryType}. Attendance changes affect regular and overtime inputs; they are not an exact take-home-pay adjustment.
             </p>
-          )}
-      </section>
+            {affected.map((p) => (
+              <p key={p.id} style={{ fontSize: ".83rem" }}>
+                <Link to={`/admin/payroll/${p.id}`}>{p.period} payroll</Link> ·{" "}
+                <Status value={p.status} />
+              </p>
+            ))}
+            {affected.some((p) => p.status === "finalised") && (
+              <p className="correction-warning" role="note">
+                <strong>Finalised payroll period</strong>
+                <br />
+                Approval updates attendance only. Finalised payroll calculations
+                and payslips remain unchanged.
+              </p>
+            )}
+            {request.status === "pending" &&
+              affected.some((p) => p.status === "draft") && (
+                <p style={{ fontSize: ".83rem" }}>
+                  This pending request blocks finalisation of the matching payroll period.
+                </p>
+              )}
+          </div>
+        </>
+      )}
+
+      {/* Staleness warning */}
       {request.status === "pending" && !!request.stale && (
         <p className="correction-warning" role="alert">
           <strong>Attendance changed since submission.</strong>
@@ -433,62 +448,76 @@ function Review({
           employee to submit current values.
         </p>
       )}
+
       {request.rejectionReason && (
         <p className="correction-error">
           <strong>Rejection reason:</strong> {request.rejectionReason}
         </p>
       )}
-      {request.reviewedAt && <p>Reviewed {date(request.reviewedAt)}</p>}
+      {request.reviewedAt && <p style={{ fontSize: ".83rem", color: "var(--muted)" }}>Reviewed {date(request.reviewedAt)}</p>}
+
+      {/* Decision form */}
       {request.status === "pending" && (
-        <Form method="post" className="correction-form">
-          <input
-            type="hidden"
-            name="intent"
-            value="review-attendance-correction"
-          />
-          <input type="hidden" name="id" value={request.id} />
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <>
+          <p className="balance-field-label" style={{ marginTop: "16px" }}>Your decision</p>
+          <Form method="post" className="correction-form">
+            <input
+              type="hidden"
+              name="intent"
+              value="review-attendance-correction"
+            />
+            <input type="hidden" name="id" value={request.id} />
             <label htmlFor="rejection-reason">
               Rejection reason (required to reject)
+              <textarea
+                id="rejection-reason"
+                name="rejectionReason"
+                maxLength={2000}
+                rows={3}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                disabled={navigation.state !== "idle"}
+                placeholder="Explain why this correction is being rejected…"
+              />
             </label>
-            <textarea
-              id="rejection-reason"
-              name="rejectionReason"
-              maxLength={2000}
-              rows={3}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              disabled={navigation.state !== "idle"}
-            />
-          </div>
-          {action && "error" in action && (
-            <p role="alert" className="correction-error">
-              {action.error}
-            </p>
-          )}
-          <div className="correction-actions">
-            <button
-              className="button primary"
-              name="decision"
-              value="approved"
-              disabled={!!request.stale || navigation.state !== "idle"}
-            >
-              {pendingDecision === "approved" ? <><LoaderCircle className="button-spinner" aria-hidden="true" />Approving correction…</> : "Approve correction"}
-            </button>
-            <button
-              className="button secondary"
-              name="decision"
-              value="rejected"
-              disabled={!note.trim() || navigation.state !== "idle"}
-            >
-              {pendingDecision === "rejected" ? <><LoaderCircle className="button-spinner" aria-hidden="true" />Rejecting correction…</> : "Reject correction"}
-            </button>
-          </div>
-        </Form>
+            {action && "error" in action && (
+              <p role="alert" className="correction-error">
+                {action.error}
+              </p>
+            )}
+            <div className="correction-actions">
+              <button
+                className="button primary"
+                name="decision"
+                value="approved"
+                disabled={!!request.stale || navigation.state !== "idle"}
+              >
+                {pendingDecision === "approved" ? (
+                  <><LoaderCircle className="button-spinner" aria-hidden="true" />Approving correction…</>
+                ) : (
+                  "Approve correction"
+                )}
+              </button>
+              <button
+                className="button danger-outline"
+                name="decision"
+                value="rejected"
+                disabled={!note.trim() || navigation.state !== "idle"}
+              >
+                {pendingDecision === "rejected" ? (
+                  <><LoaderCircle className="button-spinner" aria-hidden="true" />Rejecting correction…</>
+                ) : (
+                  "Reject correction"
+                )}
+              </button>
+            </div>
+          </Form>
+        </>
       )}
     </section>
   );
 }
+
 export function AdminCorrections({
   requests,
   periods,
@@ -533,20 +562,22 @@ export function AdminCorrections({
         >
           {filtered.map((r) => (
             <Link
-              className="correction-queue-row"
+              className={`correction-queue-row${r.id === selected?.id ? " is-selected" : ""}`}
               key={r.id}
               to={`?status=${status}&request=${r.id}`}
               aria-current={r.id === selected?.id ? "true" : undefined}
             >
-              <div>
-                <strong>{r.fullName}</strong>
-                <small>
-                  {r.employeeCode} · {date(r.workDate)}
-                </small>
+              <div className="correction-queue-person">
+                <i>{initials(r.fullName)}</i>
+                <div>
+                  <strong>{r.fullName}</strong>
+                  <small>
+                    {r.employeeCode} · {date(r.workDate, { weekday: "short", day: "numeric", month: "short" })}
+                  </small>
+                </div>
               </div>
-              <span className="correction-queue-reason">{r.reason}</span>
-              <Status value={r.status} />
-              <span>Review →</span>
+              <p className="correction-queue-reason">{r.reason}</p>
+              <ChevronRight size={16} className="correction-queue-chevron" />
             </Link>
           ))}
           {!filtered.length && (
