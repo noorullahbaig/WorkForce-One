@@ -3,9 +3,15 @@ import { cleanup, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { PayrollEmployeeReview } from "./payroll-employee-review";
 
 afterEach(cleanup);
+
+function renderWithRouter(element: React.ReactElement, initialPath = "/") {
+  const router = createMemoryRouter([{ path: "*", element }], { initialEntries: [initialPath] });
+  return render(<RouterProvider router={router} />);
+}
 
 const employees = Array.from({ length: 23 }, (_, index) => ({
   id: `employee-${index + 1}`,
@@ -80,6 +86,29 @@ describe("PayrollEmployeeReview", () => {
     expect(inspector).toHaveTextContent("MY Standard 2026");
     expect(inspector).toHaveTextContent("480 min");
     expect(inspector).toHaveTextContent("Travel");
+    expect(inspector).toHaveTextContent("+RM 125.00");
+    expect(inspector).toHaveTextContent("Allowance");
+    expect(inspector).toHaveTextContent("Net impact (1 item)");
+  });
+
+  test("renders deduction adjustments with negative sign, deduction pill, and net impact", () => {
+    renderWithRouter(
+      <PayrollEmployeeReview
+        employees={employees}
+        attendance={attendance}
+        adjustments={[
+          { id: "adj-1", employeeId: "employee-1", type: "deduction", description: "Uniform replacement", amountSen: 3500 },
+        ]}
+        selectedEmployeeId="employee-1"
+      />,
+    );
+
+    const inspector = screen.getByRole("region", { name: "Employee 01 payroll detail" });
+    expect(inspector).toHaveTextContent("Uniform replacement");
+    expect(inspector).toHaveTextContent("-RM 35.00");
+    expect(inspector).toHaveTextContent("Deduction");
+    expect(inspector).toHaveTextContent("Net impact (1 item)");
+    expect(screen.getByRole("button", { name: "Delete Uniform replacement" })).toBeInTheDocument();
   });
 
   test("uses stored results for finalised employee financial detail", () => {

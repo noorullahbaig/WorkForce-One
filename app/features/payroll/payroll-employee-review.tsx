@@ -1,4 +1,4 @@
-import { ChevronLeft, Plus, Search, Trash2, X } from "lucide-react";
+import { ChevronLeft, Plus, Search, ShieldCheck, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Form } from "react-router";
 import { initials, money } from "../../lib/format";
@@ -25,6 +25,7 @@ export type PayrollReviewAdjustment = {
   type: string;
   description: string;
   amountSen: number;
+  reason?: string | null;
 };
 
 export type PayrollStoredResult = {
@@ -101,6 +102,10 @@ export function PayrollEmployeeReview({
   const selectedAdjustments = selectedEmployee
     ? adjustments.filter((adjustment) => adjustment.employeeId === selectedEmployee.id)
     : [];
+  const selectedNetAdjSen = selectedAdjustments.reduce(
+    (sum, a) => sum + (a.type === "deduction" ? -a.amountSen : a.amountSen),
+    0,
+  );
   const selectedResult = selectedEmployee
     ? storedResults.find((result) => result.employeeId === selectedEmployee.id)
     : undefined;
@@ -320,15 +325,17 @@ export function PayrollEmployeeReview({
                 </dl>
 
                 <div className="payroll-input-adjustments">
-                  <div className="section-head" style={{ marginBottom: "8px", marginTop: "16px" }}>
+                  <div className="section-head" style={{ marginBottom: "10px", marginTop: "16px" }}>
                     <p className="balance-field-label" style={{ margin: 0 }}>Ad-hoc adjustments</p>
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => setShowAddAdjustment(!showAddAdjustment)}
-                    >
-                      <Plus size={14} /> {showAddAdjustment ? "Cancel" : "Add adjustment"}
-                    </button>
+                    {runStatus === "draft" && (
+                      <button
+                        type="button"
+                        className="adj-add-btn"
+                        onClick={() => setShowAddAdjustment(!showAddAdjustment)}
+                      >
+                        <Plus size={13} /> {showAddAdjustment ? "Cancel" : "Add adjustment"}
+                      </button>
+                    )}
                   </div>
 
                   {showAddAdjustment && payrollRunId && (
@@ -339,11 +346,11 @@ export function PayrollEmployeeReview({
                       <div className="form-pair tight">
                         <label>
                           Type
-                          <select name="type" required>
-                            <option value="allowance">Allowance</option>
-                            <option value="bonus">Bonus / Incentive</option>
-                            <option value="deduction">Deduction</option>
-                            <option value="pcb">PCB Tax</option>
+                          <select name="type" required defaultValue="allowance">
+                            <option value="allowance">Allowance (+)</option>
+                            <option value="bonus">Bonus / Incentive (+)</option>
+                            <option value="deduction">Deduction (-)</option>
+                            <option value="pcb">PCB Tax adjustment</option>
                           </select>
                         </label>
                         <label>
@@ -353,39 +360,82 @@ export function PayrollEmployeeReview({
                       </div>
                       <label>
                         Description
-                        <input name="description" placeholder="e.g. Travel allowance" required />
+                        <input name="description" placeholder="e.g. Travel allowance, Uniform" required />
                       </label>
-                      <PendingButton intent="add-adjustment" pendingLabel="Adding…">
-                        Add to payroll
-                      </PendingButton>
+                      <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          style={{ minHeight: "34px", padding: "0 12px", fontSize: ".76rem" }}
+                          onClick={() => setShowAddAdjustment(false)}
+                        >
+                          Cancel
+                        </button>
+                        <PendingButton intent="add-adjustment" pendingLabel="Adding…">
+                          Add to payroll
+                        </PendingButton>
+                      </div>
                     </Form>
                   )}
 
-                  {selectedAdjustments.length ? (
-                    <div className="inspector-adjustment-list">
-                      {selectedAdjustments.map((adjustment, index) => (
-                        <div className="inspector-adjustment-item" key={adjustment.id ?? `${adjustment.description}-${index}`}>
-                          <div>
-                            <strong>{adjustment.description}</strong>
-                            <small>{adjustment.type}</small>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <b>{money(adjustment.amountSen)}</b>
-                            {adjustment.id && (
-                              <Form method="post" style={{ margin: 0 }}>
-                                <input type="hidden" name="intent" value="delete-adjustment" />
-                                <input type="hidden" name="id" value={adjustment.id} />
-                                <button className="icon-button" style={{ color: "var(--danger)" }} aria-label="Delete adjustment">
-                                  <Trash2 size={14} />
-                                </button>
-                              </Form>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  {selectedAdjustments.length > 0 ? (
+                    <>
+                      <div className="adj-summary-banner">
+                        <span className="adj-summary-label">
+                          Net impact ({selectedAdjustments.length} item{selectedAdjustments.length === 1 ? "" : "s"})
+                        </span>
+                        <strong className={`adj-summary-value ${selectedNetAdjSen >= 0 ? "positive" : "negative"}`}>
+                          {selectedNetAdjSen >= 0 ? "+" : ""}{money(selectedNetAdjSen)}
+                        </strong>
+                      </div>
+                      <div className="inspector-adjustment-list">
+                        {selectedAdjustments.map((adjustment, index) => {
+                          const isDeduction = adjustment.type === "deduction";
+                          return (
+                            <div
+                              className={`inspector-adj-card ${isDeduction ? "is-deduction" : "is-addition"}`}
+                              key={adjustment.id ?? `${adjustment.description}-${index}`}
+                            >
+                              <div className="adj-card-main">
+                                <div className="adj-card-title-row">
+                                  <strong className="adj-card-name">{adjustment.description}</strong>
+                                  <span className={`adj-type-pill ${adjustment.type}`}>
+                                    {adjustment.type === "deduction" ? "Deduction" : adjustment.type === "bonus" ? "Bonus" : adjustment.type === "pcb" ? "PCB" : "Allowance"}
+                                  </span>
+                                </div>
+                                {adjustment.reason && (
+                                  <small className="adj-card-reason">{adjustment.reason}</small>
+                                )}
+                              </div>
+                              <div className="adj-card-action-row">
+                                <span className={`adj-card-amount ${isDeduction ? "negative" : "positive"}`}>
+                                  {isDeduction ? "-" : "+"}{money(adjustment.amountSen)}
+                                </span>
+                                {adjustment.id && runStatus === "draft" && (
+                                  <Form method="post" style={{ margin: 0 }}>
+                                    <input type="hidden" name="intent" value="delete-adjustment" />
+                                    <input type="hidden" name="id" value={adjustment.id} />
+                                    <button
+                                      type="submit"
+                                      className="adj-delete-btn"
+                                      aria-label={`Delete ${adjustment.description}`}
+                                      title="Remove adjustment"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </Form>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : (
-                    <p style={{ fontSize: ".76rem", color: "var(--muted)", margin: "6px 0" }}>No adjustments for this employee.</p>
+                    <div className="adj-empty-state">
+                      <ShieldCheck size={16} />
+                      <span>No ad-hoc adjustments added for this period.</span>
+                    </div>
                   )}
                 </div>
               </>

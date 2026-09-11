@@ -726,20 +726,31 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections,payslip
 				</div>
 				{runAdjustments.length > 0 ? (
 					<div className="adjustment-list">
-						{runAdjustments.map((a)=>(
-							<div className="adjustment-row" key={a.id}>
-								<span><strong>{a.fullName}</strong><small>{a.description}</small></span>
-								<span style={{textTransform:"capitalize"}}><b>{a.type}</b></span>
-								<span>{money(a.amountSen)}</span>
-								{run.status === "draft" && (
-									<Form method="post" style={{margin:0}}>
-										<input type="hidden" name="intent" value="delete-adjustment"/>
-										<input type="hidden" name="id" value={a.id}/>
-										<button className="icon-button" style={{color:"var(--danger)"}} aria-label="Delete adjustment"><Trash2 size={16}/></button>
-									</Form>
-								)}
-							</div>
-						))}
+						{runAdjustments.map((a)=>{
+							const isDeduction = a.type === "deduction";
+							return (
+								<div className="adjustment-row" key={a.id}>
+									<span><strong>{a.fullName}</strong><small>{a.description}</small></span>
+									<span>
+										<span className={`adj-type-pill ${a.type}`}>
+											{a.type === "deduction" ? "Deduction" : a.type === "bonus" ? "Bonus" : a.type === "pcb" ? "PCB" : "Allowance"}
+										</span>
+									</span>
+									<span className={`adj-card-amount ${isDeduction ? "negative" : "positive"}`}>
+										{isDeduction ? "-" : "+"}{money(a.amountSen)}
+									</span>
+									{run.status === "draft" && (
+										<Form method="post" style={{margin:0}}>
+											<input type="hidden" name="intent" value="delete-adjustment"/>
+											<input type="hidden" name="id" value={a.id}/>
+											<button className="adj-delete-btn" aria-label="Delete adjustment" title="Remove adjustment">
+												<Trash2 size={15}/>
+											</button>
+										</Form>
+									)}
+								</div>
+							);
+						})}
 					</div>
 				) : (
 					<p className="muted" style={{fontSize:".8rem",margin:"16px 0"}}>No ad-hoc adjustments added to this run yet. You can add them below or directly inside an employee's inspector card.</p>
