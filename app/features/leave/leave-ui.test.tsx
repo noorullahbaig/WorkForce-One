@@ -544,9 +544,8 @@ describe("admin leave workspace", () => {
     await user.click(screen.getByRole("button", { name: "Filters" }));
     expect(screen.getByRole("combobox", { name: "Employee" })).not.toBeNull();
     expect(screen.getByRole("combobox", { name: "Events" })).not.toBeNull();
-    expect(screen.getByRole("combobox", { name: "Status" })).not.toBeNull();
-    expect(screen.getByRole("link", { name: "Requests" })).not.toBeNull();
-    expect(screen.getByRole("link", { name: "Schedule" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: /Pending/ })).not.toBeNull();
+    expect(screen.getByRole("button", { name: /All/ })).not.toBeNull();
     expect(
       screen.getByText("0 of 2 Sales employees already away"),
     ).not.toBeNull();

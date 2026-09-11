@@ -928,10 +928,8 @@ export function AdminLeaveWorkspace({
   const employeeFilter = params.get("employee") ?? "all";
   const eventFilter = params.get("event") ?? "all";
   const statusFilter = params.get("status") ?? "all";
-  const mobilePanel =
-    params.get("panel") === "requests" ? "requests" : "calendar";
+  const [queueFilter, setQueueFilter] = useState<"pending" | "all">("pending");
   const agenda = params.get("view") === "agenda";
-  const selected = selectedId ? records.find((r) => r.id === selectedId) : undefined;
   const filtered = records.filter(
     (r) =>
       (departmentFilter === "all" || r.department === departmentFilter) &&
@@ -973,6 +971,10 @@ export function AdminLeaveWorkspace({
   const pending = records
     .filter((r) => r.status === "pending")
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const selected = selectedId
+    ? records.find((r) => r.id === selectedId)
+    : (records.find((r) => rangesOverlap(selectedDate, selectedDate, r.startDate, r.endDate)) ?? pending[0]);
+  const displayQueue = queueFilter === "pending" ? pending : records;
   const approvedThisMonth = records.filter(
     (record) =>
       record.status === "approved" && record.startDate.startsWith(month),
@@ -1036,7 +1038,7 @@ export function AdminLeaveWorkspace({
       <header className="leave-page-header admin-leave-header">
         <div>
           <p className="eyebrow">People / Leave</p>
-          <h1>{mobilePanel === "requests" ? "Leave requests" : "Leave schedule"}</h1>
+          <h1>Leave schedule</h1>
         </div>
         <div className="page-actions">
           <DropdownMenu.Root open={manageOpen} onOpenChange={setManageOpen}>
@@ -1073,23 +1075,7 @@ export function AdminLeaveWorkspace({
           </DropdownMenu.Root>
         </div>
       </header>
-      <nav className="leave-primary-tabs admin-mobile-tabs" aria-label="Admin leave workspace">
-        <Link
-          className={mobilePanel === "calendar" ? "active" : ""}
-          aria-current={mobilePanel === "calendar" ? "page" : undefined}
-          to={`/admin/leave?month=${month}&panel=schedule`}
-        >
-          Schedule
-        </Link>
-        <Link
-          className={mobilePanel === "requests" ? "active" : ""}
-          aria-current={mobilePanel === "requests" ? "page" : undefined}
-          to={`/admin/leave?month=${month}&panel=requests`}
-        >
-          Requests
-        </Link>
-      </nav>
-      <section className={`admin-leave-workspace mobile-${mobilePanel}`}>
+      <section className="admin-leave-workspace">
         <div className="calendar-canvas surface">
           <div className="calendar-command-area" role="region" aria-label="Calendar commands">
             <CalendarToolbar
@@ -1146,7 +1132,7 @@ export function AdminLeaveWorkspace({
             {filtersOpen ? (
               <Form method="get" id="leave-filter-panel" className="leave-filters">
                 <input type="hidden" name="month" value={month} />
-                {["date", "view", "panel", "request"].map((name) =>
+                {["date", "view", "request"].map((name) =>
                   params.get(name) ? (
                     <input key={name} type="hidden" name={name} value={params.get(name) ?? ""} />
                   ) : null,
@@ -1239,14 +1225,30 @@ export function AdminLeaveWorkspace({
               <p className="eyebrow">Action queue</p>
               <h2>Approval queue</h2>
             </div>
-            <span className="count">{pending.length}</span>
+            <div className="queue-filter-pills" aria-label="Filter requests">
+              <button
+                type="button"
+                className={`queue-pill${queueFilter === "pending" ? " active" : ""}`}
+                onClick={() => setQueueFilter("pending")}
+              >
+                Pending ({pending.length})
+              </button>
+              <button
+                type="button"
+                className={`queue-pill${queueFilter === "all" ? " active" : ""}`}
+                onClick={() => setQueueFilter("all")}
+              >
+                All ({records.length})
+              </button>
+            </div>
           </div>
           <div className="approval-queue">
-            {pending.length ? (
-              pending.map((record) => (
+            {displayQueue.length ? (
+              displayQueue.map((record) => (
                 <Link
                   className={record.id === selected?.id ? "active" : ""}
-                  to={`/admin/leave?month=${month}&panel=requests&request=${record.id}`}
+                  to={`/admin/leave?month=${month}&date=${record.startDate}&request=${record.id}`}
+                  preventScrollReset
                   key={record.id}
                 >
                   <i>{initials(record.fullName)}</i>
@@ -1257,7 +1259,7 @@ export function AdminLeaveWorkspace({
                       day{record.durationHalfDays === 2 ? "" : "s"}
                     </small>
                   </span>
-                  <ChevronRight />
+                  <StatusBadge status={record.status} />
                 </Link>
               ))
             ) : (
@@ -1274,7 +1276,7 @@ export function AdminLeaveWorkspace({
               records={records}
               employees={employees}
               balances={balances}
-              returnHref={`/admin/leave?month=${month}&panel=requests`}
+              returnHref={`/admin/leave?month=${month}`}
             />
           ) : null}
         </aside>
@@ -1373,8 +1375,8 @@ function ReviewInspector({
       className="review-inspector"
       aria-label={`Review ${record.fullName} request`}
     >
-      <Link className="leave-inspector-back" to={returnHref}>
-        <ChevronLeft /> Back to requests
+      <Link className="leave-inspector-back" to={returnHref} preventScrollReset>
+        <ChevronLeft /> Back to queue
       </Link>
       <div className="review-person">
         <i>{initials(record.fullName)}</i>

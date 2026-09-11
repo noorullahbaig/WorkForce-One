@@ -100,7 +100,6 @@ test("admin can switch between calendar planning and the review queue", async ({
 	await expect(page.getByRole("combobox", { name: "Events" })).toBeVisible();
 	await expect(page.getByRole("combobox", { name: "Status" })).toBeVisible();
 
-	await page.getByRole("link", { name: "Requests" }).click();
 	await expect(page.getByRole("heading", { name: "Approval queue" })).toBeVisible();
 
 	const accessibility = await new AxeBuilder({ page }).analyze();
