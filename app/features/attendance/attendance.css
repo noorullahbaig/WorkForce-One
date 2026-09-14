@@ -138,7 +138,7 @@
 .correction-form input:focus,
 .correction-form textarea:focus {
   border-color: var(--emerald);
-  box-shadow: 0 0 0 3px rgba(8, 127, 91, .1);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, .1);
   outline: 0;
 }
 .correction-form textarea::placeholder {
@@ -155,7 +155,7 @@
 /* ─── Preview strip (live hours calculation) ─── */
 .correction-preview {
   padding: 14px;
-  border: 1px solid #b8decf;
+  border: 1px solid #c7d2fe;
   border-radius: 9px;
   background: var(--mint);
   font-size: .84rem;
@@ -443,7 +443,7 @@
   margin: 4px 0 6px;
 }
 .employee-clock-info p {
-  color: #9fb3b1;
+  color: #94a3b8;
   font-size: .8rem;
   margin: 0;
   line-height: 1.5;
@@ -454,8 +454,8 @@
   margin-top: 14px;
 }
 .clock-method-toggle .button {
-  color: #9fb3b1;
-  border-color: #3a504d;
+  color: #94a3b8;
+  border-color: #334155;
 }
 .clock-method-toggle .button[aria-pressed="true"] {
   color: var(--ink);
@@ -476,8 +476,8 @@
   align-items: flex-end;
 }
 .clock-reset-btn {
-  color: #9fb3b1;
-  border-color: #3a504d;
+  color: #94a3b8;
+  border-color: #334155;
   font-size: .75rem;
 }
 

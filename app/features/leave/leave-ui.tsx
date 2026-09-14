@@ -1725,7 +1725,7 @@ export function BalanceAdmin({
                 : `${groupedEmployees.length} employees`}
             </span>
           </div>
-          <div className="balance-row head" style={{ ...gridStyle, flex: "0 0 auto", background: "#eceee9", minHeight: "38px" }}>
+          <div className="balance-row head" style={{ ...gridStyle, flex: "0 0 auto", background: "#eef1f5", minHeight: "38px" }}>
             <span>Employee</span>
             {uniqueLeaveTypes.map(lt => (
                 <span key={lt.id}>{lt.name}</span>
