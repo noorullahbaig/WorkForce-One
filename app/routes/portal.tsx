@@ -412,7 +412,7 @@ function AdminHome({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 			{missingRecords.length>0&&<Link className="action-row" to="/admin/attendance"><span className="action-icon warning"><Clock3/></span><span><strong>Resolve missing clock-outs</strong><small>{missingRecords.length} attendance record{missingRecords.length===1?"":"s"} block payroll finalisation</small></span><ChevronRight/></Link>}
 			{pending>0&&<Link className="action-row" to="/admin/leave"><span className="action-icon emerald"><CalendarDays/></span><span><strong>Review leave requests</strong><small>{pending} request waiting for a decision</small></span><ChevronRight/></Link>}
 			{draft&&<Link className="action-row" to={`/admin/payroll/${draft.id}`}><span className="action-icon ink"><WalletCards/></span><span><strong>{attendanceBlockers?`${payrollPeriod} payroll is blocked`:`Finalise ${payrollPeriod} payroll`}</strong><small>{attendanceBlockers?"Resolve attendance records before finalising":"Attendance inputs are ready for review"}</small></span><ChevronRight/></Link>}
-		</section><section className="surface"><div className="section-head"><div><p className="eyebrow">Payroll readiness</p><h2>{payrollPeriod}</h2></div><Link to={currentPayroll?`/admin/payroll/${currentPayroll.id}`:"/admin/payroll"}>Open run</Link></div><div className="payroll-readiness"><Status value={payrollState}/><p>{draft&&attendanceBlockers?`${attendanceBlockers} attendance record${attendanceBlockers===1?"":"s"} must be resolved before finalisation.`:draft?"Attendance inputs are ready for review.":"No draft run is currently open."}</p></div>{latestFinalised&&<div className="payroll-pulse compact"><span>Latest finalised · {date(latestFinalised.periodStart,{month:"long",year:"numeric"})}</span><strong>{money(latestFinalised.netTotalSen)}</strong><small>Net pay distributed</small><div><span>Gross <b>{money(latestFinalised.grossTotalSen)}</b></span><span>Deductions <b>{money(latestFinalised.deductionTotalSen)}</b></span></div></div>}</section></div>
+		</section><section className="surface"><div className="section-head"><div><p className="eyebrow">Payroll readiness</p><h2>{payrollPeriod}</h2></div><Link to={currentPayroll?`/admin/payroll/${currentPayroll.id}`:"/admin/payroll"}>Open run</Link></div><div className="payroll-readiness"><Status value={payrollState}/><p>{draft&&attendanceBlockers?`${attendanceBlockers} attendance record${attendanceBlockers===1?"":"s"} must be resolved before finalisation.`:draft?"Attendance inputs are ready for review.":"No draft run is currently open."}</p></div></section></div>
 	</>;
 }
 
@@ -1070,22 +1070,23 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 				{latestPayslip ? (
 					<Link
 						to={`/employee/payslips/${latestPayslip.id}`}
-						className="payroll-pulse compact"
-						style={{ marginTop: "18px", textDecoration: "none", cursor: "pointer", display: "flex" }}
+						className="update-row"
+						style={{ marginTop: "18px", textDecoration: "none", cursor: "pointer" }}
 					>
-						<span>Latest payslip · {date(`${latestPayslip.period}-01`, { month: "long", year: "numeric" })}</span>
-						<strong>{money(latestPayslip.netPaySen)}</strong>
-						<small>Net pay distributed · {date(latestPayslip.payDate)}</small>
-						<div>
-							<span>Gross <b>{money(latestPayslip.grossPaySen)}</b></span>
-							<span>Deductions <b>{money(latestPayslip.totalDeductionsSen)}</b></span>
-						</div>
+						<span className="action-icon ink"><WalletCards/></span>
+						<span>
+							<strong>{date(`${latestPayslip.period}-01`, { month: "long", year: "numeric" })} Payslip</strong>
+							<small>Net pay: {money(latestPayslip.netPaySen)}</small>
+						</span>
+						<ChevronRight/>
 					</Link>
 				) : (
-					<div className="payroll-pulse compact" style={{ marginTop: "18px" }}>
-						<span>Payroll status</span>
-						<strong>No payslips yet</strong>
-						<small>Finalised records will appear here</small>
+					<div className="update-row" style={{ marginTop: "18px" }}>
+						<span className="action-icon ink"><WalletCards/></span>
+						<span>
+							<strong>No payslips yet</strong>
+							<small>Finalised records will appear here</small>
+						</span>
 					</div>
 				)}
 			</section>
