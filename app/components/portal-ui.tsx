@@ -5,8 +5,8 @@ import {
   LoaderCircle,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useNavigation } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useNavigation } from "react-router";
 
 type NavigationState = "idle" | "loading" | "submitting";
 
@@ -71,39 +71,76 @@ export function NavigationFeedback({
   );
 }
 
-export function ActionToast({
-  result,
-}: {
-  result: { ok: string } | { error: string };
-}) {
+export function hasInlineErrorOwner(intent: string, path: string, search: string) {
+  const params = new URLSearchParams(search);
+  return (intent === "apply-leave" && path === "/employee/leave" && params.get("request") === "new") ||
+    (intent === "request-attendance-correction" && path === "/employee/attendance" && params.has("correct")) ||
+    (intent === "review-attendance-correction" && path === "/admin/attendance/corrections" && params.has("request"));
+}
+
+export type ActionFeedback = ({ ok: string } | { error: string }) & {
+  intent?: string;
+  submissionId?: string;
+  feedbackPath?: string;
+};
+
+export function ActionToast({ result }: { result: ActionFeedback }) {
   const [visible, setVisible] = useState(true);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const remaining = useRef(4000);
   const isError = "error" in result;
   const message = isError ? result.error : result.ok;
-
   useEffect(() => {
-    const timeout = window.setTimeout(() => setVisible(false), 6000);
-    return () => window.clearTimeout(timeout);
-  }, []);
-
+    remaining.current = 4000;
+    setVisible(true);
+  }, [result]);
+  useEffect(() => {
+    if (!visible || isError || hovered || focused) return;
+    const started = Date.now();
+    const timeout = window.setTimeout(() => setVisible(false), remaining.current);
+    return () => {
+      window.clearTimeout(timeout);
+      remaining.current = Math.max(0, remaining.current - (Date.now() - started));
+    };
+  }, [result, visible, isError, hovered, focused]);
   if (!visible) return null;
-  return (
-    <div
-      className={`toast ${isError ? "danger" : "success"}`}
-      role={isError ? "alert" : "status"}
-      aria-live={isError ? "assertive" : "polite"}
-    >
-      {isError ? <AlertTriangle aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
-      <span>{message}</span>
-      <button
-        type="button"
-        aria-label="Dismiss notification"
-        onClick={() => setVisible(false)}
-      >
-        <X aria-hidden="true" />
-      </button>
-    </div>
-  );
+  return <div className={`toast ${isError ? "danger" : "success"}`}
+    role={isError ? "alert" : "status"}
+    onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+    onFocusCapture={() => setFocused(true)}
+    onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+    {isError ? <AlertTriangle aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
+    <span>{message}</span>
+    <button type="button" aria-label="Dismiss notification" onClick={() => { setVisible(false); setHovered(false); setFocused(false); }}><X aria-hidden="true" /></button>
+  </div>;
 }
+
+/** Redirect confirmations are consumed once, outside the working surface. */
+export function SubmissionNotice() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [flash, setFlash] = useState<{ result: ActionFeedback; path: string; search: string } | null>(null);
+  const consumed = useRef(new Set<string>());
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (location.pathname === "/employee/leave" && params.get("notice") === "leave-submitted") {
+      const id = params.get("noticeId") ?? location.key;
+      params.delete("notice");
+      params.delete("noticeId");
+      const search = params.size ? `?${params.toString()}` : "";
+      if (!consumed.current.has(id)) {
+        consumed.current.add(id);
+        setFlash({result:{ok:"Leave request sent for approval.", submissionId:id, intent:"apply-leave"}, path:location.pathname, search});
+      }
+      void navigate({pathname:location.pathname, search}, {replace:true, preventScrollReset:true});
+    } else {
+      setFlash(current => current && (current.path !== location.pathname || current.search !== location.search) ? null : current);
+    }
+  }, [location.pathname, location.search, location.key, navigate]);
+  return flash ? <ActionToast result={flash.result} /> : null;
+}
+
 export function PageHeader({
   eyebrow,
   title,

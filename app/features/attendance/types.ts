@@ -43,7 +43,7 @@ export type CorrectionRequest = {
   currentClockIn: string | null;
   currentClockOut: string | null;
 };
-export type CorrectionResult = { ok: string } | { error: string };
+export type CorrectionResult = ({ ok: string } | { error: string }) & { intent?: string; submissionId?: string };
 export type PayrollPeriod = {
   id: string;
   period: string;

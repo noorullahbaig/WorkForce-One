@@ -136,6 +136,21 @@ describe("employee leave workspace", () => {
     expect(screen.getByRole("link", {name: "Request leave"})).toHaveFocus();
   });
 
+  test("does not allocate calendar space for submission confirmation", () => {
+    renderRoute(<EmployeeLeaveWorkspace employeeId="emp-001" ownRecords={[]} sharedRecords={[]} balances={balances} holidays={holidays} today="2026-08-27" />, "/employee/leave?notice=leave-submitted");
+    expect(screen.queryByText("Leave request sent for approval.")).not.toBeInTheDocument();
+  });
+  test("agenda includes leave continuing from the previous month with full dates", () => {
+    renderRoute(<EmployeeLeaveWorkspace employeeId="emp-001" ownRecords={[leaveRecord({startDate:"2026-07-30",endDate:"2026-08-03"})]} sharedRecords={[]} balances={balances} holidays={[]} today="2026-08-27" />, "/employee/leave?month=2026-08&view=agenda");
+    const agenda = screen.getByRole("region", {name:"Leave agenda"});
+    expect(agenda).toHaveTextContent("Your leave");
+    expect(agenda).toHaveTextContent("30 Jul 2026 to 3 Aug 2026");
+  });
+  test("bounds pagination for a large request history", () => {
+    renderRoute(<EmployeeLeaveWorkspace employeeId="emp-001" ownRecords={Array.from({length:1000},(_,i)=>leaveRecord({id:String(i)}))} sharedRecords={[]} balances={balances} holidays={[]} today="2026-08-27" />, "/employee/leave?panel=requests");
+    expect(within(screen.getByRole("navigation", {name:"Leave request pages"})).getAllByRole("button").length).toBeLessThanOrEqual(9);
+  });
+
   test("makes an explicit calendar URL available for the mobile agenda default", () => {
     renderRoute(
       <EmployeeLeaveWorkspace
@@ -204,7 +219,7 @@ describe("employee leave workspace", () => {
     expect(day.querySelector(".calendar-event.pending")).toBeInTheDocument();
     expect(
       within(day).getByRole("link", {
-        name: "Friday, 28 August, 3 people away",
+        name: /^Friday, 28 August, 3 people away/,
       }),
     ).toBeInTheDocument();
   });
@@ -255,7 +270,7 @@ describe("employee leave workspace", () => {
     expect(holiday.querySelector(".calendar-event.holiday")).toBeInTheDocument();
     expect(
       within(holiday).getByRole("link", {
-        name: "Monday, 31 August, 0 people away",
+        name: /^Monday, 31 August, 0 people away/,
       }),
     ).toBeInTheDocument();
   });

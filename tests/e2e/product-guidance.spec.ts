@@ -136,8 +136,8 @@ test("payroll review controls and coach mark fit the mobile viewport", async ({ 
 	await page.getByRole("button", { name: "Not now" }).click();
 	await page.goto("/admin/payroll/payroll-2026-08");
 	await expect(page.getByRole("heading", { name: "Employee pay review" })).toBeVisible();
-	await expect(page.getByText("Showing 1–10 of 10 employees")).toBeVisible();
+	await expect(page.getByText("10 employees")).toBeVisible();
 	await page.getByLabel("Search employees").fill("MC-1001");
-	await expect(page.getByText("Showing 1–1 of 1 employee")).toBeVisible();
+	await expect(page.getByText("Showing 1 of 10")).toBeVisible();
 	await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

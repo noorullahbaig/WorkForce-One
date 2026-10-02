@@ -14,7 +14,7 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Form, Link, useNavigate, useSearchParams } from "react-router";
+import { Form, Link, useActionData, useNavigation, useNavigate, useSearchParams } from "react-router";
 import {
 	calculateLeaveDurationHalfDays,
 	calculateProjectedBalance,
@@ -97,7 +97,7 @@ function useListPageSize() {
 function ListPagination({ page, pageCount, total, pageSize, label, onPage }: { page: number; pageCount: number; total: number; pageSize: number; label: string; onPage: (page: number) => void }) {
   const first = total ? (page - 1) * pageSize + 1 : 0;
   const last = Math.min(page * pageSize, total);
-  return <div className="payroll-pagination list-pagination"><p>Showing {first}–{last} of {total}</p><nav aria-label={label}><button type="button" disabled={page === 1} onClick={() => onPage(page - 1)}><ChevronLeft />Previous</button>{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <button type="button" key={number} aria-current={number === page ? "page" : undefined} className={number === page ? "active" : ""} onClick={() => onPage(number)}>{number}</button>)}<button type="button" disabled={page === pageCount} onClick={() => onPage(page + 1)}>Next<ChevronRight /></button></nav></div>;
+  return <div className="payroll-pagination list-pagination"><p>Showing {first}–{last} of {total}</p><nav aria-label={label}><button type="button" disabled={page === 1} onClick={() => onPage(page - 1)}><ChevronLeft />Previous</button>{Array.from(new Set([1, ...Array.from({length:5}, (_, i) => page - 2 + i).filter(number => number > 1 && number < pageCount), pageCount])).sort((a,b)=>a-b).map((number, index, pages) => <span key={number} className="pagination-slot">{index > 0 && number - pages[index - 1] > 1 ? <span aria-hidden="true">…</span> : null}<button type="button" aria-current={number === page ? "page" : undefined} className={number === page ? "active" : ""} onClick={() => onPage(number)}>{number}</button></span>)}<button type="button" disabled={page === pageCount} onClick={() => onPage(page + 1)}>Next<ChevronRight /></button></nav></div>;
 }
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -198,6 +198,7 @@ function CalendarToolbar({
     if (requestOpen) next.set("request", "new");
     else if (params.get("request") === "new") next.delete("request");
     next.delete("notice");
+    next.delete("noticeId");
     return `${basePath}?${next.toString()}`;
   };
   const todayParams = new URLSearchParams(params);
@@ -278,6 +279,18 @@ function SharedCalendar({
   selectedDate: string;
   today: string;
 }) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [rowHeight, setRowHeight] = useState(160);
+  const density = rowHeight >= 100 ? "comfortable" : rowHeight >= 62 ? "compact" : "minimal";
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || typeof ResizeObserver === "undefined") return;
+    const update = () => setRowHeight(Math.max(40, (viewport.clientHeight - 30 - 6) / 6));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const mounted = useRef(false);
@@ -307,10 +320,11 @@ function SharedCalendar({
     next.set("month", nextDay.slice(0, 7));
     next.set("date", nextDay);
     next.delete("notice");
+    next.delete("noticeId");
     navigate(`${basePath}?${next.toString()}`, { preventScrollReset: true });
   };
   return (
-    <div className="leave-calendar" role="grid" aria-label={label}>
+    <div className="calendar-viewport" ref={viewportRef}><div className="leave-calendar" data-density={density} role="grid" aria-label={label}>
       <div className="calendar-row" role="row">
         {DAY_NAMES.map((name) => (
           <div className="calendar-weekday" role="columnheader" key={name}>
@@ -332,6 +346,12 @@ function SharedCalendar({
             const calendarEvents = dayEvents.filter(
               (event) => !event.confirmedAway || event.kind === "own",
             );
+            const capacity = Math.max(1, Math.floor((rowHeight - 36) / 20));
+            const showPeople = density === "comfortable" && confirmedPeople.length > 0;
+            const summaryOnly = density === "minimal" || (capacity === 1 && calendarEvents.length + (confirmedPeople.length ? 1 : 0) > 1);
+            const eventSlots = Math.max(0, capacity - (confirmedPeople.length ? 1 : 0));
+            const displayedEvents = calendarEvents.slice(0, calendarEvents.length > eventSlots ? Math.max(0, eventSlots - 1) : eventSlots);
+            const hiddenEvents = calendarEvents.length - displayedEvents.length;
             const isToday = day === today;
             const isSelected = day === selectedDate;
             const dayLabel = date(day, {
@@ -343,6 +363,7 @@ function SharedCalendar({
             next.set("month", day.slice(0, 7));
             next.set("date", day);
             next.delete("notice");
+            next.delete("noticeId");
             return (
               <div
                 className={`calendar-day${day.slice(0, 7) !== month ? " outside" : ""}${isToday ? " today" : ""}${isSelected ? " selected" : ""}`}
@@ -355,7 +376,7 @@ function SharedCalendar({
                   className="calendar-date"
                   to={`${basePath}?${next.toString()}`}
                   data-calendar-date={day}
-                  aria-label={`${dayLabel}, ${confirmedPeople.length} ${confirmedPeople.length === 1 ? "person" : "people"} away`}
+                  aria-label={`${dayLabel}, ${confirmedPeople.length} ${confirmedPeople.length === 1 ? "person" : "people"} away${dayEvents.length ? `; ${dayEvents.map(event => event.meta ? `${event.label}, ${event.meta}` : event.label).join("; ")}` : ""}`}
                   aria-current={isToday ? "date" : undefined}
                   tabIndex={isSelected ? 0 : -1}
                   preventScrollReset
@@ -366,7 +387,7 @@ function SharedCalendar({
                 >
                   {Number(day.slice(8))}
                 </Link>
-                {confirmedPeople.length ? (
+                {showPeople ? (
                   <div className="confirmed-away" aria-hidden="true">
                     <strong>{confirmedPeople.length} away</strong>
                     <span className="confirmed-away-people">
@@ -389,8 +410,9 @@ function SharedCalendar({
                     </span>
                   </div>
                 ) : null}
-                <div className="calendar-events">
-                  {calendarEvents.slice(0, 3).map((event) => (
+                {summaryOnly ? (dayEvents.length ? <span className="calendar-summary" title={dayEvents.map(event => `${event.label}: ${event.meta ?? ""}`).join("; ")}>{dayEvents.length} {dayEvents.length === 1 ? "event" : "events"}</span> : null) : <div className="calendar-events">
+                  {!showPeople && confirmedPeople.length ? <span className="calendar-event away"><b>{confirmedPeople.length} away</b></span> : null}
+                  {displayedEvents.map((event) => (
                     <span
                       className={`calendar-event ${event.kind}`}
                       title={event.meta ?? event.label}
@@ -403,22 +425,22 @@ function SharedCalendar({
                       <b>{event.label}</b>
                     </span>
                   ))}
-                  {calendarEvents.length > 3 ? (
-                    <small>+{calendarEvents.length - 3} more</small>
+                  {hiddenEvents > 0 ? (
+                    <small>+{hiddenEvents} more</small>
                   ) : null}
-                </div>
+                </div>}
               </div>
             );
           })}
         </div>
       ))}
-    </div>
+    </div></div>
   );
 }
 
 function Agenda({ events, month }: { events: CalendarEvent[]; month: string }) {
   const sorted = [...events]
-    .filter((event) => event.startDate.startsWith(month))
+    .filter((event) => rangesOverlap(`${month}-01`, `${month}-${daysInMonth(month)}`, event.startDate, event.endDate))
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
   return (
     <section className="leave-agenda" aria-label="Leave agenda">
@@ -431,6 +453,7 @@ function Agenda({ events, month }: { events: CalendarEvent[]; month: string }) {
             <span className={`event-dot ${event.kind}`} />
             <div>
               <strong>{event.label}</strong>
+              <small>{date(event.startDate)} to {date(event.endDate)}</small>
               <small>
                 {event.meta ??
                   (event.startDate === event.endDate
@@ -557,6 +580,7 @@ export function EmployeeLeaveWorkspace({
     next.set("month", month);
     next.set("date", selectedDate);
     next.delete("notice");
+    next.delete("noticeId");
     for (const [key, value] of Object.entries(changes)) {
       if (value === null) next.delete(key);
       else next.set(key, value);
@@ -586,7 +610,6 @@ export function EmployeeLeaveWorkspace({
         <Link to={href({panel: "schedule", request: null})} className={panel === "schedule" ? "active" : ""} aria-current={panel === "schedule" ? "page" : undefined} preventScrollReset>Schedule</Link>
         <Link to={href({panel: "requests", request: null})} className={panel === "requests" ? "active" : ""} aria-current={panel === "requests" ? "page" : undefined} preventScrollReset>My requests</Link>
       </nav>
-      {params.get("notice") === "leave-submitted" ? <div className="alert success" role="status"><Check /><span>Leave request sent for approval.</span></div> : null}
       {panel === "schedule" || requestOpen ? (
         <section className={`leave-workspace employee-leave-workspace${requestOpen ? " request-open" : ""}`}>
         <div className="calendar-canvas surface">
@@ -605,6 +628,11 @@ export function EmployeeLeaveWorkspace({
                 <span>
                   <b>{holidaysThisMonth}</b> holiday{holidaysThisMonth === 1 ? "" : "s"} this month
                 </span>
+              </div>
+              <button type="button" className="compact-legend-button" popoverTarget="employee-calendar-legend">Legend</button>
+              <div id="employee-calendar-legend" className="calendar-legend-popover" popover="auto">
+                <strong>Calendar legend</strong><p>Your leave · Pending · Team away · Holiday</p>
+                <p>Select a date to see every event and its status.</p>
               </div>
               <span className="legend">
                 <i className="approved" />
@@ -749,6 +777,9 @@ function RequestPanel({
   today: string;
   backdateDays: number;
 }) {
+  const actionResult = useActionData<{error?: string; intent?: string}>();
+  const navigation = useNavigation();
+  const error = navigation.state === "idle" && actionResult?.intent === "apply-leave" ? actionResult.error : undefined;
   const [params] = useSearchParams();
   const returnParams = new URLSearchParams(params);
   returnParams.delete("request");
@@ -881,6 +912,7 @@ function RequestPanel({
           </>
         )}
       </div>
+      {error ? <p className="correction-error" role="alert">{error}</p> : null}
       <PendingButton
         className="button primary wide"
         intent="apply-leave"
@@ -1085,6 +1117,7 @@ export function AdminLeaveWorkspace({
       : ["department", "employee", "event", "status"];
     names.forEach((name) => next.delete(name));
     next.delete("notice");
+    next.delete("noticeId");
     return `/admin/leave?${next.toString()}`;
   };
   const closeFilters = () => {

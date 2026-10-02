@@ -195,7 +195,7 @@ export function CorrectionForm({
             </p>
           )}
         </div>
-        {action && "error" in action && (
+        {navigation.state === "idle" && action && "error" in action && (!action.intent || action.intent === "request-attendance-correction") && (
           <p role="alert" className="correction-error">
             {action.error}
           </p>
@@ -490,7 +490,7 @@ function Review({
                 placeholder="Explain why this correction is being rejected…"
               />
             </label>
-            {action && "error" in action && (
+            {navigation.state === "idle" && action && "error" in action && (!action.intent || action.intent === "review-attendance-correction") && (
               <p role="alert" className="correction-error">
                 {action.error}
               </p>

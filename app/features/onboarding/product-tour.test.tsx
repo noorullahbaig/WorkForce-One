@@ -21,6 +21,13 @@ function NavigationTargets() {
 }
 
 describe("ProductTour", () => {
+  test("does not invite on task pages but still supports explicit replay", async () => {
+    const {rerender}=render(<ProductTour role="employee" invitationAllowed={false}/>);
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    rerender(<ProductTour role="employee" invitationAllowed={false} replayToken={1}/>);
+    expect(await screen.findByRole("dialog",{name:"Your employee home"})).toBeVisible();
+  });
+
   test("walks through the administrator navigation and remembers completion", async () => {
     const user = userEvent.setup();
     render(

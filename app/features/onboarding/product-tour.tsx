@@ -73,10 +73,12 @@ export function tourStorageKey(role: ProductTourRole) {
 export function ProductTour({
   role,
   replayToken = 0,
+  invitationAllowed = true,
   onOpenChange,
 }: {
   role: ProductTourRole;
   replayToken?: number;
+  invitationAllowed?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -140,7 +142,7 @@ export function ProductTour({
     setOpen(false);
   }
 
-  if (invitationOpen && !open) {
+  if (invitationOpen && invitationAllowed && !open) {
     return (
       <aside className="product-tour-invitation" aria-labelledby="tour-invitation-title">
         <Compass aria-hidden="true" />

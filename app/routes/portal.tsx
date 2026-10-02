@@ -2,6 +2,8 @@ import { finalisePayroll } from '../features/payroll/finalise.server';
 import { attendanceClockAction } from '../features/attendance/clock.server';
 import {
 	ActionToast,
+	SubmissionNotice,
+	hasInlineErrorOwner,
 	Empty,
 	NavigationFeedback,
 	PageHeader,
@@ -98,7 +100,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 	};
 }
 
-export async function action({ request, context }: Route.ActionArgs) {
+export async function action(args: Route.ActionArgs) {
+  const intent = String((await args.request.clone().formData()).get("intent") ?? "");
+  const result = await handleAction(args);
+  return result instanceof Response ? result : { ...result, intent, feedbackPath:new URL(args.request.url).pathname.replace(/\.data$/, ""), submissionId: crypto.randomUUID() };
+}
+
+async function handleAction({ request, context }: Route.ActionArgs) {
 	assertSameOrigin(request);
 	const env = context.get(cloudflareContext).env;
 	const adminPath = new URL(request.url).pathname.startsWith("/admin");
@@ -163,7 +171,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 			env.DB.prepare("INSERT INTO notifications (id,user_id,title,body,href,created_at) VALUES (?,'user-admin','Leave request needs review',?,'/admin/leave',?)").bind(crypto.randomUUID(),`${user.name} requested ${duration.durationHalfDays/2} day${duration.durationHalfDays===2?"":"s"} of leave.`,now),
 			env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.submitted','leave_request',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,requestId,JSON.stringify({durationHalfDays:duration.durationHalfDays,excludedDates:duration.excludedDates}),now),
 		]);
-		return redirect(`/employee/leave?month=${start.slice(0, 7)}&date=${start}&notice=leave-submitted`);
+    const view = new URL(request.url).searchParams.get("view");
+    const viewQuery = view === "calendar" || view === "agenda" ? `&view=${view}` : "";
+    return redirect(`/employee/leave?month=${start.slice(0, 7)}&date=${start}${viewQuery}&notice=leave-submitted&noticeId=${requestId}`);
 	}
 	if (intent === "withdraw-leave" && user.employeeId) {
 		const result=await env.DB.prepare("UPDATE leave_requests SET status='withdrawn',cancelled_by=?,cancelled_at=?,updated_at=? WHERE id=? AND employee_id=? AND status='pending'").bind(user.id,now,now,data.id,user.employeeId).run();
@@ -221,11 +231,11 @@ export async function action({ request, context }: Route.ActionArgs) {
 	}
 	if(intent==="save-holiday"){
 		const name=String(data.name??"").trim(),holidayDate=String(data.date??"");if(!name||!/^(\d{4})-(\d{2})-(\d{2})$/.test(holidayDate)||holidayDate<=today)return {error:"Add a future holiday date and name."};
-		const overlap=await env.DB.prepare("SELECT id FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status IN ('pending','approved') AND l.start_date<=? AND l.end_date>=? LIMIT 1").bind(user.companyId,holidayDate,holidayDate).first();if(overlap)return {error:"This date already affects a pending or approved leave request."};
+		const overlap=await env.DB.prepare("SELECT l.id FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status IN ('pending','approved') AND l.start_date<=? AND l.end_date>=? LIMIT 1").bind(user.companyId,holidayDate,holidayDate).first();if(overlap)return {error:"This date already affects a pending or approved leave request."};
 		const id=crypto.randomUUID();await env.DB.batch([env.DB.prepare("INSERT INTO holidays (id,company_id,name,date,category,region,observed,active,created_at,updated_at) VALUES (?,?,?,?,'company','MY-PENANG',0,1,?,?)").bind(id,user.companyId,name,holidayDate,now,now),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'holiday.created','holiday',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,id,JSON.stringify({name,date:holidayDate}),now)]);return {ok:"Company holiday added."};
 	}
 	if(intent==="archive-holiday"){
-		const holiday=await env.DB.prepare("SELECT id,date,category,active FROM holidays WHERE id=? AND company_id=?").bind(data.id,user.companyId).first<{id:string;date:string;category:string;active:number}>();if(!holiday||holiday.category!=="company"||!holiday.active||holiday.date<=today)return {error:"Only future company holidays can be archived."};const overlap=await env.DB.prepare("SELECT id FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status IN ('pending','approved') AND l.start_date<=? AND l.end_date>=? LIMIT 1").bind(user.companyId,holiday.date,holiday.date).first();if(overlap)return {error:"This holiday affects an existing leave request and cannot be archived."};await env.DB.batch([env.DB.prepare("UPDATE holidays SET active=0,updated_at=? WHERE id=? AND active=1").bind(now,holiday.id),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'holiday.archived','holiday',?,'{}',?)").bind(crypto.randomUUID(),user.companyId,user.id,holiday.id,now)]);return {ok:"Company holiday archived."};
+		const holiday=await env.DB.prepare("SELECT id,date,category,active FROM holidays WHERE id=? AND company_id=?").bind(data.id,user.companyId).first<{id:string;date:string;category:string;active:number}>();if(!holiday||holiday.category!=="company"||!holiday.active||holiday.date<=today)return {error:"Only future company holidays can be archived."};const overlap=await env.DB.prepare("SELECT l.id FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status IN ('pending','approved') AND l.start_date<=? AND l.end_date>=? LIMIT 1").bind(user.companyId,holiday.date,holiday.date).first();if(overlap)return {error:"This holiday affects an existing leave request and cannot be archived."};await env.DB.batch([env.DB.prepare("UPDATE holidays SET active=0,updated_at=? WHERE id=? AND active=1").bind(now,holiday.id),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'holiday.archived','holiday',?,'{}',?)").bind(crypto.randomUUID(),user.companyId,user.id,holiday.id,now)]);return {ok:"Company holiday archived."};
 	}
 	if(intent==="adjust-leave-balance"){
 		const employeeId=String(data.employeeId),leaveTypeId=String(data.leaveTypeId),deltaHalfDays=Number(data.deltaHalfDays),reason=String(data.reason??"").trim();if(!reason||!Number.isInteger(deltaHalfDays)||deltaHalfDays===0||Math.abs(deltaHalfDays)>20)return {error:"Choose a valid adjustment and add a reason."};const balance=await env.DB.prepare("SELECT b.allocated_half_days allocatedHalfDays,lt.name leaveTypeName,COALESCE((SELECT SUM(a.delta_half_days) FROM leave_balance_adjustments a WHERE a.employee_id=b.employee_id AND a.leave_type_id=b.leave_type_id),0) adjustmentHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='approved'),0) approvedHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='pending'),0) pendingHalfDays FROM leave_balances b JOIN leave_types lt ON lt.id=b.leave_type_id JOIN employees e ON e.id=b.employee_id WHERE b.employee_id=? AND b.leave_type_id=? AND e.company_id=?").bind(employeeId,leaveTypeId,user.companyId).first<{allocatedHalfDays:number;leaveTypeName?:string;adjustmentHalfDays:number;approvedHalfDays:number;pendingHalfDays:number}>();if(!balance)return {error:"Leave balance not found."};const projectedHalfDays=calculateProjectedBalance(balance).projectedHalfDays;if(projectedHalfDays+deltaHalfDays<0)return {error:"This adjustment would make the projected balance negative."};const id=crypto.randomUUID();const deltaDays=deltaHalfDays/2;const deltaFormatted=deltaDays>0?`+${deltaDays}`:`${deltaDays}`;const dayWord=Math.abs(deltaDays)===1?"day":"days";const newProjectedDays=(projectedHalfDays+deltaHalfDays)/2;const leaveName=balance.leaveTypeName||"leave";const notificationBody=`Your ${leaveName} balance was adjusted by ${deltaFormatted} ${dayWord} (${reason}). New balance: ${newProjectedDays} ${newProjectedDays===1?"day":"days"}.`;await env.DB.batch([env.DB.prepare("INSERT INTO leave_balance_adjustments (id,employee_id,leave_type_id,delta_half_days,reason,actor_user_id,created_at) VALUES (?,?,?,?,?,?,?)").bind(id,employeeId,leaveTypeId,deltaHalfDays,reason,user.id,now),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.balance_adjusted','leave_balance',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,`${employeeId}:${leaveTypeId}`,JSON.stringify({deltaHalfDays,reason}),now),env.DB.prepare("INSERT INTO notifications (id,user_id,title,body,href,created_at) SELECT ?,u.id,'Leave balance updated',?,'/employee/leave',? FROM users u WHERE u.employee_id=? AND u.company_id=?").bind(crypto.randomUUID(),notificationBody,now,employeeId,user.companyId)]);return {ok:"Leave balance adjusted."};
@@ -297,6 +307,7 @@ export default function Portal() {
 	const [railCollapsed, setRailCollapsed] = useState(false);
 	const path=location.pathname; const busy=navigation.state!=="idle";
 	const intent = String(navigation.formData?.get("intent") ?? "");
+  const inlineError = actionData && "error" in actionData && hasInlineErrorOwner(actionData.intent, path, location.search);
 	return <div className="app-shell" data-navigation={navigation.state} data-navigation-rail={railCollapsed?"collapsed":"expanded"}>
 		<AppNavigation admin={data.admin} user={data.user} unread={data.notifications.filter((item)=>!item.readAt).length} forceExpanded={tourOpen} onCollapsedChange={setRailCollapsed}/>
 		<main className={busy?"workspace is-navigating":"workspace"} aria-busy={busy}>
@@ -312,10 +323,10 @@ export default function Portal() {
 			</header>
 			{busy&&<div className="route-progress"/>}
 			{busy&&<NavigationFeedback state={navigation.state === "submitting" ? "submitting" : "loading"} intent={intent} destination={navigation.location?.pathname}/>}
-			{actionData && ("ok" in actionData || "error" in actionData) && <ActionToast key={"error" in actionData?actionData.error:actionData.ok} result={actionData}/>}
-			<div className={busy?"page-wrap":"page-wrap page-arrival"}>{data.admin?<AdminRouter path={path} data={data}/>:<EmployeeRouter path={path} data={data}/>}</div>
+			<SubmissionNotice />
+      {actionData && !(navigation.state === "submitting" && "error" in actionData) && actionData.feedbackPath === path && !inlineError && ("ok" in actionData || "error" in actionData) && <ActionToast result={actionData}/>}
+			<div className={busy?"page-wrap":"page-wrap page-arrival"}><ProductTour role={data.admin?"admin":"employee"} replayToken={tourReplay} invitationAllowed={path === "/admin" || path === "/employee"} onOpenChange={setTourOpen}/>{data.admin?<AdminRouter path={path} data={data}/>:<EmployeeRouter path={path} data={data}/>}</div>
 		</main>
-		<ProductTour role={data.admin?"admin":"employee"} replayToken={tourReplay} onOpenChange={setTourOpen}/>
 	</div>;
 }
 

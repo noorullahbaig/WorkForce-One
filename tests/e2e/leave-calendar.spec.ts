@@ -73,7 +73,7 @@ test("successful leave submission closes the form and preserves the selected dat
 	await page.getByLabel("Reason").fill("Personal appointment");
 	await page.getByRole("button", { name: "Submit leave request" }).click();
 
-	await expect(page).toHaveURL(/\/employee\/leave\?month=2099-01&date=2099-01-02&notice=leave-submitted/);
+	await expect(page).toHaveURL(/\/employee\/leave\?month=2099-01&date=2099-01-02$/);
 	await expect(page.getByRole("status")).toContainText("Leave request sent for approval.");
 	await expect(page.getByRole("complementary", { name: "Selected date details" })).toBeVisible();
 	await expect(page.getByRole("complementary", { name: "Request leave" })).toHaveCount(0);
@@ -177,5 +177,118 @@ test("employee leave fits desktop and remains usable across viewport widths", as
     if (width < 1200) await expect(page.getByRole("grid")).toBeHidden();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     if (width === 320) await page.screenshot({path: "test-results/employee-leave-mobile.png", fullPage: true});
+  }
+});
+
+
+test("calendar contents remain reachable in short desktop windows", async ({page}, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Viewport matrix runs once.");
+  test.setTimeout(90000);
+  for (const role of ["Employee","Admin"] as const) {
+  await signIn(page,role);
+  for (const width of [1024,1366]) for (const height of [550,650,768,900]) for (const collapsed of [false,true]) {
+    await page.setViewportSize({width,height});
+    await page.goto(`/${role.toLowerCase()}/leave?month=2026-08&date=2026-08-25&view=calendar`);
+    await page.waitForLoadState("networkidle");
+    const toggle=page.getByRole("button",{name:collapsed?"Collapse navigation":"Expand navigation"});
+    if (await toggle.count()) await toggle.click();
+    await expect(page.locator(".navigation-rail")).toHaveClass(collapsed?/is-collapsed/:/is-expanded/);
+    await expect.poll(()=>page.locator(".leave-calendar").getAttribute("data-density")).not.toBeNull();
+    const geometry = await page.evaluate(()=>({
+      height:innerHeight, pageHeight:document.documentElement.scrollHeight,
+      viewport:document.querySelector(".calendar-viewport").clientHeight,
+      grid:document.querySelector(".leave-calendar").getBoundingClientRect().height,
+      clipped:[...document.querySelectorAll(".calendar-date,.calendar-event,.calendar-summary,.calendar-events>small")].filter(el=>{
+        if(!el.getClientRects().length) return false;
+        const cell=el.closest(".calendar-day").getBoundingClientRect(),box=el.getBoundingClientRect();
+        return box.bottom>cell.bottom+.5 || box.right>cell.right+.5;
+      }).length,
+      minRow:Math.min(...[...document.querySelectorAll(".calendar-day")].map(el=>el.getBoundingClientRect().height)),
+    }));
+    expect(geometry.pageHeight,JSON.stringify({width,height,collapsed,geometry})).toBeLessThanOrEqual(height);
+    expect(geometry.minRow).toBeGreaterThanOrEqual(40);
+    expect(geometry.clipped,JSON.stringify({width,height,collapsed,geometry})).toBe(0);
+    expect(geometry.grid,JSON.stringify({width,height,collapsed,geometry})).toBeLessThanOrEqual(geometry.viewport+1);
+    await expect(page.getByRole("complementary",{name:"Take a quick PayME tour"})).toHaveCount(0);
+  }
+  }
+});
+
+test("submission notice is consumed without resizing the calendar", async ({page},testInfo)=>{
+  test.skip(testInfo.project.name!=="desktop","Geometry runs once.");
+  await signIn(page,"Employee");
+  await page.setViewportSize({width:1366,height:650});
+  const path="/employee/leave?month=2026-08&date=2026-08-25&view=calendar";
+  await page.goto(path);
+  const before=await page.getByRole("grid").boundingBox();
+  await page.goto(path+"&notice=leave-submitted&noticeId=test-notice");
+  await expect(page).toHaveURL(new RegExp("view=calendar$"));
+  await expect(page.getByRole("status")).toContainText("Leave request sent for approval.");
+  expect(await page.getByRole("grid").boundingBox()).toEqual(before);
+  await expect(page.getByRole("status")).toHaveCount(0,{timeout:6000});
+  expect(await page.getByRole("grid").boundingBox()).toEqual(before);
+  await page.reload();
+  await expect(page.getByText("Leave request sent for approval.")).toHaveCount(0);
+  await page.goto(path+"&notice=leave-submitted&noticeId=navigate-away");
+  await expect(page.getByRole("status")).toContainText("Leave request sent for approval.");
+  await page.getByRole("link",{name:"Payslips",exact:true}).click();
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await page.goBack();
+  await expect(page).toHaveURL(/view=calendar$/);
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await page.goForward();
+  await expect(page.getByRole("status")).toHaveCount(0);
+});
+
+
+test("leave server errors stay beside the form with one announcement", async ({page},testInfo)=>{
+  test.skip(testInfo.project.name!=="desktop","Mutates only the local demo database.");
+  await signIn(page,"Employee");
+  const path="/employee/leave?month=2099-01&date=2099-01-07&request=new";
+  await page.goto(path);
+  await page.getByLabel("Reason").fill("Server validation test");
+  await page.getByRole("button",{name:"Submit leave request"}).click();
+  await expect(page.getByRole("complementary",{name:"Selected date details"})).toBeVisible();
+  await page.goto(path);
+  await page.getByLabel("Reason").fill("Overlapping request");
+  await page.getByRole("button",{name:"Submit leave request"}).click();
+  await expect(page.getByRole("alert")).toHaveCount(1);
+  await expect(page.getByRole("complementary",{name:"Request leave"})).toContainText("dates overlap");
+  await page.waitForTimeout(7000);
+  await expect(page.getByRole("alert")).toHaveCount(1);
+  await page.getByRole("link",{name:"Cancel",exact:true}).click();
+  await page.getByRole("link",{name:"My requests",exact:true}).click();
+  await page.getByRole("link",{name:/Annual leave.*7 Jan 2099/}).click();
+  await page.getByRole("button",{name:"Withdraw request"}).click();
+  await expect(page.getByRole("complementary",{name:"Request details"})).toContainText("withdrawn");
+});
+
+test("crowded mobile dates expose their overflow and full event descriptions", async ({page},testInfo)=>{
+  test.skip(testInfo.project.name!=="mobile","Crowded mobile CSS runs once.");
+  await signIn(page,"Admin");
+  const prefix="Calendar overflow fixture";
+  const ids:string[]=[];
+  try {
+    for(let i=0;i<8;i++) {
+      const response=await page.request.post("/admin/leave/holidays",{headers:{Origin:"http://127.0.0.1:5173"},form:{intent:"save-holiday",name:`${prefix} ${i}`,date:"2099-02-02"}});
+      expect(response.ok()).toBeTruthy();
+    }
+    await page.goto(`/admin/leave/holidays?q=${encodeURIComponent(prefix)}`);
+    for(const input of await page.locator('.holiday-list article input[name="id"]').all()) ids.push(await input.inputValue());
+    expect(ids).toHaveLength(8);
+    await signIn(page,"Employee");
+    for(const width of [320,390]) {
+      await page.setViewportSize({width,height:844});
+      await page.goto("/employee/leave?month=2099-02&date=2099-02-02&view=calendar");
+      const cell=page.locator('.calendar-day').filter({has:page.locator('[data-calendar-date="2099-02-02"]')});
+      await expect(cell.locator('.calendar-events>small')).toBeVisible();
+      await expect(cell.locator('.calendar-events>small')).toHaveText(/\+\d+ more/);
+      await expect(cell.locator('[data-calendar-date]')).toHaveAttribute("aria-label",new RegExp(`${prefix} 7`));
+      await expect(page.getByRole("complementary",{name:"Selected date details"})).toContainText(`${prefix} 7`);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    }
+  } finally {
+    await signIn(page,"Admin");
+    for(const id of ids) await page.request.post("/admin/leave/holidays",{headers:{Origin:"http://127.0.0.1:5173"},form:{intent:"archive-holiday",id}});
   }
 });
