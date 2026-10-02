@@ -26,7 +26,7 @@ import {
 } from "../../domain/leave";
 import { addCalendarDays, todayInTimeZone } from "../../lib/date";
 import { date, initials } from "../../lib/format";
-import { PendingButton, ScrollableRegion, TaskWorkspace } from "../../components/portal-ui";
+import { PendingButton, ScrollableRegion, TaskWorkspace, WorkspaceHeader } from "../../components/portal-ui";
 
 export type LeaveRecord = {
   id: string;
@@ -194,7 +194,7 @@ function CalendarToolbar({
     next.set("month", nextMonth);
     next.set("date", selectedDateForMonth(nextMonth, params.get("date"), today));
     if (view) next.set("view", view);
-    else next.delete("view");
+
     if (requestOpen) next.set("request", "new");
     else if (params.get("request") === "new") next.delete("request");
     next.delete("notice");
@@ -485,6 +485,15 @@ export function EmployeeLeaveWorkspace({
     resolvedToday,
   );
   const requestOpen = params.get("request") === "new";
+  const wasRequestOpen = useRef(requestOpen);
+  useEffect(() => {
+    if (wasRequestOpen.current && !requestOpen) {
+      const calendarDate = document.querySelector<HTMLElement>(`[data-calendar-date="${selectedDate}"]`);
+      const target = calendarDate?.getClientRects().length ? calendarDate : document.querySelector<HTMLElement>("[data-request-leave]");
+      target?.focus();
+    }
+    wasRequestOpen.current = requestOpen;
+  }, [requestOpen, selectedDate]);
   const panel = params.get("panel") === "requests" ? "requests" : "schedule";
   const [compactViewport, setCompactViewport] = useState(false);
   useEffect(() => {
@@ -540,60 +549,46 @@ export function EmployeeLeaveWorkspace({
   );
   const [queueFilter, setQueueFilter] = useState<"all" | "pending">("all");
   const pendingRequests = ownRecords.filter((r) => r.status === "pending");
-  const displayHistory = queueFilter === "pending" ? pendingRequests : ownRecords;
   const holidaysThisMonth = holidays.filter((h) => h.active && h.date.startsWith(month)).length;
   const ownApprovedThisMonth = ownRecords.filter((r) => r.status === "approved" && r.startDate.startsWith(month)).length;
 
+  const href = (changes: Record<string, string | null>) => {
+    const next = new URLSearchParams(params);
+    next.set("month", month);
+    next.set("date", selectedDate);
+    next.delete("notice");
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === null) next.delete(key);
+      else next.set(key, value);
+    }
+    return `/employee/leave?${next.toString()}`;
+  };
+  const requestHref = href({ panel: "requests", request: "new" });
+
   return (
-    <>
-      <header className="leave-page-header">
-        <div>
-          <p className="eyebrow">Self-service / Leave</p>
-          <h1>Plan time away</h1>
-          <p>
-            Check company availability, understand your balance, and request
-            leave in context.
-          </p>
-        </div>
-        <Link
-          className="button primary"
-          to={`/employee/leave?month=${month}&date=${selectedDate}&panel=requests&request=new`}
-        >
-          <Plus />
-          Request leave
-        </Link>
-      </header>
-      <section
-        className="leave-balance-rail"
-        aria-label="Leave balances"
-        tabIndex={0}
-      >
+    <TaskWorkspace label="Employee leave" scrollMode="split" className="employee-leave-task">
+      <WorkspaceHeader eyebrow="Self-service / Leave" title="Plan time away"
+        description="Check dates, request leave and track your approvals."
+        action={<Link data-request-leave className="button primary" to={requestHref} preventScrollReset><Plus />Request leave</Link>} />
+      <section className="leave-balance-rail employee-leave-balances" aria-label="Leave balances">
         {balances.map((balance) => {
           const summary = calculateProjectedBalance(balance);
-          return (
-            <article key={balance.leaveTypeId}>
-              <span>{balance.name}</span>
-              <strong>
-                {balance.paid
-                  ? `${halfDays(summary.availableHalfDays)} days`
-                  : "No limit"}
-              </strong>
-              <small>
-                {balance.pendingHalfDays
-                  ? `${halfDays(summary.projectedHalfDays)} days projected`
-                  : `${halfDays(balance.approvedHalfDays)} used · ${halfDays(balance.allocatedHalfDays)} entitled`}
-              </small>
-            </article>
-          );
+          return <article key={balance.leaveTypeId}>
+            <span>{balance.name}</span>
+            <strong>{balance.paid ? `${halfDays(summary.availableHalfDays)} days available` : "No limit"}</strong>
+            <small>{!balance.paid ? "Unpaid leave" : balance.pendingHalfDays
+              ? `${halfDays(summary.projectedHalfDays)} days projected · ${halfDays(balance.pendingHalfDays)} pending`
+              : `${halfDays(balance.approvedHalfDays)} used · ${halfDays(balance.allocatedHalfDays)} entitled`}</small>
+          </article>;
         })}
       </section>
-      {params.get("notice") === "leave-submitted" ? (
-        <div className="alert success" role="status">
-          <Check />
-          <span>Leave request sent for approval.</span>
-        </div>
-      ) : null}
-      <section className={`leave-workspace${requestOpen ? " request-open" : ""}`}>
+      <nav className="leave-primary-tabs" aria-label="Leave workspace">
+        <Link to={href({panel: "schedule", request: null})} className={panel === "schedule" ? "active" : ""} aria-current={panel === "schedule" ? "page" : undefined} preventScrollReset>Schedule</Link>
+        <Link to={href({panel: "requests", request: null})} className={panel === "requests" ? "active" : ""} aria-current={panel === "requests" ? "page" : undefined} preventScrollReset>My requests</Link>
+      </nav>
+      {params.get("notice") === "leave-submitted" ? <div className="alert success" role="status"><Check /><span>Leave request sent for approval.</span></div> : null}
+      {panel === "schedule" || requestOpen ? (
+        <section className={`leave-workspace employee-leave-workspace${requestOpen ? " request-open" : ""}`}>
         <div className="calendar-canvas surface">
           <div className="calendar-command-area" role="region" aria-label="Calendar commands">
             <CalendarToolbar
@@ -633,88 +628,57 @@ export function EmployeeLeaveWorkspace({
             />
           )}
         </div>
-        <aside
-          className={`leave-inspector surface${requestOpen ? " open" : ""}`}
-          aria-label={requestOpen ? "Request leave" : "Selected date details and request history"}
-        >
-          {requestOpen ? (
-            <RequestPanel
-              balances={balances}
-              selectedDate={selectedDate}
-              holidays={holidays}
-              today={resolvedToday}
-              backdateDays={backdateDays}
-            />
-          ) : (
-            <>
-              <DayPanel selectedDate={selectedDate} events={selectedEvents} />
-              <section className="request-history">
-                <div className="section-head">
-                  <div>
-                    <p className="eyebrow">Your activity</p>
-                    <h2>Request history</h2>
-                  </div>
-                  <div className="queue-filter-pills" aria-label="Filter requests">
-                    <button
-                      type="button"
-                      className={`queue-pill${queueFilter === "all" ? " active" : ""}`}
-                      onClick={() => setQueueFilter("all")}
-                    >
-                      All ({ownRecords.length})
-                    </button>
-                    <button
-                      type="button"
-                      className={`queue-pill${queueFilter === "pending" ? " active" : ""}`}
-                      onClick={() => setQueueFilter("pending")}
-                    >
-                      Pending ({pendingRequests.length})
-                    </button>
-                  </div>
-                </div>
-                {displayHistory.length ? (
-                  displayHistory.map((record) => (
-                    <article key={record.id}>
-                      <div className="request-date">
-                        <b>{Number(record.startDate.slice(8))}</b>
-                        <small>{date(record.startDate, { month: "short" })}</small>
-                      </div>
-                      <div>
-                        <strong>{record.typeName}</strong>
-                        <small>
-                          {halfDays(record.durationHalfDays)} day
-                          {record.durationHalfDays === 2 ? "" : "s"} · {record.reason}
-                        </small>
-                      </div>
-                      <StatusBadge status={record.status} />
-                      {record.status === "pending" ? (
-                        <Form method="post">
-                          <input type="hidden" name="intent" value="withdraw-leave" />
-                          <input type="hidden" name="id" value={record.id} />
-                          <button
-                            className="button ghost"
-                            aria-label={`Withdraw ${record.typeName} request`}
-                          >
-                            <X />
-                            Withdraw
-                          </button>
-                        </Form>
-                      ) : null}
-                    </article>
-                  ))
-                ) : (
-                  <div className="leave-empty">
-                    <CalendarDays />
-                    <strong>{queueFilter === "pending" ? "No pending requests" : "No requests yet"}</strong>
-                    <span>{queueFilter === "pending" ? "All of your leave requests have been reviewed." : "Use Request leave to plan your first leave."}</span>
-                  </div>
-                )}
-              </section>
-            </>
-          )}
-        </aside>
-      </section>
-    </>
+          <aside className={`leave-inspector surface${requestOpen ? " open" : ""}`} aria-label={requestOpen ? "Request leave" : "Selected date details"}>
+            {requestOpen ? <RequestPanel balances={balances} selectedDate={selectedDate} holidays={holidays} today={resolvedToday} backdateDays={backdateDays} /> : <DayPanel selectedDate={selectedDate} events={selectedEvents} />}
+          </aside>
+        </section>
+      ) : <EmployeeRequestHistory records={ownRecords} requestId={params.get("request")} href={href} queueFilter={queueFilter} onFilter={setQueueFilter} pendingCount={pendingRequests.length} />}
+    </TaskWorkspace>
   );
+}
+
+function EmployeeRequestHistory({ records, requestId, href, queueFilter, onFilter, pendingCount }: {
+  records: LeaveRecord[];
+  requestId: string | null;
+  href: (changes: Record<string, string | null>) => string;
+  queueFilter: "all" | "pending";
+  onFilter: (filter: "all" | "pending") => void;
+  pendingCount: number;
+}) {
+  const pageSize = useListPageSize();
+  const [page, setPage] = useState(1);
+  const filtered = queueFilter === "pending" ? records.filter(record => record.status === "pending") : records;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const selected = records.find(record => record.id === requestId);
+  return <section className="employee-request-workspace">
+    <section className="surface employee-request-list" aria-label="My requests">
+      <div className="section-head"><h2>My requests</h2><div className="queue-filter-pills" aria-label="Filter requests">
+        {(["all", "pending"] as const).map(filter => <button type="button" key={filter} className={`queue-pill${queueFilter === filter ? " active" : ""}`} aria-pressed={queueFilter === filter} onClick={() => {onFilter(filter); setPage(1);}}>{filter === "all" ? `All (${records.length})` : `Pending (${pendingCount})`}</button>)}
+      </div></div>
+      <ScrollableRegion label="Leave request history">
+        {filtered.length ? filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(record => <Link key={record.id} className={`employee-request-row${selected?.id === record.id ? " selected" : ""}`} to={href({panel: "requests", request: record.id})} aria-current={selected?.id === record.id ? "true" : undefined} preventScrollReset>
+          <span><strong>{record.typeName}</strong><small>{date(record.startDate)} to {date(record.endDate)}</small></span>
+          <span>{halfDays(record.durationHalfDays)} {record.durationHalfDays === 2 ? "day" : "days"}</span><StatusBadge status={record.status} /><ChevronRight />
+        </Link>) : <div className="leave-empty"><CalendarDays /><strong>{queueFilter === "pending" ? "No pending requests" : "No requests yet"}</strong><span>{queueFilter === "pending" ? "Your pending requests will appear here." : "Use Request leave to plan time away."}</span></div>}
+      </ScrollableRegion>
+      <ListPagination page={currentPage} pageCount={pageCount} total={filtered.length} pageSize={pageSize} label="Leave request pages" onPage={setPage} />
+    </section>
+    <aside className="surface employee-request-detail" aria-label="Request details">
+      {selected ? <>
+        <div className="inspector-heading"><h2>{selected.typeName}</h2><StatusBadge status={selected.status} /></div>
+        <dl className="employee-request-facts">
+          <div><dt>Dates</dt><dd>{date(selected.startDate)} to {date(selected.endDate)}</dd></div>
+          <div><dt>Duration</dt><dd>{halfDays(selected.durationHalfDays)} {selected.durationHalfDays === 2 ? "day" : "days"}{selected.dayPart !== "full" ? ` · ${selected.dayPart} half` : ""}</dd></div>
+          <div><dt>Submitted</dt><dd>{date(selected.createdAt)}</dd></div>
+          {selected.reviewedAt ? <div><dt>Reviewed</dt><dd>{date(selected.reviewedAt)}</dd></div> : null}
+          <div><dt>Reason</dt><dd>{selected.reason}</dd></div>
+          {selected.reviewNote ? <div><dt>Review note</dt><dd>{selected.reviewNote}</dd></div> : null}
+        </dl>
+        {selected.status === "pending" ? <Form method="post"><input type="hidden" name="intent" value="withdraw-leave" /><input type="hidden" name="id" value={selected.id} /><PendingButton intent="withdraw-leave" pendingLabel="Withdrawing request…" className="button secondary wide">Withdraw request</PendingButton></Form> : null}
+      </> : <div className="leave-empty"><CalendarDays /><strong>{requestId ? "Request not found" : "Select a request"}</strong><span>{requestId ? "Choose one of your requests from the list." : "View dates, status and review details here."}</span></div>}
+    </aside>
+  </section>;
 }
 
 function DayPanel({
@@ -724,6 +688,13 @@ function DayPanel({
   selectedDate: string;
   events: CalendarEvent[];
 }) {
+  const [params] = useSearchParams();
+  const requestParams = new URLSearchParams(params);
+  requestParams.set("month", selectedDate.slice(0, 7));
+  requestParams.set("date", selectedDate);
+  requestParams.set("panel", "requests");
+  requestParams.set("request", "new");
+  requestParams.delete("notice");
   return (
     <>
       <div className="inspector-heading">
@@ -751,13 +722,14 @@ function DayPanel({
       ) : (
         <div className="leave-empty compact">
           <Users />
-          <strong>Everyone is available</strong>
-          <span>No approved leave or holiday on this date.</span>
+          <strong>No leave or holidays recorded for this date</strong>
+          <span>Select another date or request leave here.</span>
         </div>
       )}
       <Link
         className="button primary wide"
-        to={`/employee/leave?month=${selectedDate.slice(0, 7)}&date=${selectedDate}&panel=requests&request=new`}
+        to={`/employee/leave?${requestParams.toString()}`}
+        preventScrollReset
       >
         Request this date
       </Link>
@@ -777,6 +749,11 @@ function RequestPanel({
   today: string;
   backdateDays: number;
 }) {
+  const [params] = useSearchParams();
+  const returnParams = new URLSearchParams(params);
+  returnParams.delete("request");
+  returnParams.delete("notice");
+  returnParams.set("panel", "schedule");
   const [leaveTypeId, setLeaveTypeId] = useState("leave-annual");
   const [startDate, setStartDate] = useState(selectedDate);
   const [endDate, setEndDate] = useState(selectedDate);
@@ -914,7 +891,8 @@ function RequestPanel({
       </PendingButton>
       <Link
         className="button ghost wide"
-        to={`/employee/leave?month=${selectedDate.slice(0, 7)}&date=${selectedDate}&panel=schedule`}
+        to={`/employee/leave?${returnParams.toString()}`}
+        preventScrollReset
       >
         Cancel
       </Link>

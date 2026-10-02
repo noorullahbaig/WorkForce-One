@@ -90,8 +90,50 @@ describe("employee leave workspace", () => {
       "/employee/leave?month=2026-08",
     );
 
-    expect(screen.getByRole("heading", { name: "Request history" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Schedule" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "My requests" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Request history" })).not.toBeInTheDocument();
     expect(screen.getByRole("grid")).toBeVisible();
+  });
+
+  test("opens an owned request directly with full dates and review detail", () => {
+    renderRoute(<EmployeeLeaveWorkspace employeeId="emp-001" ownRecords={[leaveRecord({endDate: "2026-09-02", reviewNote: "Enjoy your break"})]} sharedRecords={[]} balances={balances} holidays={holidays} today="2026-08-27" />, "/employee/leave?month=2027-01&panel=requests&request=lr-own");
+    expect(screen.queryByRole("grid")).not.toBeInTheDocument();
+    const inspector = screen.getByRole("complementary", {name: "Request details"});
+    expect(inspector).toHaveTextContent("Enjoy your break");
+    expect(inspector).toHaveTextContent("Personal appointment");
+    expect(inspector).toHaveTextContent("Submitted");
+    expect(inspector).toHaveTextContent("Reviewed");
+    expect(screen.getByRole("link", {name: /Annual leave.*2 Sept/})).toBeVisible();
+    expect(screen.queryByRole("button", {name: /Withdraw/})).not.toBeInTheDocument();
+  });
+
+  test("does not resolve another employee's request id", () => {
+    renderRoute(<EmployeeLeaveWorkspace employeeId="emp-001" ownRecords={[leaveRecord()]} sharedRecords={[]} balances={balances} holidays={holidays} today="2026-08-27" />, "/employee/leave?panel=requests&request=private-id");
+    expect(screen.getByRole("complementary", {name: "Request details"})).toHaveTextContent("Request not found");
+  });
+
+  test("paginates requests and resets the page when filtering pending requests", async () => {
+    const user = userEvent.setup();
+    const records = Array.from({length: 23}, (_, index) => leaveRecord({id: `request-${index}`, status: index === 22 ? "pending" : "approved", reason: "A long personal reason ".repeat(30)}));
+    renderRoute(<EmployeeLeaveWorkspace employeeId="emp-001" ownRecords={records} sharedRecords={[]} balances={balances} holidays={holidays} today="2026-08-27" />, "/employee/leave?panel=requests&request=request-22");
+    expect(screen.getByText("Showing 1–10 of 23")).toBeVisible();
+    expect(screen.getByRole("complementary", {name: "Request details"})).toHaveTextContent(records[22].reason.trim());
+    await user.click(screen.getByRole("button", {name: "Next"}));
+    expect(screen.getByText("Showing 11–20 of 23")).toBeVisible();
+    await user.click(screen.getByRole("button", {name: "Pending (1)"}));
+    expect(screen.getByText("Showing 1–1 of 1")).toBeVisible();
+    expect(screen.getByRole("button", {name: "Withdraw request"})).toBeVisible();
+  });
+
+  test("contextual requests preserve the explicit calendar view and restore date focus on cancel", async () => {
+    const user = userEvent.setup();
+    renderRouteWithLocation(<EmployeeLeaveWorkspace employeeId="emp-001" ownRecords={[]} sharedRecords={[]} balances={balances} holidays={holidays} today="2026-08-27" />, "/employee/leave?month=2026-08&date=2026-08-28&view=calendar");
+    await user.click(screen.getByRole("link", {name: "Request this date"}));
+    expect(screen.getByLabelText("Current location")).toHaveTextContent("view=calendar");
+    await user.click(screen.getByRole("link", {name: "Cancel"}));
+    expect(screen.getByLabelText("Current location")).toHaveTextContent("view=calendar");
+    expect(screen.getByRole("link", {name: "Request leave"})).toHaveFocus();
   });
 
   test("makes an explicit calendar URL available for the mobile agenda default", () => {
@@ -261,7 +303,7 @@ describe("employee leave workspace", () => {
       />,
       "/employee/leave?month=2026-08&request=new&date=2026-08-28",
     );
-    expect(screen.getByText("12.5 days projected")).not.toBeNull();
+    expect(screen.getByText(/12.5 days projected/)).not.toBeNull();
     expect(screen.getByRole("combobox", { name: "Duration" })).not.toBeNull();
     expect(
       screen.getByRole("button", { name: "Submit leave request" }),
