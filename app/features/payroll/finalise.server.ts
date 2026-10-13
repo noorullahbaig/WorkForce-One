@@ -9,6 +9,8 @@ import type { DemoUser } from "../../services/auth.server";
 import {
   employeePaySnapshotSql,
   adjustmentSnapshotSql,
+  holidayInputSnapshotSql,
+  unpaidLeaveSnapshotSql,
   readInputSnapshot,
 } from "./input-snapshots.server";
 import { aggregateAttendance } from "./attendance-inputs";
@@ -70,23 +72,13 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
     await Promise.all([
       readInputSnapshot<PayEmployee>(db, employeePaySnapshotSql, [user.companyId]),
       readInputSnapshot<{ employeeId: string; type: string; amountSen: number }>(db, adjustmentSnapshotSql, [id, user.companyId]),
-      db
-        .prepare(
-          "SELECT date FROM holidays WHERE company_id=? AND active=1 AND date>=? AND date<=?",
-        )
-        .bind(user.companyId, run.periodStart, run.periodEnd)
-        .all<{ date: string }>(),
-      db
-        .prepare(
-          "SELECT l.employee_id employeeId,l.start_date startDate,l.end_date endDate,l.day_part dayPart FROM leave_requests l JOIN leave_types t ON t.id=l.leave_type_id JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status='approved' AND t.paid=0 ",
-        )
-        .bind(user.companyId)
-        .all<{
-          employeeId: string;
-          startDate: string;
-          endDate: string;
-          dayPart: LeaveDayPart;
-        }>(),
+      readInputSnapshot<{ date: string }>(db, holidayInputSnapshotSql, [user.companyId, run.periodStart, run.periodEnd]),
+      readInputSnapshot<{
+        employeeId: string;
+        startDate: string;
+        endDate: string;
+        dayPart: LeaveDayPart;
+      }>(db, unpaidLeaveSnapshotSql, [user.companyId]),
     ]);
   const unpaidDays = new Map<string, number>();
   for (const leave of leaveRows.results) {
@@ -213,7 +205,9 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
    AND NOT EXISTS (SELECT 1 FROM attendance_correction_requests WHERE company_id=? AND status='pending' AND work_date>=? AND work_date<=?)
    AND (${attendanceSnapshotSql})=?
    AND (${employeePaySnapshotSql})=?
-   AND (${adjustmentSnapshotSql})=?`,
+   AND (${adjustmentSnapshotSql})=?
+   AND (${holidayInputSnapshotSql})=?
+   AND (${unpaidLeaveSnapshotSql})=?`,
       )
       .bind(
         gross,
@@ -237,6 +231,12 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
         id,
         user.companyId,
         adjustmentRows.snapshot,
+        user.companyId,
+        run.periodStart,
+        run.periodEnd,
+        holidayRows.snapshot,
+        user.companyId,
+        leaveRows.snapshot,
       ),
     db
       .prepare(

@@ -223,3 +223,36 @@ it('ignores valid unpaid leave intersection with no working days',async()=>{
   expect(await finalise()).toHaveProperty('ok');
  }finally{await db.prepare("UPDATE leave_requests SET start_date='2026-08-18',end_date='2026-08-18',day_part='full' WHERE id='lr-003'").run()}
 });
+it.each([
+ ['unpaid leave approval', "UPDATE leave_requests SET status='approved',leave_type_id='leave-unpaid' WHERE id='lr-001'"],
+ ['unpaid leave cancellation', "UPDATE leave_requests SET status='cancelled' WHERE id='lr-003'"],
+ ['unpaid leave date edit', "UPDATE leave_requests SET start_date='2026-08-19',end_date='2026-08-19' WHERE id='lr-003'"],
+ ['unpaid leave day part edit', "UPDATE leave_requests SET day_part='morning' WHERE id='lr-003'"],
+ ['leave type paid flag edit', "UPDATE leave_types SET paid=1 WHERE id='leave-unpaid'"],
+ ['holiday insertion', "INSERT INTO holidays SELECT 'racing-holiday',company_id,'Race','2026-08-18',category,region,observed,source_url,1,created_at,updated_at FROM holidays WHERE id='holiday-2026-national'"],
+ ['holiday archive', "UPDATE holidays SET active=0 WHERE id='holiday-2026-national'"],
+ ['holiday date edit', "UPDATE holidays SET date='2026-08-18' WHERE id='holiday-2026-national'"],
+])('rejects a racing %s without finalised outputs or audit',async(_label,sql)=>{
+ const runBefore=await db.prepare("SELECT * FROM payroll_runs WHERE id='payroll-2026-08'").first();
+ const auditsBefore=await db.prepare("SELECT count(*) n FROM audit_events WHERE action='payroll.finalised'").first();
+ const notificationsBefore=await db.prepare("SELECT count(*) n FROM notifications").first();
+ const wrapped={prepare:db.prepare.bind(db),batch:async(statements:D1PreparedStatement[])=>{
+  await db.prepare(sql).run();return db.batch(statements);
+ }} as D1Database;
+ try {
+  expect(await finalise(wrapped)).toHaveProperty('error');
+  expect(await db.prepare("SELECT * FROM payroll_runs WHERE id='payroll-2026-08'").first()).toEqual(runBefore);
+  expect(await db.prepare("SELECT count(*) n FROM payroll_results WHERE payroll_run_id='payroll-2026-08'").first()).toMatchObject({n:0});
+  expect(await db.prepare("SELECT count(*) n FROM payslips WHERE payroll_run_id='payroll-2026-08'").first()).toMatchObject({n:0});
+  expect(await db.prepare("SELECT count(*) n FROM audit_events WHERE action='payroll.finalised'").first()).toEqual(auditsBefore);
+  expect(await db.prepare("SELECT count(*) n FROM notifications").first()).toEqual(notificationsBefore);
+ }finally{
+  await db.batch([
+   db.prepare("UPDATE leave_requests SET status='pending',leave_type_id='leave-annual' WHERE id='lr-001'"),
+   db.prepare("UPDATE leave_requests SET status='approved',start_date='2026-08-18',end_date='2026-08-18',day_part='full' WHERE id='lr-003'"),
+   db.prepare("UPDATE leave_types SET paid=0 WHERE id='leave-unpaid'"),
+   db.prepare("DELETE FROM holidays WHERE id='racing-holiday'"),
+   db.prepare("UPDATE holidays SET active=1,date='2026-08-31' WHERE id='holiday-2026-national'"),
+  ]);
+ }
+});
