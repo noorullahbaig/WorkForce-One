@@ -22,6 +22,7 @@
 		"DEMO_MODE": "true"
 	},
 	"assets": {
+		"binding": "ASSETS",
 		"directory": "./build/client"
 	},
 	"d1_databases": [
