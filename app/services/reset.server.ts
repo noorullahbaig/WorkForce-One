@@ -1,29 +1,39 @@
+import { DEMO_COMPANY_ID, demoBusinessFixture } from "../db/demo-fixture";
+
+/** Restore demo business data atomically, preserving authentication and other companies. */
 export async function resetDemoData(db: D1Database) {
-	const now = "2026-08-26T00:00:00.000Z";
-	await db.batch([
-		db.prepare(`UPDATE attendance_records AS a SET (clock_in,clock_out,clock_in_method,clock_out_method,status,worked_minutes,overtime_minutes,updated_at) =
-   (SELECT c.original_clock_in,c.original_clock_out,c.original_clock_in_method,c.original_clock_out_method,c.original_status,c.original_worked_minutes,c.original_overtime_minutes,c.original_updated_at
-    FROM attendance_correction_requests c WHERE c.attendance_id=a.id ORDER BY c.rowid LIMIT 1)
-   WHERE EXISTS (SELECT 1 FROM attendance_correction_requests c WHERE c.attendance_id=a.id)`),
-  db.prepare("DELETE FROM attendance_correction_requests"),
-		db.prepare("DELETE FROM attendance_records WHERE id NOT LIKE 'att-%'"),
-		db.prepare("UPDATE attendance_records SET clock_in=CASE id WHEN 'att-001' THEN '2026-08-26T01:00:00.000Z' WHEN 'att-010' THEN '2026-08-25T02:00:00.000Z' ELSE clock_in END,clock_out=CASE WHEN id IN ('att-001','att-010') THEN NULL ELSE clock_out END,clock_out_method=CASE WHEN id IN ('att-001','att-010') THEN NULL ELSE clock_out_method END,worked_minutes=CASE WHEN id IN ('att-001','att-010') THEN NULL ELSE worked_minutes END,overtime_minutes=CASE WHEN id IN ('att-001','att-010') THEN NULL ELSE overtime_minutes END,status=CASE WHEN id IN ('att-001','att-010') THEN 'missing_clock_out' ELSE status END,updated_at=?").bind(now),
-		db.prepare("DELETE FROM leave_requests WHERE id NOT LIKE 'lr-%'"),
-		db.prepare("UPDATE leave_requests SET status=CASE id WHEN 'lr-001' THEN 'pending' ELSE 'approved' END,reviewed_by=CASE id WHEN 'lr-001' THEN NULL ELSE 'user-admin' END,reviewed_at=CASE id WHEN 'lr-001' THEN NULL ELSE reviewed_at END,review_note=NULL,cancelled_by=NULL,cancelled_at=NULL,updated_at=?").bind(now),
-		db.prepare("DELETE FROM leave_balance_adjustments"),
-		db.prepare("DELETE FROM holidays WHERE category='company'"),
-		db.prepare("DELETE FROM payslips WHERE payroll_run_id='payroll-2026-08'"),
-		db.prepare("DELETE FROM payroll_results WHERE payroll_run_id='payroll-2026-08'"),
-		db.prepare("DELETE FROM employees WHERE id LIKE 'custom-%'"),
-		db.prepare("UPDATE users SET email=CASE id WHEN 'user-admin' THEN 'admin@workforceone.demo' WHEN 'user-employee' THEN 'employee@workforceone.demo' ELSE email END, updated_at=? WHERE id IN ('user-admin','user-employee')").bind(now),
-		db.prepare("UPDATE employees SET email='farah@merdekacoffee.demo',phone='+60 12-301 7782',bank_name='Maybank',bank_account_number='514012384910',updated_at=? WHERE id='emp-001'").bind(now),
-		db.prepare("UPDATE employees SET status='active',updated_at=? WHERE id LIKE 'emp-%'").bind(now),
-		db.prepare("DELETE FROM payroll_policies WHERE id<>'policy-my-2026'"),
-		db.prepare("UPDATE companies SET leave_backdate_days=3,updated_at=? WHERE id='company-merdeka'").bind(now),
-		db.prepare("UPDATE payroll_runs SET status='draft',gross_total_sen=0,deduction_total_sen=0,net_total_sen=0,employer_contribution_total_sen=0,idempotency_key=NULL,finalised_at=NULL,updated_at=? WHERE id='payroll-2026-08'").bind(now),
-		db.prepare("DELETE FROM notifications WHERE id NOT LIKE 'note-%'"),
-		db.prepare("UPDATE notifications SET read_at=CASE WHEN id='note-004' THEN '2026-08-26T01:05:00.000Z' ELSE NULL END"),
-		db.prepare("DELETE FROM audit_events WHERE id NOT LIKE 'audit-%'"),
-		db.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,'company-merdeka',NULL,'demo.reset','company','company-merdeka','{}',?)").bind(crypto.randomUUID(),new Date().toISOString()),
-	]);
+ const statements: D1PreparedStatement[] = [];
+ const employeeScope = "SELECT id FROM employees WHERE company_id=?";
+ const runScope = "SELECT id FROM payroll_runs WHERE company_id=?";
+ const policyScope = "SELECT id FROM payroll_policies WHERE company_id=?";
+ const remove = (table: string, scope: string) => statements.push(db.prepare(`DELETE FROM ${table} WHERE ${scope}`).bind(DEMO_COMPANY_ID));
+ // Delete children first: D1 batches enforce foreign keys throughout the transaction.
+ remove("attendance_correction_requests", "company_id=?");
+ remove("payslips", `payroll_run_id IN (${runScope})`);
+ remove("payroll_results", `payroll_run_id IN (${runScope})`);
+ remove("payroll_adjustments", `payroll_run_id IN (${runScope})`);
+ remove("payroll_runs", "company_id=?");
+ remove("contribution_bands", `policy_id IN (${policyScope})`);
+ remove("payroll_policies", "company_id=?");
+ remove("leave_balance_adjustments", `employee_id IN (${employeeScope})`);
+ remove("leave_requests", `employee_id IN (${employeeScope})`);
+ remove("leave_balances", `employee_id IN (${employeeScope})`);
+ remove("leave_types", "company_id=?");
+ remove("attendance_records", `employee_id IN (${employeeScope})`);
+ remove("holidays", "company_id=?");
+ remove("notifications", "user_id IN (SELECT id FROM users WHERE company_id=?)");
+ remove("audit_events", "company_id=?");
+ const employeeIds = demoBusinessFixture.employees.map(row => row.id);
+ // Retain auth-linked custom employee identities so users.employee_id stays intact.
+ statements.push(db.prepare(`DELETE FROM employees WHERE company_id=? AND id NOT IN (${employeeIds.map(() => "?").join(",")}) AND NOT EXISTS (SELECT 1 FROM users WHERE users.employee_id=employees.id)`).bind(DEMO_COMPANY_ID, ...employeeIds));
+ for (const [table, rows] of Object.entries(demoBusinessFixture)) {
+  for (const row of rows) {
+   const columns = Object.keys(row);
+   const conflict = table === "leave_balances" ? "employee_id,leave_type_id" : "id";
+   const updates = columns.filter(column => !conflict.split(",").includes(column)).map(column => `${column}=excluded.${column}`).join(",");
+   statements.push(db.prepare(`INSERT INTO ${table} (${columns.join(",")}) VALUES (${columns.map(() => "?").join(",")}) ON CONFLICT (${conflict}) DO UPDATE SET ${updates}`).bind(...Object.values(row)));
+  }
+ }
+ statements.push(db.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,NULL,'demo.reset','company',?,'{}',?)").bind(crypto.randomUUID(), DEMO_COMPANY_ID, DEMO_COMPANY_ID, new Date().toISOString()));
+ await db.batch(statements);
 }

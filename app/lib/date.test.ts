@@ -16,3 +16,8 @@ describe("company-local date helpers", () => {
 		expect(addCalendarDays("2026-12-31", 1)).toBe("2027-01-01");
 	});
 });
+
+test.each(["2026-02-29", "2026-02-31", "2026-04-31", "2026-13-01", "2026-00-01", "2026-01-00", "2026-8-01"])("rejects impossible or noncanonical date %s", day => {
+ expect(() => addCalendarDays(day, 1)).toThrow("Choose a valid date.");
+});
+test("accepts leap day", () => expect(addCalendarDays("2028-02-29", 1)).toBe("2028-03-01"));

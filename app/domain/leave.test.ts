@@ -87,3 +87,9 @@ describe("leave planning", () => {
 		})).toEqual({ awayCount: 1, departmentHeadcount: 8, overlapping: [{ id: "a", fullName: "Farah Iskandar", status: "approved" }] });
 	});
 });
+
+test.each(["2026-02-29", "2026-04-31"])("rejects impossible leave dates %s before calculation", day => {
+ expect(getLeaveDatePolicyError(day, "2026-01-01", 3)).toBe("Choose valid leave dates.");
+ expect(() => calculateLeaveDurationHalfDays({startDate:day, endDate:"2026-05-05", dayPart:"full", holidayDates:[]})).toThrow("Choose valid leave dates.");
+ expect(() => calculateLeaveDurationHalfDays({startDate:"2026-01-01", endDate:day, dayPart:"full", holidayDates:[]})).toThrow("Choose valid leave dates.");
+});

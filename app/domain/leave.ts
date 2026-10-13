@@ -1,4 +1,4 @@
-import { addCalendarDays } from "../lib/date";
+import { addCalendarDays, isValidCalendarDate } from "../lib/date";
 
 export type LeaveDayPart = "full" | "morning" | "afternoon";
 
@@ -11,7 +11,7 @@ export function getLeaveDatePolicyError(
 	today: string,
 	backdateDays: number,
 ) {
-	if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return "Choose valid leave dates.";
+	if (!isValidCalendarDate(startDate)) return "Choose valid leave dates.";
 	const earliestDate = getEarliestLeaveDate(today, backdateDays);
 	if (startDate >= earliestDate) return null;
 	const formattedDate = new Intl.DateTimeFormat("en-MY", {
@@ -30,7 +30,7 @@ export function calculateLeaveDurationHalfDays(_input: {
 	holidayDates: string[];
 }): { durationHalfDays: number; excludedDates: string[] } {
 	const { startDate, endDate, dayPart, holidayDates } = _input;
-	if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+	if (!isValidCalendarDate(startDate) || !isValidCalendarDate(endDate)) {
 		throw new Error("Choose valid leave dates.");
 	}
 	const start = Date.parse(`${startDate}T00:00:00Z`);
