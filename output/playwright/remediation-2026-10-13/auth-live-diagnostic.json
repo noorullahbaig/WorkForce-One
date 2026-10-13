@@ -1,0 +1,26 @@
+{
+  "base": "https://workforce-one-hrms-demo.noorullahbaig31.workers.dev",
+  "liveBusinessMutations": false,
+  "results": [
+    {
+      "width": 1440,
+      "status": "Pass",
+      "errors": []
+    },
+    {
+      "width": 768,
+      "status": "Pass",
+      "errors": []
+    },
+    {
+      "width": 390,
+      "status": "Pass",
+      "errors": []
+    },
+    {
+      "width": 360,
+      "status": "Pass",
+      "errors": []
+    }
+  ]
+}

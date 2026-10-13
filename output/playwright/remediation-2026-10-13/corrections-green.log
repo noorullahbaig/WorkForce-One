@@ -1,0 +1,30 @@
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+ ❯ app/features/attendance/corrections.server.test.ts (15 tests | 15 skipped) 604ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/attendance/corrections.server.test.ts [ app/features/attendance/corrections.server.test.ts ]
+Error: D1_ERROR: SQL code did not contain a statement.
+ ❯ testDatabase tests/helpers/database.ts:27:7
+     25|       .map((s) => s.replaceAll("--> statement-breakpoint", "").trim())
+     26|       .filter(Boolean))
+     27|       await db.prepare(statement).run();
+       |       ^
+     28|   }
+     29|   const seed = readFileSync("drizzle/seed.sql", "utf8");
+ ❯ app/features/attendance/corrections.server.test.ts:34:13
+
+Caused by: Error: SQL code did not contain a statement.
+ ❯ D1DatabaseSessionAlwaysPrimary._sendOrThrow cloudflare-internal:d1-api:189:24
+ ❯ cloudflare-internal:d1-api:478:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  4 passed | 15 skipped (19)
+   Start at  19:00:34
+   Duration  1.05s (transform 169ms, setup 290ms, import 321ms, tests 616ms, environment 0ms)
+

@@ -1,0 +1,28 @@
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+ ❯ app/features/attendance/corrections.test.ts (10 tests | 1 failed) 114ms
+   × preview uses authoritative sibling worked minutes, matching persisted daily allocation 24ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/attendance/corrections.test.ts > preview uses authoritative sibling worked minutes, matching persisted daily allocation
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ app/features/attendance/corrections.test.ts:104:278
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  19:27:48
+   Duration  2.08s (transform 239ms, setup 504ms, import 232ms, tests 114ms, environment 0ms)
+

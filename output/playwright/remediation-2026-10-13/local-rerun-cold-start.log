@@ -1,0 +1,10 @@
+{
+  "pass": 44,
+  "fail": [],
+  "errors": [
+    {
+      "url": "http://127.0.0.1:5173/login",
+      "message": "Failed to fetch dynamically imported module: http://127.0.0.1:5173/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx"
+    }
+  ]
+}

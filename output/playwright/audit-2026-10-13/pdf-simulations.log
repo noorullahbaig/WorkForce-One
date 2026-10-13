@@ -1,0 +1,38 @@
+
+ RUN  v4.1.11 /private/tmp/workforce-audit-2026-10-13
+
+ ❯ app/audit.pdf.test.ts (3 tests | 2 failed) 71ms
+   × 30 employee payroll report retains all employees across pages 66ms
+   × Payroll PDF supports Chinese employee names 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/audit.pdf.test.ts > 30 employee payroll report retains all employees across pages
+AssertionError: expected 1 to be greater than 1
+ ❯ app/audit.pdf.test.ts:4:406
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  app/audit.pdf.test.ts > Payroll PDF supports Chinese employee names
+AssertionError: promise rejected "Error: WinAnsi cannot encode "王" (0x738b)" instead of resolving
+ ❯ app/audit.pdf.test.ts:5:126
+
+
+Caused by: Error: WinAnsi cannot encode "王" (0x738b)
+ ❯ Encoding.encodeUnicodeCodePoint ../../../Users/noorullah/Developer/Workforce One/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js:23:23
+ ❯ StandardFontEmbedder.encodeTextAsGlyphs ../../../Users/noorullah/Developer/Workforce One/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js:88:41
+ ❯ StandardFontEmbedder.encodeText ../../../Users/noorullah/Developer/Workforce One/node_modules/pdf-lib/cjs/core/embedders/StandardFontEmbedder.js:28:27
+ ❯ PDFFont.encodeText ../../../Users/noorullah/Developer/Workforce One/node_modules/pdf-lib/cjs/api/PDFFont.js:37:30
+ ❯ PDFPage.drawText ../../../Users/noorullah/Developer/Workforce One/node_modules/pdf-lib/cjs/api/PDFPage.js:858:41
+ ❯ payrollReportPdf app/services/pdf.server.ts:17:40
+ ❯ app/audit.pdf.test.ts:5:60
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  17:17:15
+   Duration  374ms (transform 36ms, setup 106ms, import 109ms, tests 71ms, environment 0ms)
+

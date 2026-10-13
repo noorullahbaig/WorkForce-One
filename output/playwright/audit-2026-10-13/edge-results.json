@@ -1,0 +1,51 @@
+{
+  "base": "http://127.0.0.1:5173",
+  "results": [
+    {
+      "name": "http-duplicate-observation",
+      "httpStatuses": [
+        200,
+        200
+      ],
+      "openShiftsAdded": 2
+    },
+    {
+      "name": "Concurrent browser-context clock-ins must create one open shift",
+      "status": "Fail",
+      "detail": "2 open shifts created"
+    },
+    {
+      "name": "invalid-date-http-observation",
+      "http": 200,
+      "persisted": true,
+      "row": {
+        "start_date": "2027-02-30",
+        "end_date": "2027-03-02",
+        "duration_half_days": 2
+      }
+    },
+    {
+      "name": "HTTP leave action rejects impossible date",
+      "status": "Fail",
+      "detail": "Impossible date persisted in database"
+    },
+    {
+      "name": "Backdated cutoff boundary permits exactly three days, rejects four",
+      "status": "Pass",
+      "detail": {
+        "today": "2026-10-13",
+        "allowed": "2026-10-10",
+        "rejected": "2026-10-09"
+      }
+    },
+    {
+      "name": "Leave rejection requires reason and does not consume balance",
+      "status": "Pass",
+      "detail": {
+        "requiredReason": true,
+        "reservedDaysReleased": true
+      }
+    }
+  ],
+  "errors": []
+}

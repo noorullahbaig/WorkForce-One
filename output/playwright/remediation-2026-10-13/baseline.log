@@ -1,0 +1,13 @@
+
+> test:run
+> vitest run
+
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+
+ Test Files  21 passed (21)
+      Tests  125 passed (125)
+   Start at  18:53:28
+   Duration  5.49s (transform 1.13s, setup 1.79s, import 4.51s, tests 15.24s, environment 6.08s)
+

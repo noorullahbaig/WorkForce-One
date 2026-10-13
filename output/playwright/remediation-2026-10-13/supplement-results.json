@@ -1,0 +1,117 @@
+{
+  "base": "http://127.0.0.1:5173",
+  "results": [
+    {
+      "name": "Retest employee admin-approval denial after harness correction",
+      "status": "Pass",
+      "detail": {
+        "http": 200,
+        "statusUnchanged": true
+      }
+    },
+    {
+      "name": "Retest cross-origin rejection accepts framework 400 or app 403",
+      "status": "Pass",
+      "detail": {
+        "http": 400,
+        "persisted": false
+      }
+    },
+    {
+      "name": "Browser timezone does not change Malaysia clock display",
+      "status": "Pass",
+      "detail": {
+        "zones": [
+          "Asia/Kuala_Lumpur",
+          "America/New_York"
+        ],
+        "sameText": true
+      }
+    },
+    {
+      "name": "Interrupted profile write remains consistent and retry succeeds",
+      "status": "Pass",
+      "detail": {
+        "abortedWritePersisted": false,
+        "retryPersisted": true
+      }
+    },
+    {
+      "name": "Payroll finalisation blocked by missing attendance",
+      "status": "Pass"
+    },
+    {
+      "name": "Resolve attendance and finalise payroll with employee bonus/deduction",
+      "status": "Pass",
+      "detail": {
+        "gross": 4475691,
+        "deductions": 553186,
+        "net": 3922505
+      }
+    },
+    {
+      "name": "Repeated finalisation does not duplicate results or payslips",
+      "status": "Pass",
+      "detail": {
+        "count": 10
+      }
+    },
+    {
+      "name": "CSV totals equal finalised database and PDF has valid header",
+      "status": "Pass",
+      "detail": {
+        "csvRows": 10,
+        "gross": 4475691,
+        "deductions": 553186,
+        "net": 3922505,
+        "pdfHttp": 200
+      }
+    },
+    {
+      "name": "payslip-itemisation-observation",
+      "bonusSen": 10000,
+      "otherDeductionSen": 2500,
+      "displayedLines": [
+        "Base pay",
+        "Overtime",
+        "Allowances",
+        "Bonus",
+        "Gross pay",
+        "Unpaid leave",
+        "EPF",
+        "SOCSO",
+        "EIS",
+        "PCB",
+        "Other deductions",
+        "Total deductions"
+      ]
+    },
+    {
+      "name": "Employee payslip itemises bonus and manual deduction",
+      "status": "Pass"
+    },
+    {
+      "name": "Employee own payslip PDF allowed; another employee denied",
+      "status": "Pass",
+      "detail": {
+        "own": 200,
+        "other": 404
+      }
+    },
+    {
+      "name": "Current profile details and Unicode render while finalised money stays frozen",
+      "status": "Pass",
+      "detail": {
+        "currentProfileUsed": true,
+        "leadingZeroBankAccountPreserved": true,
+        "unicodeWorkerPDFStatus": 200,
+        "financialSnapshotUnchanged": true
+      }
+    },
+    {
+      "name": "Demo reset removes custom payroll adjustments",
+      "status": "Pass"
+    }
+  ],
+  "errors": []
+}

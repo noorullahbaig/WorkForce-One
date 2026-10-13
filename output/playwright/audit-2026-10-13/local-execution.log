@@ -1,0 +1,21 @@
+{
+  "pass": 41,
+  "fail": [
+    {
+      "name": "Profile rejects malformed data on server",
+      "status": "Fail",
+      "detail": "Malformed contact persisted; HTTP 200"
+    },
+    {
+      "name": "Cross-origin writes rejected",
+      "status": "Fail",
+      "detail": "HTTP 400"
+    },
+    {
+      "name": "Employee cannot invoke admin approval",
+      "status": "Fail",
+      "detail": "response.status is not a function"
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,122 @@
+
+> test:e2e
+> playwright test
+
+[WebServer] (node:35509) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:35510) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 100 tests using 1 worker
+
+(node:35630) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓    1 [desktop] › tests/e2e/acceptance.spec.ts:3:1 › complete attendance to payslip acceptance journey (6.2s)
+  ✓    2 [desktop] › tests/e2e/attendance-corrections.spec.ts:25:1 › employee correction, payroll blocker, approval, rejection and historical warning (9.4s)
+  ✓    3 [desktop] › tests/e2e/attendance-corrections.spec.ts:154:1 › correction form fits the viewport and supports keyboard and accessible inputs (1.9s)
+  ✓    4 [desktop] › tests/e2e/audit-remediation.spec.ts:4:1 › old gaps prompt corrections without blocking attendance, with readable contrast (1.5s)
+  ✓    5 [desktop] › tests/e2e/audit-remediation.spec.ts:5:1 › profile field errors have one announcement and retain entered values (878ms)
+  ✓    6 [desktop] › tests/e2e/audit-remediation.spec.ts:6:1 › logout, protected navigation and stale-tab reload do not produce page errors (1.8s)
+  ✓    7 [desktop] › tests/e2e/leave-calendar.spec.ts:16:2 › employee plans leave in the shared calendar (2.4s)
+  ✓    8 [desktop] › tests/e2e/leave-calendar.spec.ts:33:1 › employee can discover calendar events from a selected date (1.4s)
+  ✓    9 [desktop] › tests/e2e/leave-calendar.spec.ts:41:1 › calendar date navigation preserves context, scroll position, and focus (1.6s)
+  ✓   10 [desktop] › tests/e2e/leave-calendar.spec.ts:62:1 › successful leave submission closes the form and preserves the selected date (3.3s)
+  ✓   11 [desktop] › tests/e2e/leave-calendar.spec.ts:100:1 › admin can switch between calendar planning and the review queue (2.4s)
+  ✓   12 [desktop] › tests/e2e/leave-calendar.spec.ts:116:1 › admin calendar fits the initial laptop viewport (1.5s)
+  ✓   13 [desktop] › tests/e2e/leave-calendar.spec.ts:131:1 › employee leave tabs preserve context and browser navigation (1.7s)
+  ✓   14 [desktop] › tests/e2e/leave-calendar.spec.ts:151:1 › employee leave fits desktop and remains usable across viewport widths (3.6s)
+  ✓   15 [desktop] › tests/e2e/leave-calendar.spec.ts:184:1 › calendar contents remain reachable in short desktop windows (29.5s)
+  ✓   16 [desktop] › tests/e2e/leave-calendar.spec.ts:217:1 › submission notice is consumed without resizing the calendar (7.1s)
+  ✓   17 [desktop] › tests/e2e/leave-calendar.spec.ts:244:1 › leave server errors stay beside the form with one announcement (9.6s)
+  -   18 [desktop] › tests/e2e/leave-calendar.spec.ts:266:1 › crowded mobile dates expose their overflow and full event descriptions
+  ✓   19 [desktop] › tests/e2e/product-guidance.spec.ts:12:1 › first-login tours are role-specific and can be replayed (2.9s)
+  ✓   20 [desktop] › tests/e2e/product-guidance.spec.ts:48:1 › administrator task workspaces fit the laptop viewport (1.3s)
+  ✓   21 [desktop] › tests/e2e/product-guidance.spec.ts:60:1 › employee directory opens a focused add inspector without page scrolling (953ms)
+  ✓   22 [desktop] › tests/e2e/product-guidance.spec.ts:85:1 › desktop rail and workspace stay aligned while collapsing (1.1s)
+  -   23 [desktop] › tests/e2e/product-guidance.spec.ts:129:1 › payroll review controls and coach mark fit the mobile viewport
+  ✓   24 [desktop] › tests/e2e/smoke.spec.ts:4:1 › admin can sign in and reach live people and payroll data (1.6s)
+  ✓   25 [desktop] › tests/e2e/smoke.spec.ts:24:1 › employee account only sees Farah self-service (1.1s)
+(node:36778) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   26 [tablet] › tests/e2e/acceptance.spec.ts:3:1 › complete attendance to payslip acceptance journey
+  -   27 [tablet] › tests/e2e/attendance-corrections.spec.ts:25:1 › employee correction, payroll blocker, approval, rejection and historical warning
+  ✓   28 [tablet] › tests/e2e/attendance-corrections.spec.ts:154:1 › correction form fits the viewport and supports keyboard and accessible inputs (1.7s)
+  ✓   29 [tablet] › tests/e2e/audit-remediation.spec.ts:4:1 › old gaps prompt corrections without blocking attendance, with readable contrast (1.3s)
+  ✓   30 [tablet] › tests/e2e/audit-remediation.spec.ts:5:1 › profile field errors have one announcement and retain entered values (2.1s)
+  ✓   31 [tablet] › tests/e2e/audit-remediation.spec.ts:6:1 › logout, protected navigation and stale-tab reload do not produce page errors (1.6s)
+  ✓   32 [tablet] › tests/e2e/leave-calendar.spec.ts:16:2 › employee plans leave in the shared calendar (1.9s)
+  ✓   33 [tablet] › tests/e2e/leave-calendar.spec.ts:33:1 › employee can discover calendar events from a selected date (1.4s)
+  ✓   34 [tablet] › tests/e2e/leave-calendar.spec.ts:41:1 › calendar date navigation preserves context, scroll position, and focus (1.3s)
+  -   35 [tablet] › tests/e2e/leave-calendar.spec.ts:62:1 › successful leave submission closes the form and preserves the selected date
+  ✓   36 [tablet] › tests/e2e/leave-calendar.spec.ts:100:1 › admin can switch between calendar planning and the review queue (2.3s)
+  -   37 [tablet] › tests/e2e/leave-calendar.spec.ts:116:1 › admin calendar fits the initial laptop viewport
+  ✓   38 [tablet] › tests/e2e/leave-calendar.spec.ts:131:1 › employee leave tabs preserve context and browser navigation (2.6s)
+  -   39 [tablet] › tests/e2e/leave-calendar.spec.ts:151:1 › employee leave fits desktop and remains usable across viewport widths
+  -   40 [tablet] › tests/e2e/leave-calendar.spec.ts:184:1 › calendar contents remain reachable in short desktop windows
+  -   41 [tablet] › tests/e2e/leave-calendar.spec.ts:217:1 › submission notice is consumed without resizing the calendar
+  -   42 [tablet] › tests/e2e/leave-calendar.spec.ts:244:1 › leave server errors stay beside the form with one announcement
+  -   43 [tablet] › tests/e2e/leave-calendar.spec.ts:266:1 › crowded mobile dates expose their overflow and full event descriptions
+  -   44 [tablet] › tests/e2e/product-guidance.spec.ts:12:1 › first-login tours are role-specific and can be replayed
+  -   45 [tablet] › tests/e2e/product-guidance.spec.ts:48:1 › administrator task workspaces fit the laptop viewport
+  ✓   46 [tablet] › tests/e2e/product-guidance.spec.ts:60:1 › employee directory opens a focused add inspector without page scrolling (1.0s)
+  -   47 [tablet] › tests/e2e/product-guidance.spec.ts:85:1 › desktop rail and workspace stay aligned while collapsing
+  -   48 [tablet] › tests/e2e/product-guidance.spec.ts:129:1 › payroll review controls and coach mark fit the mobile viewport
+  ✓   49 [tablet] › tests/e2e/smoke.spec.ts:4:1 › admin can sign in and reach live people and payroll data (1.5s)
+  ✓   50 [tablet] › tests/e2e/smoke.spec.ts:24:1 › employee account only sees Farah self-service (1.2s)
+(node:37050) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   51 [mobile] › tests/e2e/acceptance.spec.ts:3:1 › complete attendance to payslip acceptance journey
+  -   52 [mobile] › tests/e2e/attendance-corrections.spec.ts:25:1 › employee correction, payroll blocker, approval, rejection and historical warning
+  ✓   53 [mobile] › tests/e2e/attendance-corrections.spec.ts:154:1 › correction form fits the viewport and supports keyboard and accessible inputs (1.5s)
+  ✓   54 [mobile] › tests/e2e/audit-remediation.spec.ts:4:1 › old gaps prompt corrections without blocking attendance, with readable contrast (965ms)
+  ✓   55 [mobile] › tests/e2e/audit-remediation.spec.ts:5:1 › profile field errors have one announcement and retain entered values (1.2s)
+  ✓   56 [mobile] › tests/e2e/audit-remediation.spec.ts:6:1 › logout, protected navigation and stale-tab reload do not produce page errors (1.9s)
+  ✓   57 [mobile] › tests/e2e/leave-calendar.spec.ts:16:2 › employee plans leave in the shared calendar (1.9s)
+  ✓   58 [mobile] › tests/e2e/leave-calendar.spec.ts:33:1 › employee can discover calendar events from a selected date (1.4s)
+  ✓   59 [mobile] › tests/e2e/leave-calendar.spec.ts:41:1 › calendar date navigation preserves context, scroll position, and focus (1.4s)
+  -   60 [mobile] › tests/e2e/leave-calendar.spec.ts:62:1 › successful leave submission closes the form and preserves the selected date
+  ✓   61 [mobile] › tests/e2e/leave-calendar.spec.ts:100:1 › admin can switch between calendar planning and the review queue (2.2s)
+  -   62 [mobile] › tests/e2e/leave-calendar.spec.ts:116:1 › admin calendar fits the initial laptop viewport
+  ✓   63 [mobile] › tests/e2e/leave-calendar.spec.ts:131:1 › employee leave tabs preserve context and browser navigation (2.4s)
+  -   64 [mobile] › tests/e2e/leave-calendar.spec.ts:151:1 › employee leave fits desktop and remains usable across viewport widths
+  -   65 [mobile] › tests/e2e/leave-calendar.spec.ts:184:1 › calendar contents remain reachable in short desktop windows
+  -   66 [mobile] › tests/e2e/leave-calendar.spec.ts:217:1 › submission notice is consumed without resizing the calendar
+  -   67 [mobile] › tests/e2e/leave-calendar.spec.ts:244:1 › leave server errors stay beside the form with one announcement
+  ✓   68 [mobile] › tests/e2e/leave-calendar.spec.ts:266:1 › crowded mobile dates expose their overflow and full event descriptions (4.2s)
+  -   69 [mobile] › tests/e2e/product-guidance.spec.ts:12:1 › first-login tours are role-specific and can be replayed
+  -   70 [mobile] › tests/e2e/product-guidance.spec.ts:48:1 › administrator task workspaces fit the laptop viewport
+  ✓   71 [mobile] › tests/e2e/product-guidance.spec.ts:60:1 › employee directory opens a focused add inspector without page scrolling (1.1s)
+  -   72 [mobile] › tests/e2e/product-guidance.spec.ts:85:1 › desktop rail and workspace stay aligned while collapsing
+  ✓   73 [mobile] › tests/e2e/product-guidance.spec.ts:129:1 › payroll review controls and coach mark fit the mobile viewport (986ms)
+  ✓   74 [mobile] › tests/e2e/smoke.spec.ts:4:1 › admin can sign in and reach live people and payroll data (1.3s)
+  ✓   75 [mobile] › tests/e2e/smoke.spec.ts:24:1 › employee account only sees Farah self-service (1.0s)
+(node:37323) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   76 [small-mobile] › tests/e2e/acceptance.spec.ts:3:1 › complete attendance to payslip acceptance journey
+  -   77 [small-mobile] › tests/e2e/attendance-corrections.spec.ts:25:1 › employee correction, payroll blocker, approval, rejection and historical warning
+  ✓   78 [small-mobile] › tests/e2e/attendance-corrections.spec.ts:154:1 › correction form fits the viewport and supports keyboard and accessible inputs (1.5s)
+  ✓   79 [small-mobile] › tests/e2e/audit-remediation.spec.ts:4:1 › old gaps prompt corrections without blocking attendance, with readable contrast (1.3s)
+  ✓   80 [small-mobile] › tests/e2e/audit-remediation.spec.ts:5:1 › profile field errors have one announcement and retain entered values (3.1s)
+  ✓   81 [small-mobile] › tests/e2e/audit-remediation.spec.ts:6:1 › logout, protected navigation and stale-tab reload do not produce page errors (2.0s)
+  ✓   82 [small-mobile] › tests/e2e/leave-calendar.spec.ts:16:2 › employee plans leave in the shared calendar (1.8s)
+  ✓   83 [small-mobile] › tests/e2e/leave-calendar.spec.ts:33:1 › employee can discover calendar events from a selected date (1.4s)
+  ✓   84 [small-mobile] › tests/e2e/leave-calendar.spec.ts:41:1 › calendar date navigation preserves context, scroll position, and focus (1.4s)
+  -   85 [small-mobile] › tests/e2e/leave-calendar.spec.ts:62:1 › successful leave submission closes the form and preserves the selected date
+  ✓   86 [small-mobile] › tests/e2e/leave-calendar.spec.ts:100:1 › admin can switch between calendar planning and the review queue (2.3s)
+  -   87 [small-mobile] › tests/e2e/leave-calendar.spec.ts:116:1 › admin calendar fits the initial laptop viewport
+  ✓   88 [small-mobile] › tests/e2e/leave-calendar.spec.ts:131:1 › employee leave tabs preserve context and browser navigation (2.3s)
+  -   89 [small-mobile] › tests/e2e/leave-calendar.spec.ts:151:1 › employee leave fits desktop and remains usable across viewport widths
+  -   90 [small-mobile] › tests/e2e/leave-calendar.spec.ts:184:1 › calendar contents remain reachable in short desktop windows
+  -   91 [small-mobile] › tests/e2e/leave-calendar.spec.ts:217:1 › submission notice is consumed without resizing the calendar
+  -   92 [small-mobile] › tests/e2e/leave-calendar.spec.ts:244:1 › leave server errors stay beside the form with one announcement
+  -   93 [small-mobile] › tests/e2e/leave-calendar.spec.ts:266:1 › crowded mobile dates expose their overflow and full event descriptions
+  -   94 [small-mobile] › tests/e2e/product-guidance.spec.ts:12:1 › first-login tours are role-specific and can be replayed
+  -   95 [small-mobile] › tests/e2e/product-guidance.spec.ts:48:1 › administrator task workspaces fit the laptop viewport
+  ✓   96 [small-mobile] › tests/e2e/product-guidance.spec.ts:60:1 › employee directory opens a focused add inspector without page scrolling (1.0s)
+  -   97 [small-mobile] › tests/e2e/product-guidance.spec.ts:85:1 › desktop rail and workspace stay aligned while collapsing
+  -   98 [small-mobile] › tests/e2e/product-guidance.spec.ts:129:1 › payroll review controls and coach mark fit the mobile viewport
+  ✓   99 [small-mobile] › tests/e2e/smoke.spec.ts:4:1 › admin can sign in and reach live people and payroll data (1.4s)
+  ✓  100 [small-mobile] › tests/e2e/smoke.spec.ts:24:1 › employee account only sees Farah self-service (1.1s)
+
+  39 skipped
+  61 passed (2.9m)

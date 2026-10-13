@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  21:02:26
+   Duration  2.57s (transform 376ms, setup 104ms, import 788ms, tests 1.59s, environment 0ms)
+

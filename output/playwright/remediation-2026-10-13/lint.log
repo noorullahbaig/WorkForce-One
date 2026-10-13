@@ -1,0 +1,11 @@
+
+> lint
+> eslint app workers tests
+
+
+/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/app/routes/portal.tsx
+   45:15  warning  'PayrollBreakdown' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+  387:8   warning  'latestFinalised' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 2 problems (0 errors, 2 warnings)
+

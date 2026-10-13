@@ -1,0 +1,13 @@
+{
+  "pass": 32,
+  "fail": [
+    {
+      "name": "Accessibility employee attendance",
+      "status": "Fail",
+      "detail": "1 violations; see live-accessibility.json"
+    }
+  ],
+  "errors": [
+    "Response"
+  ]
+}

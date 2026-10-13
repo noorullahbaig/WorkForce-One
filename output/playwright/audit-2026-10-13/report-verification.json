@@ -1,0 +1,13 @@
+{
+  "findings": 13,
+  "severity": {
+    "P1": 5,
+    "P2": 7,
+    "P3": 1
+  },
+  "brokenLinks": [],
+  "browserCycles": 30,
+  "allBrowserCyclesPassed": true,
+  "harnessSyntax": "Pass",
+  "evidenceJSON": "Pass"
+}

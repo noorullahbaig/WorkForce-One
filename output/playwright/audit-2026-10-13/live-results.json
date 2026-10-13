@@ -1,0 +1,302 @@
+{
+  "started": "2026-10-13T09:00:54.403Z",
+  "base": "https://workforce-one-hrms-demo.noorullahbaig31.workers.dev",
+  "results": [
+    {
+      "name": "Unauthenticated profile deep link",
+      "status": "Pass",
+      "detail": "https://workforce-one-hrms-demo.noorullahbaig31.workers.dev/login?returnTo=%2Femployee%2Fprofile"
+    },
+    {
+      "name": "Employee login preserves deep link",
+      "status": "Pass",
+      "detail": {
+        "url": "https://workforce-one-hrms-demo.noorullahbaig31.workers.dev/employee/profile"
+      }
+    },
+    {
+      "name": "Refresh preserves employee session",
+      "status": "Pass"
+    },
+    {
+      "name": "Employee cannot open admin",
+      "status": "Pass",
+      "detail": "https://workforce-one-hrms-demo.noorullahbaig31.workers.dev/employee"
+    },
+    {
+      "name": "Employee navigation /employee",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Good morning, Farah",
+        "buttons": [
+          "Sign out",
+          "Take product tour",
+          "Sign out",
+          "Start tour",
+          "Not now"
+        ]
+      }
+    },
+    {
+      "name": "Employee navigation /employee/attendance",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Attendance",
+        "buttons": [
+          "Sign out",
+          "Take product tour",
+          "Sign out",
+          " Fingerprint",
+          " QR Code",
+          " Clock In"
+        ]
+      }
+    },
+    {
+      "name": "Employee navigation /employee/leave",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Plan time away",
+        "buttons": [
+          "Sign out",
+          "Take product tour",
+          "Sign out",
+          "Legend"
+        ]
+      }
+    },
+    {
+      "name": "Employee navigation /employee/payslips",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Payslips",
+        "buttons": [
+          "Sign out",
+          "Take product tour",
+          "Sign out"
+        ]
+      }
+    },
+    {
+      "name": "Employee navigation /employee/notifications",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Notifications",
+        "buttons": [
+          "Sign out",
+          "Take product tour",
+          "Sign out",
+          "Mark all as read",
+          "Mark read"
+        ]
+      }
+    },
+    {
+      "name": "Employee navigation /employee/profile",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Profile",
+        "buttons": [
+          "Sign out",
+          "Take product tour",
+          "Sign out",
+          "Edit contact"
+        ]
+      }
+    },
+    {
+      "name": "Layout 1440 /employee/attendance",
+      "status": "Pass",
+      "detail": {
+        "width": 1440,
+        "scroll": 1440,
+        "mainWidth": 1196
+      }
+    },
+    {
+      "name": "Layout 1440 /employee/leave",
+      "status": "Pass",
+      "detail": {
+        "width": 1440,
+        "scroll": 1440,
+        "mainWidth": 1196
+      }
+    },
+    {
+      "name": "Layout 1440 /employee/profile",
+      "status": "Pass",
+      "detail": {
+        "width": 1440,
+        "scroll": 1440,
+        "mainWidth": 1196
+      }
+    },
+    {
+      "name": "Layout 768 /employee/attendance",
+      "status": "Pass",
+      "detail": {
+        "width": 768,
+        "scroll": 768,
+        "mainWidth": 768
+      }
+    },
+    {
+      "name": "Layout 768 /employee/leave",
+      "status": "Pass",
+      "detail": {
+        "width": 768,
+        "scroll": 768,
+        "mainWidth": 768
+      }
+    },
+    {
+      "name": "Layout 768 /employee/profile",
+      "status": "Pass",
+      "detail": {
+        "width": 768,
+        "scroll": 768,
+        "mainWidth": 768
+      }
+    },
+    {
+      "name": "Layout 390 /employee/attendance",
+      "status": "Pass",
+      "detail": {
+        "width": 390,
+        "scroll": 390,
+        "mainWidth": 390
+      }
+    },
+    {
+      "name": "Layout 390 /employee/leave",
+      "status": "Pass",
+      "detail": {
+        "width": 390,
+        "scroll": 390,
+        "mainWidth": 390
+      }
+    },
+    {
+      "name": "Layout 390 /employee/profile",
+      "status": "Pass",
+      "detail": {
+        "width": 390,
+        "scroll": 390,
+        "mainWidth": 390
+      }
+    },
+    {
+      "name": "Layout 360 /employee/attendance",
+      "status": "Pass",
+      "detail": {
+        "width": 360,
+        "scroll": 360,
+        "mainWidth": 360
+      }
+    },
+    {
+      "name": "Layout 360 /employee/leave",
+      "status": "Pass",
+      "detail": {
+        "width": 360,
+        "scroll": 360,
+        "mainWidth": 360
+      }
+    },
+    {
+      "name": "Layout 360 /employee/profile",
+      "status": "Pass",
+      "detail": {
+        "width": 360,
+        "scroll": 360,
+        "mainWidth": 360
+      }
+    },
+    {
+      "name": "Accessibility employee attendance",
+      "status": "Fail",
+      "detail": "1 violations; see live-accessibility.json"
+    },
+    {
+      "name": "Keyboard focus is visible on profile edit",
+      "status": "Pass",
+      "detail": {
+        "focused": true,
+        "outline": "rgb(255, 255, 255) none 0px",
+        "boxShadow": "rgba(79, 70, 229, 0.14) 0px 4px 12px 0px"
+      }
+    },
+    {
+      "name": "Logout invalidates other tab and browser Back",
+      "status": "Pass"
+    },
+    {
+      "name": "Admin login and workspace",
+      "status": "Pass",
+      "detail": {
+        "heading": "Good morning, Noor"
+      }
+    },
+    {
+      "name": "Admin navigation /admin/attendance",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Attendance"
+      }
+    },
+    {
+      "name": "Admin navigation /admin/attendance/corrections",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Attendance corrections"
+      }
+    },
+    {
+      "name": "Admin navigation /admin/leave",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Leave schedule"
+      }
+    },
+    {
+      "name": "Admin navigation /admin/payroll",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Payroll runs"
+      }
+    },
+    {
+      "name": "Admin navigation /admin/employees",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Employee directory"
+      }
+    },
+    {
+      "name": "Admin navigation /admin/notifications",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "heading": "Notifications"
+      }
+    },
+    {
+      "name": "Admin logout protects payroll",
+      "status": "Pass"
+    }
+  ],
+  "errors": [
+    "Response"
+  ]
+}

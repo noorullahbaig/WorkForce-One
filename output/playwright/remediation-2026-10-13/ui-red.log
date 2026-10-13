@@ -1,0 +1,755 @@
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+ ❯ app/features/attendance/attendance-ui.test.tsx (4 tests | 2 failed) 211ms
+   × overnight active record remains clockable and older gaps only prompt correction 47ms
+   × historical gaps show a nonblocking correction reminder 31ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/attendance/attendance-ui.test.tsx > overnight active record remains clockable and older gaps only prompt correction
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Clock Out"
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"eyebrow"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p />[39m
+
+  Name "":
+  [36m<p />[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Attendance":
+  [36m<h1 />[39m
+
+  Name "Ready to start shift":
+  [36m<h2 />[39m
+
+  Name "Activity history":
+  [36m<h2 />[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Fingerprint":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"button small paper"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "QR Code":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"button small ghost"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Clock In":
+  [36m<button[39m
+    [33mclass[39m=[32m"button paper"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"correction-history-row"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  strong:
+
+  Name "":
+  [36m<strong />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Request correction":
+  [36m<a[39m
+    [33mclass[39m=[32m"text-button"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/admin/attendance?correct=attendance-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page-header"[39m
+    [36m>[39m
+      [36m<div>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"eyebrow"[39m
+        [36m>[39m
+          [0mSelf-service[0m
+        [36m</p>[39m
+        [36m<h1>[39m
+          [0mAttendance[0m
+        [36m</h1>[39m
+        [36m<p>[39m
+          [0mYour workday history in Malaysia time.[0m
+        [36m</p>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"employee-clock-card"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"employee-clock-info"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"shift-badge-row"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"status pending"[39m
+          [36m>[39m
+            [36m<i />[39m
+            [0m [0m
+            [0mOff shift[0m
+          [36m</span>[39m
+        [36m</div>[39m
+        [36m<h2>[39m
+          [0mReady to start shift[0m
+        [36m</h2>[39m
+        [36m<p>[39m
+          [0mChoose your verification method and tap Clock In.[0m
+        [36m</p>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"clock-method-toggle"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"true"[39m
+            [33mclass[39m=[32m"button small paper"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-fingerprint-pattern"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M14 13.12c0 2.38 0 6.38-1 8.88"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M17.29 21.02c.12-.6.43-2.3.5-3.02"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M2 12a10 10 0 0 1 18-6"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M2 16h.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21.8 16c.2-2 .131-5.354 0-6"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M8.65 22c.21-.66.45-1.32.57-2"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M9 6.8a6 6 0 0 1 9 5.2v2"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m Fingerprint[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mclass[39m=[32m"button small ghost"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-qr-code"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"5"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"5"[39m
+                [33mx[39m=[32m"3"[39m
+                [33my[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"5"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"5"[39m
+                [33mx[39m=[32m"16"[39m
+                [33my[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"5"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"5"[39m
+                [33mx[39m=[32m"3"[39m
+                [33my[39m=[32m"16"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 16h-3a2 2 0 0 0-2 2v3"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 21v.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 7v3a2 2 0 0 1-2 2H7"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M3 12h.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 3h.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 16v.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 12h1"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 12v.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 21v-1"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m QR Code[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"employee-clock-actions"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"clock-in-group"[39m
+        [36m>[39m
+          [36m<form[39m
+            [33maction[39m=[32m"/admin/attendance"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mmethod[39m=[32m"post"[39m
+            [33mstyle[39m=[32m"margin: 0px;"[39m
+          [36m>[39m
+            [36m<input[39m
+              [33mname[39m=[32m"intent"[39m
+              [33mtype[39m=[32m"hidden"[39m
+              [33mvalue[39m=[32m"employee-clock"[39m
+            [36m/>[39m
+            [36m<input[39m
+              [33mname[39m=[32m"actionType"[39m
+              [33mtype[39m=[32m"hidden"[39m
+              [33mvalue[39m=[32m"clock-in"[39m
+            [36m/>[39m
+            [36m<input[39m
+              [33mname[39m=[32m"method"[39m
+              [33mtype[39m=[32m"hidden"[39m
+              [33mvalue[39m=[32m"fingerprint"[39m
+            [36m/>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"button paper"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-play"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"16"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"16"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [0m [0m
+              [0mClock In[0m
+            [36m</button>[39m
+          [36m</form>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</section>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"surface history"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"section-head"[39m
+      [36m>[39m
+        [36m<h2>[39m
+          [0mActivity history[0m
+        [36m</h2>[39m
+        [36m<span>[39m
+          [0mMalaysia time[0m
+        [36m</span>[39m
+      [36m</div>[39m
+      [36m<article[39m
+        [33mclass[39m=[32m"correction-history-row"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"correction-history-heading"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"correction-history-info"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"correction-history-date-row"[39m
+            [36m>[39m
+              [36m<strong>[39m
+                [0mTue, 8 Sept[0m
+              [36m</strong>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"history-time-range"[39m
+              [36m>[39m
+                [0m9:00 am[0m
+                [0m – [0m
+                [0mNot recorded[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<small[39m
+              [33mclass[39m=[32m"history-worked-meta"[39m
+            [36m>[39m
+              [0mIncomplete shift hours[0m
+            [36m</small>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"correction-history-status-block"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"status missing-clock-out"[39m
+            [36m>[39m
+              [36m<i />[39m
+              [0mmissing clock out[0m
+            [36m</span>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"text-button"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mhref[39m=[32m"/admin/attendance?correct=attendance-1"[39m
+            [36m>[39m
+              [0mRequest correction[0m
+            [36m</a>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</article>[39m
+    [36m</section>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ app/features/attendance/attendance-ui.test.tsx:66:16
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  app/features/attendance/attendance-ui.test.tsx > historical gaps show a nonblocking correction reminder
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Missing clock-outs"
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"eyebrow"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p />[39m
+
+  Name "":
+  [36m<p />[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Attendance":
+  [36m<h1 />[39m
+
+  Name "Ready to start shift":
+  [36m<h2 />[39m
+
+  Name "Activity history":
+  [36m<h2 />[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Fingerprint":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"button small paper"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "QR Code":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"button small ghost"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Clock In":
+  [36m<button[39m
+    [33mclass[39m=[32m"button paper"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"correction-history-row"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  strong:
+
+  Name "":
+  [36m<strong />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Request correction":
+  [36m<a[39m
+    [33mclass[39m=[32m"text-button"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/admin/attendance?correct=attendance-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page-header"[39m
+    [36m>[39m
+      [36m<div>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"eyebrow"[39m
+        [36m>[39m
+          [0mSelf-service[0m
+        [36m</p>[39m
+        [36m<h1>[39m
+          [0mAttendance[0m
+        [36m</h1>[39m
+        [36m<p>[39m
+          [0mYour workday history in Malaysia time.[0m
+        [36m</p>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"employee-clock-card"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"employee-clock-info"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"shift-badge-row"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"status pending"[39m
+          [36m>[39m
+            [36m<i />[39m
+            [0m [0m
+            [0mOff shift[0m
+          [36m</span>[39m
+        [36m</div>[39m
+        [36m<h2>[39m
+          [0mReady to start shift[0m
+        [36m</h2>[39m
+        [36m<p>[39m
+          [0mChoose your verification method and tap Clock In.[0m
+        [36m</p>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"clock-method-toggle"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"true"[39m
+            [33mclass[39m=[32m"button small paper"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-fingerprint-pattern"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M14 13.12c0 2.38 0 6.38-1 8.88"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M17.29 21.02c.12-.6.43-2.3.5-3.02"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M2 12a10 10 0 0 1 18-6"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M2 16h.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21.8 16c.2-2 .131-5.354 0-6"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M8.65 22c.21-.66.45-1.32.57-2"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M9 6.8a6 6 0 0 1 9 5.2v2"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m Fingerprint[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mclass[39m=[32m"button small ghost"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-qr-code"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"5"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"5"[39m
+                [33mx[39m=[32m"3"[39m
+                [33my[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"5"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"5"[39m
+                [33mx[39m=[32m"16"[39m
+                [33my[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"5"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"5"[39m
+                [33mx[39m=[32m"3"[39m
+                [33my[39m=[32m"16"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 16h-3a2 2 0 0 0-2 2v3"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 21v.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 7v3a2 2 0 0 1-2 2H7"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M3 12h.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 3h.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 16v.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 12h1"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 12v.01"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 21v-1"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m QR Code[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"employee-clock-actions"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"clock-in-group"[39m
+        [36m>[39m
+          [36m<form[39m
+            [33maction[39m=[32m"/admin/attendance"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mmethod[39m=[32m"post"[39m
+            [33mstyle[39m=[32m"margin: 0px;"[39m
+          [36m>[39m
+            [36m<input[39m
+              [33mname[39m=[32m"intent"[39m
+              [33mtype[39m=[32m"hidden"[39m
+              [33mvalue[39m=[32m"employee-clock"[39m
+            [36m/>[39m
+            [36m<input[39m
+              [33mname[39m=[32m"actionType"[39m
+              [33mtype[39m=[32m"hidden"[39m
+              [33mvalue[39m=[32m"clock-in"[39m
+            [36m/>[39m
+            [36m<input[39m
+              [33mname[39m=[32m"method"[39m
+              [33mtype[39m=[32m"hidden"[39m
+              [33mvalue[39m=[32m"fingerprint"[39m
+            [36m/>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"button paper"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-play"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"16"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"16"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [0m [0m
+              [0mClock In[0m
+            [36m</button>[39m
+          [36m</form>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</section>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"surface history"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"section-head"[39m
+      [36m>[39m
+        [36m<h2>[39m
+          [0mActivity history[0m
+        [36m</h2>[39m
+        [36m<span>[39m
+          [0mMalaysia time[0m
+        [36m</span>[39m
+      [36m</div>[39m
+      [36m<article[39m
+        [33mclass[39m=[32m"correction-history-row"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"correction-history-heading"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"correction-history-info"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"correction-history-date-row"[39m
+            [36m>[39m
+              [36m<strong>[39m
+                [0mTue, 8 Sept[0m
+              [36m</strong>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"history-time-range"[39m
+              [36m>[39m
+                [0m9:00 am[0m
+                [0m – [0m
+                [0mNot recorded[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<small[39m
+              [33mclass[39m=[32m"history-worked-meta"[39m
+            [36m>[39m
+              [0mIncomplete shift hours[0m
+            [36m</small>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"correction-history-status-block"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"status missing-clock-out"[39m
+            [36m>[39m
+              [36m<i />[39m
+              [0mmissing clock out[0m
+            [36m</span>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"text-button"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mhref[39m=[32m"/admin/attendance?correct=attendance-1"[39m
+            [36m>[39m
+              [0mRequest correction[0m
+            [36m</a>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</article>[39m
+    [36m</section>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ app/features/attendance/attendance-ui.test.tsx:70:16
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  19:02:13
+   Duration  943ms (transform 107ms, setup 67ms, import 212ms, tests 211ms, environment 355ms)
+

@@ -1,0 +1,26 @@
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+ ❯ app/domain/attendance.test.ts (8 tests | 1 failed) 17ms
+   × selects the latest active legacy session consistently with the clock-out query 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/domain/attendance.test.ts > selects the latest active legacy session consistently with the clock-out query
+TypeError: selectActiveShift is not a function
+ ❯ app/domain/attendance.test.ts:61:9
+     59|  const {selectActiveShift}=await import('./attendance');
+     60|  const rows=[{id:'a',clockIn:'2027-02-01T01:00:00Z',clockOut:null},{id…
+     61|  expect(selectActiveShift(rows,'2027-02-01T03:00:00Z')?.id).toBe('b');
+       |         ^
+     62|  expect(selectActiveShift([{...rows[0],id:'Z'},{...rows[0],id:'a'}],'2…
+     63| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  23:46:06
+   Duration  225ms (transform 36ms, setup 99ms, import 22ms, tests 17ms, environment 0ms)
+

@@ -1,0 +1,342 @@
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+ ❯ app/features/attendance/correction-ui.test.tsx (2 tests | 1 failed) 327ms
+   × admin previews daily overtime across the employee sibling sessions 27ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/attendance/correction-ui.test.tsx > admin previews daily overtime across the employee sibling sessions
+TestingLibraryElementError: Unable to find an element with the text: /2h 0m overtime/. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Attendance corrections"[39m
+      [33mclass[39m=[32m"task-workspace scroll-split"[39m
+      [33mrole[39m=[32m"region"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"workspace-header"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mTime / Review[0m
+          [36m</p>[39m
+          [36m<h1>[39m
+            [0mAttendance corrections[0m
+          [36m</h1>[39m
+          [36m<p>[39m
+            [0mReview requested changes before attendance flows into payroll.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"workspace-actions"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"button secondary"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/admin/attendance"[39m
+          [36m>[39m
+            [0mAttendance records[0m
+          [36m</a>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<nav[39m
+        [33maria-label[39m=[32m"Correction status"[39m
+        [33mclass[39m=[32m"tabs"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"active"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/?status=pending"[39m
+        [36m>[39m
+          [0mPending[0m
+          [0m [0m
+          [36m<b>[39m
+            [0m1[0m
+          [36m</b>[39m
+        [36m</a>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m""[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/?status=approved"[39m
+        [36m>[39m
+          [0mApproved[0m
+          [0m [0m
+          [36m<b>[39m
+            [0m0[0m
+          [36m</b>[39m
+        [36m</a>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m""[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/?status=rejected"[39m
+        [36m>[39m
+          [0mRejected[0m
+          [0m [0m
+          [36m<b>[39m
+            [0m0[0m
+          [36m</b>[39m
+        [36m</a>[39m
+      [36m</nav>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"correction-review-layout has-selection"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"pending corrections"[39m
+          [33mclass[39m=[32m"scrollable-region surface correction-queue"[39m
+          [33mrole[39m=[32m"region"[39m
+          [33mtabindex[39m=[32m"0"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33maria-current[39m=[32m"true"[39m
+            [33mclass[39m=[32m"correction-queue-row is-selected"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/?status=pending&request=r"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"correction-queue-person"[39m
+            [36m>[39m
+              [36m<i>[39m
+                [0mF[0m
+              [36m</i>[39m
+              [36m<div>[39m
+                [36m<strong>[39m
+                  [0mFarah[0m
+                [36m</strong>[39m
+                [36m<small>[39m
+                  [0mMC-1[0m
+                  [0m · [0m
+                  [0mTue, 25 Aug[0m
+                [36m</small>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"correction-queue-reason"[39m
+            [36m>[39m
+              [0mLater departure[0m
+            [36m</p>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-chevron-right correction-queue-chevron"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"16"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"16"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"m9 18 6-6-6-6"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+          [36m</a>[39m
+        [36m</div>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"correction-review-title"[39m
+          [33mclass[39m=[32m"surface correction-panel"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"correction-back"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/?status=pending"[39m
+          [36m>[39m
+            [0m← Back to corrections[0m
+          [36m</a>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"review-person"[39m
+          [36m>[39m
+            [36m<i[39m
+              [33mclass[39m=[32m"review-avatar"[39m
+            [36m>[39m
+              [0mF[0m
+            [36m</i>[39m
+            [36m<div>[39m
+              [36m<strong>[39m
+                [0mFarah[0m
+              [36m</strong>[39m
+              [36m<small>[39m
+                [0mMC-1[0m
+                [0m · [0m
+                [0mTue, 25 Aug 2026[0m
+              [36m</small>[39m
+            [36m</div>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"status pending"[39m
+            [36m>[39m
+              [36m<i />[39m
+              [0mpending[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"balance-field-label"[39m
+            [33mstyle[39m=[32m"margin-top: 16px;"[39m
+          [36m>[39m
+            [0mTime comparison[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"correction-comparison"[39m
+          [36m>[39m
+            [36m<section>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"balance-field-label"[39m
+              [36m>[39m
+                [0mOriginal record[0m
+              [36m</p>[39m
+              [36m<dl>[39m
+                [36m<dt>[39m
+                  [0mClock in[0m
+                [36m</dt>[39m
+                [36m<dd>[39m
+                  [0m25 Aug 2026, 2:00 pm[0m
+                [36m</dd>[39m
+                [36m<dt>[39m
+                  [0mClock out[0m
+                [36m</dt>[39m
+                [36m<dd>[39m
+                  [0m25 Aug 2026, 6:00 pm[0m
+                [36m</dd>[39m
+              [36m</dl>[39m
+            [36m</section>[39m
+            [36m<section>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"balance-field-label"[39m
+              [36m>[39m
+                [0mProposed correction[0m
+              [36m</p>[39m
+              [36m<dl>[39m
+                [36m<dt>[39m
+                  [0mClock in[0m
+                [36m</dt>[39m
+                [36m<dd>[39m
+                  [0m25 Aug 2026, 2:00 pm[0m
+                [36m</dd>[39m
+                [36m<dt>[39m
+                  [0mClock out[0m
+                [36m</dt>[39m
+                [36m<dd>[39m
+                  [0m25 Aug 2026, 7:00 pm[0m
+                [36m</dd>[39m
+              [36m</dl>[39m
+            [36m</section>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"correction-preview"[39m
+            [33mstyle[39m=[32m"margin-bottom: 16px;"[39m
+          [36m>[39m
+            [36m<strong>[39m
+              [0m5h 0m[0m
+              [0m worked ·[0m
+              [0m [0m
+              [0m0h 0m[0m
+              [0m overtime[0m
+            [36m</strong>[39m
+            [36m<p>[39m
+              [0mPreviously: [0m
+              [0m4h 0m[0m
+              [0m worked ·[0m
+              [0m [0m
+              [0m1h 0m[0m
+              [0m overtime[0m
+              [0m · [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"delta-positive"[39m
+              [36m>[39m
+                [0m+[0m
+                [0m60[0m
+                [0m min[0m
+              [36m</span>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"balance-field-label"[39m
+          [36m>[39m
+            [0mEmployee's reason[0m
+          [36m</p>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"correction-reason"[39m
+            [33mstyle[39m=[32m"margin-bottom: 16px; font-size: 0.85rem; line-height: 1.6;"[39m
+          [36m>[39m
+            [0mLater departure[0m
+          [36m</p>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"balance-field-label"[39m
+            [33mstyle[39m=[32m"margin-top: 16px;"[39m
+          [36m>[39m
+            [0mYour decision[0m
+          [36m</p>[39m
+          [36m<form[39m
+            [33maction[39m=[32m"/?request=r"[39m
+            [33mclass[39m=[32m"correction-form"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mmethod[39m=[32m"post"[39m
+          [36m>[39m
+            [36m<input[39m
+              [33mname[39m=[32m"intent"[39m
+              [33mtype[39m=[32m"hidden"[39m
+              [33mvalue[39m=[32m"review-attendance-correction"[39m
+            [36m/>[39m
+            [36m<input[39m
+              [33mname[39m=[32m"id"[39m
+              [33mtype[39m=[32m"hidden"[39m
+              [33mvalue[39m=[32m"r"[39m
+            [36m/>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"rejection-reason"[39m
+            [36m>[39m
+              [0mRejection reason (required to reject)[0m
+              [36m<textarea[39m
+                [33mid[39m=[32m"rejection-reason"[39m
+                [33mmaxlength[39m=[32m"2000"[39m
+                [33mname[39m=[32m"rejectionReason"[39m
+                [33mplaceholder[39m=[32m"Explain why this correction is being rejected…"[39m
+                [33mrows[39m=[32m"3"[39m
+              [36m/>[39m
+            [36m</label>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"correction-actions"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"button primary"[39m
+                [33mname[39m=[32m"decision"[39m
+                [33mvalue[39m=[32m"approved"[39m
+              [36m>[39m
+                [0mApprove correction[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"button danger-outline"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mname[39m=[32m"decision"[39m
+                [33mvalue[39m=[32m"rejected"[39m
+              [36m>[39m
+                [0mReject correction[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ app/features/attendance/correction-ui.test.tsx:56:16
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  22:34:21
+   Duration  1.46s (transform 124ms, setup 120ms, import 290ms, tests 327ms, environment 630ms)
+

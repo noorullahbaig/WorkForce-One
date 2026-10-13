@@ -1,0 +1,81 @@
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+ ❯ app/features/payroll/attendance-inputs.test.ts (2 tests | 1 failed) 6ms
+   × combines split sessions before calculating daily regular and overtime totals 4ms
+ ❯ app/features/attendance/corrections.server.test.ts (15 tests | 4 failed) 3487ms
+   × does not let an in-flight employee-clock overwrite an approved correction 85ms
+   × does not let an in-flight simulate-attendance overwrite an approved correction 96ms
+   × allocates overtime across sibling sessions when approving a correction 144ms
+   × older unclosed gaps do not overlap every later correction forever 36ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/attendance/corrections.server.test.ts > does not let an in-flight employee-clock overwrite an approved correction
+TypeError: db.batch is not a function
+ ❯ attendanceClockAction app/features/attendance/clock.server.ts:22:27
+
+ ❯ app/features/attendance/corrections.server.test.ts:297:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  app/features/attendance/corrections.server.test.ts > does not let an in-flight simulate-attendance overwrite an approved correction
+TypeError: db.batch is not a function
+ ❯ attendanceClockAction app/features/attendance/clock.server.ts:39:27
+
+ ❯ app/features/attendance/corrections.server.test.ts:297:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  app/features/attendance/corrections.server.test.ts > allocates overtime across sibling sessions when approving a correction
+AssertionError: expected { worked: 600, overtime: +0 } to match object { worked: 600, overtime: 120 }
+
+- Expected
++ Received
+
+  {
+-   "overtime": 120,
++   "overtime": 0,
+    "worked": 600,
+  }
+
+ ❯ app/features/attendance/corrections.server.test.ts:361:182
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  app/features/attendance/corrections.server.test.ts > older unclosed gaps do not overlap every later correction forever
+AssertionError: expected { Object (error) } to have property "ok"
+ ❯ app/features/attendance/corrections.server.test.ts:366:25
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  app/features/payroll/attendance-inputs.test.ts > combines split sessions before calculating daily regular and overtime totals
+AssertionError: expected [ { employeeId: 'e', …(3) } ] to deeply equal [ { employeeId: 'e', …(3) } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "employeeId": "e",
+-     "overtimeMinutes": 120,
+-     "regularMinutes": 480,
++     "overtimeMinutes": 0,
++     "regularMinutes": 600,
+      "workedMinutes": 600,
+    },
+  ]
+
+ ❯ app/features/payroll/attendance-inputs.test.ts:34:209
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  5 failed | 12 passed (17)
+   Start at  18:58:44
+   Duration  3.88s (transform 150ms, setup 112ms, import 289ms, tests 3.49s, environment 0ms)
+

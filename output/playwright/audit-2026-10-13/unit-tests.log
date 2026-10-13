@@ -1,0 +1,13 @@
+
+> test:run
+> vitest run
+
+
+ RUN  v4.1.11 /Users/noorullah/Developer/Workforce One
+
+
+ Test Files  21 passed (21)
+      Tests  125 passed (125)
+   Start at  16:56:30
+   Duration  8.16s (transform 1.22s, setup 3.04s, import 5.64s, tests 23.42s, environment 11.51s)
+

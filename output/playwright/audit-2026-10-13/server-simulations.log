@@ -1,0 +1,117 @@
+
+ RUN  v4.1.11 /private/tmp/workforce-audit-2026-10-13
+
+ ❯ app/audit.simulation.test.ts (17 tests | 7 failed) 4532ms
+   × Concurrent duplicate clock-ins should create only one active shift 78ms
+   × Overnight employee shift should close at 06:00 MYT next day 55ms
+   × Zero duration produces a validation response rather than throw 56ms
+   × Admin capture should not crash for a shift starting after 18:15 MYT 34ms
+   × Leave rejects impossible calendar date rather than normalising it 1ms
+   × Split shifts exceeding eight hours should accumulate daily overtime 127ms
+   × Company isolation: payroll CSV, bank CSV, PDF and payslip PDF 251ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/audit.simulation.test.ts > Concurrent duplicate clock-ins should create only one active shift
+AssertionError: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ app/audit.simulation.test.ts:19:459
+
+ ❯ app/audit.simulation.test.ts:16:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  app/audit.simulation.test.ts > Overnight employee shift should close at 06:00 MYT next day
+AssertionError: expected { Object (error) } to have property "ok"
+ ❯ app/audit.simulation.test.ts:20:324
+
+ ❯ app/audit.simulation.test.ts:16:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  app/audit.simulation.test.ts > Zero duration produces a validation response rather than throw
+Error: Clock out must be after clock in
+ ❯ calculateAttendance app/domain/attendance.ts:23:9
+     21|  }
+     22|  if (clockOut <= clockIn) {
+     23|   throw new Error("Clock out must be after clock in");
+       |         ^
+     24|  }
+     25|
+ ❯ attendanceClockAction app/features/attendance/clock.server.ts:59:19
+ ❯ app/audit.simulation.test.ts:22:153
+ ❯ app/audit.simulation.test.ts:16:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  app/audit.simulation.test.ts > Admin capture should not crash for a shift starting after 18:15 MYT
+Error: Clock out must be after clock in
+ ❯ calculateAttendance app/domain/attendance.ts:23:9
+     21|  }
+     22|  if (clockOut <= clockIn) {
+     23|   throw new Error("Clock out must be after clock in");
+       |         ^
+     24|  }
+     25|
+ ❯ attendanceClockAction app/features/attendance/clock.server.ts:119:22
+ ❯ app/audit.simulation.test.ts:23:438
+ ❯ app/audit.simulation.test.ts:16:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  app/audit.simulation.test.ts > Leave rejects impossible calendar date rather than normalising it
+AssertionError: expected [Function] to throw an error
+ ❯ app/audit.simulation.test.ts:27:204
+
+ ❯ app/audit.simulation.test.ts:16:97
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  app/audit.simulation.test.ts > Split shifts exceeding eight hours should accumulate daily overtime
+AssertionError: expected { employeeId: 'emp-001', …(3) } to match object { workedMinutes: 600, …(2) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "overtimeMinutes": 120,
+-   "regularMinutes": 480,
++   "overtimeMinutes": 0,
++   "regularMinutes": 600,
+    "workedMinutes": 600,
+  }
+
+ ❯ app/audit.simulation.test.ts:32:704
+
+ ❯ app/audit.simulation.test.ts:16:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  app/audit.simulation.test.ts > Company isolation: payroll CSV, bank CSV, PDF and payslip PDF
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ app/audit.simulation.test.ts:33:1632
+
+ ❯ app/audit.simulation.test.ts:16:91
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 10 passed (17)
+   Start at  17:12:41
+   Duration  5.07s (transform 133ms, setup 110ms, import 338ms, tests 4.53s, environment 0ms)
+

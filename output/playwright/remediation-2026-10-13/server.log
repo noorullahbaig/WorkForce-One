@@ -1,0 +1,57 @@
+
+> dev
+> react-router dev --host 127.0.0.1 --port 5173 --force
+
+[restart] Relaunching with NODE_OPTIONS: --conditions=development
+11:40:04 PM [vite] (client) Forced re-optimization of dependencies
+  ➜  Local:   http://127.0.0.1:5173/
+  ➜  Debug:   http://127.0.0.1:5173/__debug
+
+The Cloudflare Vite plugin detected this dev session is running in an AI agent.
+The Local Explorer API is available at http://127.0.0.1:5173/cdn-cgi/local/explorer/api
+Useful routes:
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/local/workers - local Workers and bindings
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/storage/kv/namespaces - KV namespaces
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/d1/database - D1 databases
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/r2/buckets - R2 buckets
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/workers/durable_objects/namespaces - Durable Object namespaces
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/workflows - Workflows
+  POST http://127.0.0.1:5173/cdn-cgi/local/explorer/api/local/observability/query - run a read-only SQL query (SELECT/WITH only) over captured request traces and console logs. Tables: spans, logs (read attributes via json(attributes)). Example:
+    curl -X POST http://127.0.0.1:5173/cdn-cgi/local/explorer/api/local/observability/query -H 'Content-Type: application/json' -d '{"sql":"SELECT service, name, outcome, duration_ms FROM spans WHERE parent_id IS NULL LIMIT 20"}'
+If the routes above don't cover what you need, fetch the full OpenAPI schema (large - use only as a last resort):
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api - OpenAPI schema
+
+11:40:52 PM [react-router] Config saved
+11:40:55 PM [vite] (client) ✨ new dependencies optimized: lucide-react
+11:40:55 PM [vite] (client) ✨ optimized dependencies changed. reloading
+11:40:57 PM [vite] (client) ✨ new dependencies optimized: @radix-ui/react-dialog, @radix-ui/react-dropdown-menu
+11:40:57 PM [vite] (client) ✨ optimized dependencies changed. reloading
+Error: The `request.url` host does not match `origin` header from a forwarded action request. Aborting the action.
+    at throwIfPotentialCSRFAttack (/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/node_modules/.vite/deps_ssr/react-router.js?v=bcc371f6:8827:69)
+    at handleDocumentRequest (/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/node_modules/.vite/deps_ssr/react-router.js?v=bcc371f6:9240:7)
+    at requestHandler (/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/node_modules/.vite/deps_ssr/react-router.js?v=bcc371f6:9167:24)
+Error: The `request.url` host does not match `origin` header from a forwarded action request. Aborting the action.
+    at throwIfPotentialCSRFAttack (/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/node_modules/.vite/deps_ssr/react-router.js?v=bcc371f6:8827:69)
+    at handleDocumentRequest (/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/node_modules/.vite/deps_ssr/react-router.js?v=bcc371f6:9240:7)
+    at requestHandler (/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/node_modules/.vite/deps_ssr/react-router.js?v=bcc371f6:9167:24)
+Error: The `request.url` host does not match `origin` header from a forwarded action request. Aborting the action.
+    at throwIfPotentialCSRFAttack (/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/node_modules/.vite/deps_ssr/react-router.js?v=bcc371f6:8827:69)
+    at handleDocumentRequest (/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/node_modules/.vite/deps_ssr/react-router.js?v=bcc371f6:9240:7)
+    at requestHandler (/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/node_modules/.vite/deps_ssr/react-router.js?v=bcc371f6:9167:24)
+11:46:05 PM [vite] (ssr) hmr update /app/app.css
+11:46:05 PM [vite] (client) hmr update /app/app.css
+11:46:21 PM [vite] (client) hmr update /app/routes/portal.tsx, /app/features/attendance/correction-ui.tsx, /app/features/attendance/attendance-ui.tsx
+11:46:21 PM [vite] (client) hmr update /app/features/attendance/attendance-ui.tsx
+11:46:21 PM [vite] (client) hmr update /app/routes/portal.tsx, /app/features/attendance/correction-ui.tsx, /app/features/attendance/attendance-ui.tsx
+11:46:21 PM [vite] (client) hmr update /app/features/attendance/attendance-ui.tsx
+11:46:21 PM [vite] (ssr) hmr update /app/app.css, /@id/virtual:cloudflare/worker-entry
+11:46:21 PM [vite] (client) hmr update /app/app.css, /app/routes/portal.tsx, /app/features/attendance/correction-ui.tsx, /app/features/attendance/attendance-ui.tsx
+11:46:21 PM [vite] (ssr) hmr update /app/app.css, /@id/virtual:cloudflare/worker-entry
+11:46:21 PM [vite] (client) hmr update /app/app.css, /app/features/attendance/attendance-ui.tsx
+[vite] hot updated: virtual:cloudflare/worker-entry
+[vite] hot updated: virtual:cloudflare/worker-entry
+11:46:21 PM [vite] (client) hmr update /app/routes/portal.tsx
+11:46:21 PM [vite] (client) hmr update /app/routes/portal.tsx
+11:46:21 PM [vite] (ssr) hmr update /@id/virtual:cloudflare/worker-entry, /app/app.css
+11:46:21 PM [vite] (client) hmr update /app/app.css, /app/routes/portal.tsx
+[vite] hot updated: virtual:cloudflare/worker-entry

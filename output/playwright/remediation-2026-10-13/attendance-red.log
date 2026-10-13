@@ -1,0 +1,89 @@
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+ ❯ app/domain/attendance.test.ts (5 tests | 2 failed) 4ms
+   × allocates daily overtime across chronological split sessions 2ms
+   × uses inclusive24h active window and Malaysia greeting 0ms
+ ❯ app/features/attendance/clock.server.test.ts (6 tests | 5 failed) 1285ms
+   × atomically prevents simultaneous clock-ins but permits completed split shifts 82ms
+   × closes overnight shift on its original work date 56ms
+   × allows exactly24h but prompts correction for older gaps without blocking new work 63ms
+   × rejects equal/reversed/invalid timestamps with a controlled result 62ms
+   × validates explicit Malaysia admin departure and safely defaults late-start shifts 65ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/attendance/clock.server.test.ts > atomically prevents simultaneous clock-ins but permits completed split shifts
+AssertionError: expected [ …(2) ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ app/features/attendance/clock.server.test.ts:10:237
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  app/features/attendance/clock.server.test.ts > closes overnight shift on its original work date
+AssertionError: expected { Object (error) } to have property "ok"
+ ❯ app/features/attendance/clock.server.test.ts:11:194
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  app/features/attendance/clock.server.test.ts > allows exactly24h but prompts correction for older gaps without blocking new work
+AssertionError: expected { Object (error) } to have property "ok"
+ ❯ app/features/attendance/clock.server.test.ts:12:201
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  app/features/attendance/clock.server.test.ts > rejects equal/reversed/invalid timestamps with a controlled result
+AssertionError: promise rejected "Error: Clock out must be after clock in" instead of resolving
+ ❯ app/features/attendance/clock.server.test.ts:13:179
+
+
+Caused by: Error: Clock out must be after clock in
+ ❯ calculateAttendance app/domain/attendance.ts:23:9
+ ❯ attendanceClockAction app/features/attendance/clock.server.ts:59:19
+ ❯ app/features/attendance/clock.server.test.ts:13:144
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  app/features/attendance/clock.server.test.ts > validates explicit Malaysia admin departure and safely defaults late-start shifts
+Error: Clock out must be after clock in
+ ❯ calculateAttendance app/domain/attendance.ts:23:9
+     21|  }
+     22|  if (clockOut <= clockIn) {
+     23|   throw new Error("Clock out must be after clock in");
+       |         ^
+     24|  }
+     25|
+ ❯ attendanceClockAction app/features/attendance/clock.server.ts:119:22
+ ❯ app/features/attendance/clock.server.test.ts:15:407
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  app/domain/attendance.test.ts > allocates daily overtime across chronological split sessions
+TypeError: allocateDailyAttendance is not a function
+ ❯ app/domain/attendance.test.ts:39:13
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  app/domain/attendance.test.ts > uses inclusive24h active window and Malaysia greeting
+TypeError: isActiveShift is not a function
+ ❯ app/domain/attendance.test.ts:45:9
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  7 failed | 4 passed (11)
+   Start at  18:55:21
+   Duration  1.63s (transform 90ms, setup 110ms, import 230ms, tests 1.29s, environment 0ms)
+

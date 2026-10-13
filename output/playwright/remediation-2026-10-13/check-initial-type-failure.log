@@ -1,0 +1,50 @@
+
+> check
+> npm run typecheck && npm run test:run && npm run build && wrangler deploy --dry-run
+
+
+> typecheck
+> npm run typegen && tsc -b
+
+
+> typegen
+> wrangler types && react-router typegen
+
+
+ ⛅️ wrangler 4.126.0
+────────────────────
+Generating project types...
+
+interface __BaseEnv_Env {
+	DB: D1Database;
+	ASSETS: Fetcher;
+	APP_ENV: "development";
+	DEMO_MODE: "true";
+}
+declare namespace Cloudflare {
+	interface GlobalProps {
+		mainModule: typeof import("./workers/app");
+	}
+	interface Env extends __BaseEnv_Env {}
+}
+interface Env extends __BaseEnv_Env {}
+type StringifyValues<EnvType extends Record<string, unknown>> = {
+	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
+};
+declare namespace NodeJS {
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "APP_ENV" | "DEMO_MODE">> {}
+}
+
+Generating runtime types...
+
+Runtime types generated.
+
+
+✨ Types written to worker-configuration.d.ts
+
+📖 Read about runtime types
+https://developers.cloudflare.com/workers/languages/typescript/#generate-types
+📣 Remember to rerun 'wrangler types' after you change your wrangler.jsonc file.
+
+app/routes/portal-action.test.ts(12,16): error TS2352: Conversion of type '{ request: Request<unknown, CfProperties<unknown>>; params: {}; context: RouterContextProvider; }' to type 'CreateServerActionArgs<Info & { module: typeof import("/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/app/routes/portal"); matches: Matches; }>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ request: Request<unknown, CfProperties<unknown>>; params: {}; context: RouterContextProvider; }' is missing the following properties from type 'CreateServerActionArgs<Info & { module: typeof import("/Users/noorullah/.codex/worktrees/audit-remediation/Workforce One/app/routes/portal"); matches: Matches; }>': url, pattern

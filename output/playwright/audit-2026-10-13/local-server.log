@@ -1,0 +1,79 @@
+
+> dev
+> react-router dev --host 127.0.0.1 --port 5173 --force
+
+[restart] Relaunching with NODE_OPTIONS: --conditions=development
+4:57:58 PM [vite] (ssr) Re-optimizing dependencies because vite config has changed
+4:57:59 PM [vite] (client) Forced re-optimization of dependencies
+  ➜  Local:   http://127.0.0.1:5173/
+  ➜  Debug:   http://127.0.0.1:5173/__debug
+
+The Cloudflare Vite plugin detected this dev session is running in an AI agent.
+The Local Explorer API is available at http://127.0.0.1:5173/cdn-cgi/local/explorer/api
+Useful routes:
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/local/workers - local Workers and bindings
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/storage/kv/namespaces - KV namespaces
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/d1/database - D1 databases
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/r2/buckets - R2 buckets
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/workers/durable_objects/namespaces - Durable Object namespaces
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api/workflows - Workflows
+  POST http://127.0.0.1:5173/cdn-cgi/local/explorer/api/local/observability/query - run a read-only SQL query (SELECT/WITH only) over captured request traces and console logs. Tables: spans, logs (read attributes via json(attributes)). Example:
+    curl -X POST http://127.0.0.1:5173/cdn-cgi/local/explorer/api/local/observability/query -H 'Content-Type: application/json' -d '{"sql":"SELECT service, name, outcome, duration_ms FROM spans WHERE parent_id IS NULL LIMIT 20"}'
+If the routes above don't cover what you need, fetch the full OpenAPI schema (large - use only as a last resort):
+  GET http://127.0.0.1:5173/cdn-cgi/local/explorer/api - OpenAPI schema
+
+The request id "/Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx" is outside of Vite serving allow list.
+
+- /private/tmp/workforce-audit-2026-10-13
+- /Users/noorullah/Developer/Workforce One/node_modules/vite/dist/client
+
+Refer to docs https://vite.dev/config/server-options.html#server-fs-allow for configurations and more details.
+
+Error: Failed to load url /@fs/Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx (resolved id: /Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx). Does the file exist?
+    at loadAndTransform (file:///Users/noorullah/Developer/Workforce%20One/node_modules/vite/dist/node/chunks/config.js:22739:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async getStylesForFiles (file:///Users/noorullah/Developer/Workforce%20One/node_modules/@react-router/dev/dist/vite.js:80:6)
+    at async getStylesForPathname (file:///Users/noorullah/Developer/Workforce%20One/node_modules/@react-router/dev/dist/vite.js:144:9)
+    at async file:///Users/noorullah/Developer/Workforce%20One/node_modules/@react-router/dev/dist/vite.js:1636:17 {
+  code: 'ERR_LOAD_URL'
+}
+Could not resolve module for file: ../../../Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx
+4:58:16 PM [vite] (client) ✨ new dependencies optimized: lucide-react
+4:58:16 PM [vite] (client) ✨ optimized dependencies changed. reloading
+The request id "/Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx" is outside of Vite serving allow list.
+Error: Failed to load url /@fs/Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx (resolved id: /Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx). Does the file exist?
+    at loadAndTransform (file:///Users/noorullah/Developer/Workforce%20One/node_modules/vite/dist/node/chunks/config.js:22739:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async getStylesForFiles (file:///Users/noorullah/Developer/Workforce%20One/node_modules/@react-router/dev/dist/vite.js:80:6)
+    at async getStylesForPathname (file:///Users/noorullah/Developer/Workforce%20One/node_modules/@react-router/dev/dist/vite.js:144:9)
+    at async file:///Users/noorullah/Developer/Workforce%20One/node_modules/@react-router/dev/dist/vite.js:1636:17 {
+  code: 'ERR_LOAD_URL'
+}
+Could not resolve module for file: ../../../Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx
+The request id "/Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx" is outside of Vite serving allow list.
+Error: Failed to load url /@fs/Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx (resolved id: /Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx). Does the file exist?
+    at loadAndTransform (file:///Users/noorullah/Developer/Workforce%20One/node_modules/vite/dist/node/chunks/config.js:22739:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async getStylesForFiles (file:///Users/noorullah/Developer/Workforce%20One/node_modules/@react-router/dev/dist/vite.js:80:6)
+    at async getStylesForPathname (file:///Users/noorullah/Developer/Workforce%20One/node_modules/@react-router/dev/dist/vite.js:144:9)
+    at async file:///Users/noorullah/Developer/Workforce%20One/node_modules/@react-router/dev/dist/vite.js:1636:17 {
+  code: 'ERR_LOAD_URL'
+}
+Could not resolve module for file: ../../../Users/noorullah/Developer/Workforce One/node_modules/@react-router/dev/dist/config/defaults/entry.client.tsx
+4:59:04 PM [vite] vite.config.ts changed, restarting server...
+4:59:04 PM [vite] (client) Forced re-optimization of dependencies
+4:59:04 PM [vite] server restarted.
+5:00:14 PM [vite] (client) ✨ new dependencies optimized: lucide-react
+5:00:14 PM [vite] (client) ✨ optimized dependencies changed. reloading
+5:00:23 PM [vite] (client) ✨ new dependencies optimized: @radix-ui/react-dialog, @radix-ui/react-dropdown-menu
+5:00:23 PM [vite] (client) ✨ optimized dependencies changed. reloading
+5:02:14 PM [react-router] Config saved
+Error: The `request.url` host does not match `origin` header from a forwarded action request. Aborting the action.
+    at throwIfPotentialCSRFAttack (/private/tmp/workforce-audit-2026-10-13/node_modules/.vite/deps_ssr/react-router.js?v=c67324be:8827:69)
+    at handleDocumentRequest (/private/tmp/workforce-audit-2026-10-13/node_modules/.vite/deps_ssr/react-router.js?v=c67324be:9240:7)
+    at requestHandler (/private/tmp/workforce-audit-2026-10-13/node_modules/.vite/deps_ssr/react-router.js?v=c67324be:9167:24)
+Error: The `request.url` host does not match `origin` header from a forwarded action request. Aborting the action.
+    at throwIfPotentialCSRFAttack (/private/tmp/workforce-audit-2026-10-13/node_modules/.vite/deps_ssr/react-router.js?v=c67324be:8827:69)
+    at handleDocumentRequest (/private/tmp/workforce-audit-2026-10-13/node_modules/.vite/deps_ssr/react-router.js?v=c67324be:9240:7)
+    at requestHandler (/private/tmp/workforce-audit-2026-10-13/node_modules/.vite/deps_ssr/react-router.js?v=c67324be:9167:24)
+5:17:14 PM [react-router] Config saved

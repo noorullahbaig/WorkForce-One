@@ -1,0 +1,257 @@
+{
+  "base": "http://127.0.0.1:5173",
+  "results": [
+    {
+      "name": "Invalid credentials show recoverable error",
+      "status": "Pass"
+    },
+    {
+      "name": "Clock-in/out via browser UI and persisted UTC",
+      "status": "Pass",
+      "detail": {
+        "clock_in": "2026-10-13T15:42:59.086Z",
+        "clock_out": "2026-10-13T15:42:59.805Z",
+        "worked_minutes": 0,
+        "overtime_minutes": 0,
+        "clock_in_method": "qr"
+      }
+    },
+    {
+      "name": "cycle-1",
+      "status": "Pass",
+      "attendanceRowsAdded": 1
+    },
+    {
+      "name": "cycle-2",
+      "status": "Pass",
+      "attendanceRowsAdded": 2
+    },
+    {
+      "name": "cycle-3",
+      "status": "Pass",
+      "attendanceRowsAdded": 3
+    },
+    {
+      "name": "cycle-4",
+      "status": "Pass",
+      "attendanceRowsAdded": 4
+    },
+    {
+      "name": "cycle-5",
+      "status": "Pass",
+      "attendanceRowsAdded": 5
+    },
+    {
+      "name": "cycle-6",
+      "status": "Pass",
+      "attendanceRowsAdded": 6
+    },
+    {
+      "name": "cycle-7",
+      "status": "Pass",
+      "attendanceRowsAdded": 7
+    },
+    {
+      "name": "cycle-8",
+      "status": "Pass",
+      "attendanceRowsAdded": 8
+    },
+    {
+      "name": "cycle-9",
+      "status": "Pass",
+      "attendanceRowsAdded": 9
+    },
+    {
+      "name": "cycle-10",
+      "status": "Pass",
+      "attendanceRowsAdded": 10
+    },
+    {
+      "name": "cycle-11",
+      "status": "Pass",
+      "attendanceRowsAdded": 11
+    },
+    {
+      "name": "cycle-12",
+      "status": "Pass",
+      "attendanceRowsAdded": 12
+    },
+    {
+      "name": "cycle-13",
+      "status": "Pass",
+      "attendanceRowsAdded": 13
+    },
+    {
+      "name": "cycle-14",
+      "status": "Pass",
+      "attendanceRowsAdded": 14
+    },
+    {
+      "name": "cycle-15",
+      "status": "Pass",
+      "attendanceRowsAdded": 15
+    },
+    {
+      "name": "cycle-16",
+      "status": "Pass",
+      "attendanceRowsAdded": 16
+    },
+    {
+      "name": "cycle-17",
+      "status": "Pass",
+      "attendanceRowsAdded": 17
+    },
+    {
+      "name": "cycle-18",
+      "status": "Pass",
+      "attendanceRowsAdded": 18
+    },
+    {
+      "name": "cycle-19",
+      "status": "Pass",
+      "attendanceRowsAdded": 19
+    },
+    {
+      "name": "cycle-20",
+      "status": "Pass",
+      "attendanceRowsAdded": 20
+    },
+    {
+      "name": "cycle-21",
+      "status": "Pass",
+      "attendanceRowsAdded": 21
+    },
+    {
+      "name": "cycle-22",
+      "status": "Pass",
+      "attendanceRowsAdded": 22
+    },
+    {
+      "name": "cycle-23",
+      "status": "Pass",
+      "attendanceRowsAdded": 23
+    },
+    {
+      "name": "cycle-24",
+      "status": "Pass",
+      "attendanceRowsAdded": 24
+    },
+    {
+      "name": "cycle-25",
+      "status": "Pass",
+      "attendanceRowsAdded": 25
+    },
+    {
+      "name": "cycle-26",
+      "status": "Pass",
+      "attendanceRowsAdded": 26
+    },
+    {
+      "name": "cycle-27",
+      "status": "Pass",
+      "attendanceRowsAdded": 27
+    },
+    {
+      "name": "cycle-28",
+      "status": "Pass",
+      "attendanceRowsAdded": 28
+    },
+    {
+      "name": "cycle-29",
+      "status": "Pass",
+      "attendanceRowsAdded": 29
+    },
+    {
+      "name": "cycle-30",
+      "status": "Pass",
+      "attendanceRowsAdded": 30
+    },
+    {
+      "name": "30 browser login/navigation/attendance/logout cycles",
+      "status": "Pass",
+      "detail": {
+        "cycles": 30,
+        "rowsAdded": 30,
+        "openShifts": 0
+      }
+    },
+    {
+      "name": "Profile save and reload persistence",
+      "status": "Pass",
+      "detail": {
+        "savedAndReloaded": true
+      }
+    },
+    {
+      "name": "Profile rejects malformed data on server",
+      "status": "Pass"
+    },
+    {
+      "name": "Cross-origin writes rejected",
+      "status": "Pass"
+    },
+    {
+      "name": "Employee cannot invoke admin approval",
+      "status": "Pass",
+      "detail": {
+        "status": 200,
+        "redirectedToEmployee": false
+      }
+    },
+    {
+      "name": "Protected payroll export denied to employee",
+      "status": "Pass",
+      "detail": 302
+    },
+    {
+      "name": "Leave rejects blank reason, backdate, overlap, insufficient balance",
+      "status": "Pass",
+      "detail": [
+        "blank",
+        "backdate",
+        "balance",
+        "overlap"
+      ]
+    },
+    {
+      "name": "Leave approval, balance reservation, cancellation, withdrawal and notifications",
+      "status": "Pass",
+      "detail": {
+        "reservedBeforeApproval": 2,
+        "reservedAfterCancellation": 0,
+        "notificationAdded": true
+      }
+    },
+    {
+      "name": "Notification mark-read survives refresh",
+      "status": "Pass",
+      "detail": {
+        "persisted": true
+      }
+    },
+    {
+      "name": "Browser clock skew does not change server work date",
+      "status": "Pass",
+      "detail": {
+        "browserDate": "2030-01-01",
+        "serverWorkDate": "2026-10-13",
+        "actualMalaysiaDate": "2026-10-13"
+      }
+    },
+    {
+      "name": "Interrupted GET recovers after reload",
+      "status": "Pass",
+      "detail": {
+        "recovered": true
+      }
+    },
+    {
+      "name": "Cleanup isolated business data",
+      "status": "Pass",
+      "detail": {
+        "localResetOnly": true
+      }
+    }
+  ],
+  "errors": []
+}

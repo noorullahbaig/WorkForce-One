@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-13",
+  "timezone": "Asia/Kuala_Lumpur",
+  "localCommit": "0b4398ba1ee1f1bc98071e3bbc6e19a8d55f5fea",
+  "deployment": "https://workforce-one-hrms-demo.noorullahbaig31.workers.dev",
+  "deployedCommit": "Not exposed by health endpoint; not independently verified",
+  "localCopy": "/tmp/workforce-audit-2026-10-13",
+  "runtime": "Node 24.19.0 for local browser and server runs; baseline unit run used Node 22.14.0",
+  "localIsolation": "Separate Wrangler SQLite state; shared dependencies through symlink; temporary Vite fs.allow for dependency resolution only",
+  "finishedUTC": "2026-10-13T09:25:54.633479+00:00",
+  "startingDataset": "Merdeka Coffee; 10 employees; July finalised payroll and Farah payslip; August draft payroll; two missing clock-outs; mutable leave and notifications",
+  "liveMutations": [
+    "Sign in/out: sessions created and invalidated"
+  ],
+  "productionDeployments": 0,
+  "productionBusinessResets": 0,
+  "localCleanup": "Disposable database fully re-seeded after simulation; original local database untouched"
+}

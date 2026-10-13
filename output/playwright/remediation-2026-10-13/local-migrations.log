@@ -1,0 +1,172 @@
+
+> db:migrate:local
+> wrangler d1 migrations apply workforce-one-demo --local
+
+
+ ⛅️ wrangler 4.126.0 (update available 4.150.0)
+───────────────────────────────────────────────
+Resource location: local 
+
+Use --remote if you want to access the remote instance.
+
+Migrations to be applied:
+┌──────────────────────────────────────┐
+│ name                                 │
+├──────────────────────────────────────┤
+│ 0000_common_bruce_banner.sql         │
+├──────────────────────────────────────┤
+│ 0001_lean_storm.sql                  │
+├──────────────────────────────────────┤
+│ 0002_tidy_bucky.sql                  │
+├──────────────────────────────────────┤
+│ 0003_calendar_leave.sql              │
+├──────────────────────────────────────┤
+│ 0004_flat_phantom_reporter.sql       │
+├──────────────────────────────────────┤
+│ 0005_attendance_corrections.sql      │
+├──────────────────────────────────────┤
+│ 0006_attendance_daily_allocation.sql │
+└──────────────────────────────────────┘
+? About to apply 7 migration(s)
+Your database may not be available to serve requests during the migration, continue?
+🤖 Using fallback value in non-interactive context: yes
+🌀 Executing on local database workforce-one-demo (f0db1320-df5d-4113-971f-06d8cab557f6) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 31 commands executed successfully.
+┌──────────────────────────────────────┬────────┐
+│ name                                 │ status │
+├──────────────────────────────────────┼────────┤
+│ 0000_common_bruce_banner.sql         │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0001_lean_storm.sql                  │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0002_tidy_bucky.sql                  │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0003_calendar_leave.sql              │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0004_flat_phantom_reporter.sql       │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0005_attendance_corrections.sql      │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0006_attendance_daily_allocation.sql │ 🕒️    │
+└──────────────────────────────────────┴────────┘
+🌀 Executing on local database workforce-one-demo (f0db1320-df5d-4113-971f-06d8cab557f6) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 6 commands executed successfully.
+┌──────────────────────────────────────┬────────┐
+│ name                                 │ status │
+├──────────────────────────────────────┼────────┤
+│ 0000_common_bruce_banner.sql         │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0001_lean_storm.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0002_tidy_bucky.sql                  │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0003_calendar_leave.sql              │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0004_flat_phantom_reporter.sql       │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0005_attendance_corrections.sql      │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0006_attendance_daily_allocation.sql │ 🕒️    │
+└──────────────────────────────────────┴────────┘
+🌀 Executing on local database workforce-one-demo (f0db1320-df5d-4113-971f-06d8cab557f6) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 3 commands executed successfully.
+┌──────────────────────────────────────┬────────┐
+│ name                                 │ status │
+├──────────────────────────────────────┼────────┤
+│ 0000_common_bruce_banner.sql         │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0001_lean_storm.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0002_tidy_bucky.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0003_calendar_leave.sql              │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0004_flat_phantom_reporter.sql       │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0005_attendance_corrections.sql      │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0006_attendance_daily_allocation.sql │ 🕒️    │
+└──────────────────────────────────────┴────────┘
+🌀 Executing on local database workforce-one-demo (f0db1320-df5d-4113-971f-06d8cab557f6) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 16 commands executed successfully.
+┌──────────────────────────────────────┬────────┐
+│ name                                 │ status │
+├──────────────────────────────────────┼────────┤
+│ 0000_common_bruce_banner.sql         │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0001_lean_storm.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0002_tidy_bucky.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0003_calendar_leave.sql              │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0004_flat_phantom_reporter.sql       │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0005_attendance_corrections.sql      │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0006_attendance_daily_allocation.sql │ 🕒️    │
+└──────────────────────────────────────┴────────┘
+🌀 Executing on local database workforce-one-demo (f0db1320-df5d-4113-971f-06d8cab557f6) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 2 commands executed successfully.
+┌──────────────────────────────────────┬────────┐
+│ name                                 │ status │
+├──────────────────────────────────────┼────────┤
+│ 0000_common_bruce_banner.sql         │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0001_lean_storm.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0002_tidy_bucky.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0003_calendar_leave.sql              │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0004_flat_phantom_reporter.sql       │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0005_attendance_corrections.sql      │ 🕒️    │
+├──────────────────────────────────────┼────────┤
+│ 0006_attendance_daily_allocation.sql │ 🕒️    │
+└──────────────────────────────────────┴────────┘
+🌀 Executing on local database workforce-one-demo (f0db1320-df5d-4113-971f-06d8cab557f6) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 5 commands executed successfully.
+┌──────────────────────────────────────┬────────┐
+│ name                                 │ status │
+├──────────────────────────────────────┼────────┤
+│ 0000_common_bruce_banner.sql         │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0001_lean_storm.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0002_tidy_bucky.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0003_calendar_leave.sql              │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0004_flat_phantom_reporter.sql       │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0005_attendance_corrections.sql      │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0006_attendance_daily_allocation.sql │ 🕒️    │
+└──────────────────────────────────────┴────────┘
+🌀 Executing on local database workforce-one-demo (f0db1320-df5d-4113-971f-06d8cab557f6) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 2 commands executed successfully.
+┌──────────────────────────────────────┬────────┐
+│ name                                 │ status │
+├──────────────────────────────────────┼────────┤
+│ 0000_common_bruce_banner.sql         │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0001_lean_storm.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0002_tidy_bucky.sql                  │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0003_calendar_leave.sql              │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0004_flat_phantom_reporter.sql       │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0005_attendance_corrections.sql      │ ✅     │
+├──────────────────────────────────────┼────────┤
+│ 0006_attendance_daily_allocation.sql │ ✅     │
+└──────────────────────────────────────┴────────┘

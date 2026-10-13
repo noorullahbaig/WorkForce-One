@@ -1,0 +1,169 @@
+[
+  {
+    "name": "30 simulated workdays: UTC persistence, 9-hour shift, 60 minutes OT",
+    "status": "Pass",
+    "detail": {
+      "days": 30,
+      "workedMinutes": 16200,
+      "expected": 16200
+    }
+  },
+  {
+    "name": "Two completed sessions on one day persist independently",
+    "status": "Pass",
+    "detail": {
+      "n": 2,
+      "mins": 480
+    }
+  },
+  {
+    "name": "duplicate-clock-in-observation",
+    "responses": [
+      {
+        "ok": "Clocked in successfully via QR Code at 9:00 am."
+      },
+      {
+        "error": "An active or overlapping shift already exists. Refresh and check your attendance."
+      }
+    ],
+    "active": 1
+  },
+  {
+    "name": "Concurrent duplicate clock-ins should create only one active shift",
+    "status": "Pass"
+  },
+  {
+    "name": "overnight-observation",
+    "response": {
+      "ok": "Clocked out successfully via QR Code · 8.0 hours worked."
+    },
+    "clockInMYT": "2027-02-03 22:00",
+    "clockOutMYT": "2027-02-04 06:00"
+  },
+  {
+    "name": "Overnight employee shift should close at 06:00 MYT next day",
+    "status": "Pass"
+  },
+  {
+    "name": "Repeated clock-out does not alter completed time",
+    "status": "Pass"
+  },
+  {
+    "name": "Zero duration produces a validation response rather than throw",
+    "status": "Pass"
+  },
+  {
+    "name": "Admin capture should not crash for a shift starting after 18:15 MYT",
+    "status": "Pass",
+    "detail": {
+      "error": "Clock-out time cannot be in the future."
+    }
+  },
+  {
+    "name": "Day boundaries are derived in Malaysia timezone",
+    "status": "Pass",
+    "detail": [
+      [
+        "2026-12-31T15:59:59Z",
+        "2026-12-31"
+      ],
+      [
+        "2026-12-31T16:00:00Z",
+        "2027-01-01"
+      ],
+      [
+        "2028-02-28T16:00:00Z",
+        "2028-02-29"
+      ],
+      [
+        "2028-02-29T16:00:00Z",
+        "2028-03-01"
+      ]
+    ]
+  },
+  {
+    "name": "Minute rounding and overtime match independent fixtures",
+    "status": "Pass",
+    "detail": [
+      29,
+      30,
+      28769,
+      28770,
+      28800,
+      28830,
+      32400
+    ]
+  },
+  {
+    "name": "Overnight, month, year and leap-day duration math",
+    "status": "Pass"
+  },
+  {
+    "name": "Leave rejects impossible calendar date rather than normalising it",
+    "status": "Pass"
+  },
+  {
+    "name": "Leave excludes weekends and supplied holiday",
+    "status": "Pass"
+  },
+  {
+    "name": "Session is valid before expiry and invalid exactly at 24h",
+    "status": "Pass"
+  },
+  {
+    "name": "Logout invalidates copied session token",
+    "status": "Pass"
+  },
+  {
+    "name": "Login throttle recovers after 15 minute window",
+    "status": "Pass"
+  },
+  {
+    "name": "split-shift-observation",
+    "totals": [
+      {
+        "employeeId": "emp-001",
+        "regularMinutes": 480,
+        "workedMinutes": 600,
+        "overtimeMinutes": 120
+      }
+    ]
+  },
+  {
+    "name": "Split shifts exceeding eight hours should accumulate daily overtime",
+    "status": "Pass"
+  },
+  {
+    "name": "cross-company-resource-observation",
+    "observed": [
+      {
+        "name": "csv",
+        "status": 404,
+        "contentType": "text/plain;charset=UTF-8",
+        "bytes": 27
+      },
+      {
+        "name": "bank",
+        "status": 404,
+        "contentType": "text/plain;charset=UTF-8",
+        "bytes": 27
+      },
+      {
+        "name": "pdf",
+        "status": 404,
+        "contentType": "text/plain;charset=UTF-8",
+        "bytes": 27
+      },
+      {
+        "name": "payslip",
+        "status": 404,
+        "contentType": "text/plain;charset=UTF-8",
+        "bytes": 17
+      }
+    ]
+  },
+  {
+    "name": "Company isolation: payroll CSV, bank CSV, PDF and payslip PDF",
+    "status": "Pass"
+  }
+]

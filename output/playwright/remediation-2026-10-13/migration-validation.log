@@ -1,0 +1,5 @@
+
+> db:migrations:validate
+> node scripts/validate-migrations.mjs
+
+Validated 7 sequential D1 migrations.

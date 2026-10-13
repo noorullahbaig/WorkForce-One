@@ -1,0 +1,14 @@
+app/features/attendance/attendance-ui.test.tsx(66,53): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.
+    Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.
+  Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.
+    Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.
+app/features/attendance/attendance-ui.test.tsx(70,162): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.
+    Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.
+  Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.
+    Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.
+app/routes/portal.tsx(759,6): error TS2304: Cannot find name 'actionResult'.
+app/routes/portal.tsx(759,33): error TS2304: Cannot find name 'actionResult'.
+app/routes/portal.tsx(759,49): error TS2304: Cannot find name 'actionResult'.
+app/routes/portal.tsx(759,138): error TS2304: Cannot find name 'actionResult'.

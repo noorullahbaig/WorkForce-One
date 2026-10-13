@@ -1,0 +1,79 @@
+
+> test:run
+> vitest run
+
+
+ RUN  v4.1.11 /Users/noorullah/.codex/worktrees/audit-remediation/Workforce One
+
+ ❯ app/features/attendance/correction-ui.test.tsx (1 test | 1 failed) 7315ms
+   × shows original values and previews worked/overtime before submitting 7314ms
+ ❯ app/features/people/employee-form.test.tsx (5 tests | 1 failed) 8337ms
+     × renders a focused add form with the existing save intent 7914ms
+ ❯ app/features/payroll/finalise.server.test.ts (19 tests | 1 failed) 29813ms
+   × rejects a racing employee status edit without writing financial outputs 8356ms
+ ❯ app/features/people/save.server.test.ts (13 tests | 1 failed) 38666ms
+   × rejects non-admin and unknown/foreign IDs without success or audit 8217ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/attendance/correction-ui.test.tsx > shows original values and previews worked/overtime before submitting
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ app/features/attendance/correction-ui.test.tsx:24:1
+     22|   updatedAt: "2026-08-25T01:00:00Z",
+     23| };
+     24| it("shows original values and previews worked/overtime before submitti…
+       | ^
+     25|   const user = userEvent.setup();
+     26|   render(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  app/features/payroll/finalise.server.test.ts > rejects a racing employee status edit without writing financial outputs
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ app/features/payroll/finalise.server.test.ts:170:2
+    168|   ["hourly rate", "UPDATE employees SET hourly_rate_sen=hourly_rate_se…
+    169|   ["employee status", "UPDATE employees SET status='inactive' WHERE id…
+    170| ])("rejects a racing %s edit without writing financial outputs", async…
+       |  ^
+    171|   const original = await db.prepare("SELECT id,status,monthly_salary_s…
+    172|   const adjustments = await db.prepare("SELECT * FROM payroll_adjustme…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  app/features/people/employee-form.test.tsx > EmployeeForm > renders a focused add form with the existing save intent
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ app/features/people/employee-form.test.tsx:50:3
+     48|
+     49| describe("EmployeeForm", () => {
+     50|   test("renders a focused add form with the existing save intent", () …
+       |   ^
+     51|     renderForm();
+     52|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  app/features/people/save.server.test.ts > rejects non-admin and unknown/foreign IDs without success or audit
+TypeError: fetch failed
+ ❯ Object.processResponse node_modules/undici/lib/web/fetch/index.js:237:16
+ ❯ node_modules/undici/lib/web/fetch/index.js:1081:19
+ ❯ node_modules/undici/index.js:157:7
+ ❯ MessagePort.<anonymous> [worker eval]:32:22
+
+Caused by: Error: other side closed
+ ❯ Socket.onHttpSocketEnd node_modules/undici/lib/dispatcher/client-h1.js:959:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  app/features/people/save.server.test.ts > rejects non-admin and unknown/foreign IDs without success or audit
+Error: Server is not running.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  4 failed | 30 passed (34)
+      Tests  4 failed | 284 passed (288)
+   Start at  19:32:35
+   Duration  39.99s (transform 2.56s, setup 6.82s, import 14.48s, tests 212.02s, environment 13.88s)
+

@@ -1,0 +1,38 @@
+[
+  {
+    "employees": 0,
+    "uniqueRows": 0,
+    "pages": 1,
+    "totalsBlocks": 1
+  },
+  {
+    "employees": 1,
+    "uniqueRows": 1,
+    "pages": 1,
+    "totalsBlocks": 1
+  },
+  {
+    "employees": 22,
+    "uniqueRows": 22,
+    "pages": 1,
+    "totalsBlocks": 1
+  },
+  {
+    "employees": 23,
+    "uniqueRows": 23,
+    "pages": 2,
+    "totalsBlocks": 1
+  },
+  {
+    "employees": 30,
+    "uniqueRows": 30,
+    "pages": 2,
+    "totalsBlocks": 1
+  },
+  {
+    "employees": 100,
+    "uniqueRows": 100,
+    "pages": 5,
+    "totalsBlocks": 1
+  }
+]
