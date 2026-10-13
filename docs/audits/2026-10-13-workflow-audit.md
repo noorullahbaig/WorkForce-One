@@ -1,7 +1,7 @@
 # Workforce One: workflow and simulation audit
 
 **Audit date:** 13 October 2026, Asia/Kuala_Lumpur (MYT, UTC+8)  
-**Status:** All13 reproduced findings resolved and verified in the local release candidate. Live deployment unchanged. See the remediation record below.  
+**Status:** All 13 reproduced findings resolved and verified in the local release candidate. Live deployment unchanged. See the remediation record below.  
 **Purpose:** Internal engineering record and reproducible work backlog.  
 **Local source:** `0b4398ba1ee1f1bc98071e3bbc6e19a8d55f5fea`  
 **Live deployment:** [Workforce One](https://workforce-one-hrms-demo.noorullahbaig31.workers.dev/employee/profile)
@@ -254,8 +254,8 @@ For each remediation, append: date, finding ID, fixing commit, exact regression 
 
 ### Agreed operating policy
 
-- Active shifts span midnight for up to24 hours inclusive. Older gaps remain exceptions and prominently prompt correction, without blocking a new shift.
-- Attendance stays on the clock-in work date. The first480 completed minutes per employee/date are regular; later minutes are overtime across all sessions.
+- Active shifts span midnight for up to 24 hours inclusive. Older gaps remain exceptions and prominently prompt correction, without blocking a new shift.
+- Attendance stays on the clock-in work date. The first 480 completed minutes per employee/date are regular; later minutes are overtime across all sessions.
 - Employee/admin previews, persisted allocations and payroll use the same daily rules. Corrections update affected siblings atomically. Legacy duplicates are reported rather than silently deleted; their visible active-session selection matches server ordering.
 - Financial results remain frozen after finalisation. Current identity/bank details continue appearing on documents, as requested.
 - Canonical reset restores business fixtures, custom adjustments and dependent records safely while preserving users/sessions and unrelated companies. Manual and scheduled reset honor demo restrictions.
@@ -266,10 +266,10 @@ For each remediation, append: date, finding ID, fixing commit, exact regression 
 | --- | --- | --- |
 | WF-001 | **Resolved locally** | `9e0c731`: all four resource loaders enforce company ownership; employee ownership retained. Two-company download tests and original foreign-resource reproduction pass. |
 | WF-002 | **Resolved locally** | `3a93e93`, `8397eeb`: conditional clock-in allows only one active shift; concurrent HTTP reproduction now inserts exactly one. Legacy active selection is deterministic. |
-| WF-003 | **Resolved locally** | `3a93e93`, `8397eeb`: cross-midnight lookup, exact24h boundary, older nonblocking reminders. Month/year/leap-day handler journeys and UI tests pass. |
+| WF-003 | **Resolved locally** | `3a93e93`, `8397eeb`: cross-midnight lookup, exact 24h boundary, older nonblocking reminders. Month/year/leap-day handler journeys and UI tests pass. |
 | WF-004 | **Resolved locally** | `3a93e93`, `8397eeb`: daily allocator, transactional sibling reallocation, migration, employee/admin previews and payroll aggregation. Split600m =>480 regular/120OT. |
 | WF-005 | **Resolved locally** | `daed19f`, `8397eeb`: shared web/PDF items include bonus, unpaid leave and other deductions; original payslip scenario now reconciles. |
-| WF-006 | **Resolved locally** | `782b736`: canonical fixture reset restores payroll adjustments and all mutable baseline business rows. Custom adjustment count returns to0; repeated resets preserve auth and other companies. |
+| WF-006 | **Resolved locally** | `782b736`: canonical fixture reset restores payroll adjustments and all mutable baseline business rows. Custom adjustment count returns to 0; repeated resets preserve auth and other companies. |
 | WF-007 | **Resolved locally** | `782b736`, `253652c`, `8397eeb`: canonical date validation in leave, holiday and employee paths; impossible-date HTTP reproduction no longer persists a request. |
 | WF-008 | **Resolved locally** | `782b736`, `60a1b38`, `94deaa3`, `8397eeb`: shared server schema, atomic profile saves, accessible field errors and retained values; leading-zero accounts preserved. |
 | WF-009 | **Resolved locally** | `3a93e93`, `8397eeb`: explicit Malaysia departure field and validated capture, safe default for later starts, overlap/ownership guards. Invalid/future departures return controlled errors. |
@@ -283,31 +283,31 @@ For each remediation, append: date, finding ID, fixing commit, exact regression 
 - **C-01 addressed:** `5c9bd9f`, `60a1b38`, `253652c`, `8397eeb` enforce role/company/state in conditional administrative writes, with atomic audit/notification gating. Finalisation guards employee, attendance, adjustment, unpaid-leave and holiday inputs (`9e0c731`, `203c51b`); interposed-edit races reject without financial outputs. Leave insertion also guards the calendar snapshot against a concurrent holiday change.
 - **C-02 policy confirmed and verified:** documents intentionally use current employee details. A Unicode name and synthetic leading-zero bank account appeared in a real local Worker PDF/bank export, while the finalised input snapshot, breakdown and totals remained byte-for-byte unchanged.
 - **C-03 addressed:** greetings use Malaysia time, with noon and18:00 boundaries covered by tests.
-- **C-04 investigated, not reproduced:** the generic `Response` error did not recur in local four-size logout/redirect/stale-tab regression journeys or an authentication-only recheck of the unchanged deployment at1440/768/390/360px. No arbitrary errors were suppressed. Retain the initial observation if it recurs after release; its original cause remains unconfirmed.
+- **C-04 investigated, not reproduced:** the generic `Response` error did not recur in local four-size logout/redirect/stale-tab regression journeys or an authentication-only recheck of the unchanged deployment at 1440/768/390/360px. No arbitrary errors were suppressed. Retain the initial observation if it recurs after release; its original cause remains unconfirmed.
 
 ### Final execution evidence
 
 | Verification | Result | Evidence |
 | --- | --- | --- |
-| Typecheck + unit/integration + production build + Worker dry-run | **Pass:**303 tests,35 files; no deployment | [Release check](../../output/playwright/remediation-2026-10-13/check-release.log) |
+| Typecheck + unit/integration + production build + Worker dry-run | **Pass:** 303 tests,35 files; no deployment | [Release check](../../output/playwright/remediation-2026-10-13/check-release.log) |
 | ESLint | **Pass:** no errors/warnings | [Lint](../../output/playwright/remediation-2026-10-13/lint-release.log) |
-| Complete Chromium browser suite | **Pass:**61 tests;39 intentional skips | [Browser run](../../output/playwright/remediation-2026-10-13/e2e-release.log) |
-| Original server/D1 audit reproductions | **Pass:**17/17 | [Results](../../output/playwright/remediation-2026-10-13/original-server-retests.json) |
-| Browser usage rerun | **Pass:**30 cycles,44 total assertions, no page errors | [Results](../../output/playwright/remediation-2026-10-13/local-results.json) |
-| Supplemental payroll/profile/reset checks | **Pass:**12 checks, including live profile/frozen money | [Results](../../output/playwright/remediation-2026-10-13/supplement-results.json) |
-| HTTP edge reproductions | **Pass:**4/4 | [Results](../../output/playwright/remediation-2026-10-13/edge-results.json) |
-| Deterministic workdays + migration rehearsal | **Pass:**30 workdays; boundary cases, source records and finalised results preserved | [Full regression run](../../output/playwright/remediation-2026-10-13/check-release.log), [migration retest](../../output/playwright/remediation-2026-10-13/preview-migration-green.log) |
-| PDF content/rendering | **Pass:**all expected employee rows; complete items and Unicode visible | [PDF review](../../output/playwright/remediation-2026-10-13/pdf-qa/extraction-review.json), [Worker PDF](../../output/playwright/remediation-2026-10-13/current-profile-unicode-payslip.png) |
+| Complete Chromium browser suite | **Pass:** 61 tests;39 intentional skips | [Browser run](../../output/playwright/remediation-2026-10-13/e2e-release.log) |
+| Original server/D1 audit reproductions | **Pass:** 17/17 | [Results](../../output/playwright/remediation-2026-10-13/original-server-retests.json) |
+| Browser usage rerun | **Pass:** 30 cycles,44 total assertions, no page errors | [Results](../../output/playwright/remediation-2026-10-13/local-results.json) |
+| Supplemental payroll/profile/reset checks | **Pass:** 12 checks, including live profile/frozen money | [Results](../../output/playwright/remediation-2026-10-13/supplement-results.json) |
+| HTTP edge reproductions | **Pass:** 4/4 | [Results](../../output/playwright/remediation-2026-10-13/edge-results.json) |
+| Deterministic workdays + migration rehearsal | **Pass:** 30 workdays; boundary cases, source records and finalised results preserved | [Full regression run](../../output/playwright/remediation-2026-10-13/check-release.log), [migration retest](../../output/playwright/remediation-2026-10-13/preview-migration-green.log) |
+| PDF content/rendering | **Pass:** all expected employee rows; complete items and Unicode visible | [PDF review](../../output/playwright/remediation-2026-10-13/pdf-qa/extraction-review.json), [Worker PDF](../../output/playwright/remediation-2026-10-13/current-profile-unicode-payslip.png) |
 | Fresh independent source review | Two Important findings repaired with failing-then-passing regressions | [Review record](../../output/playwright/remediation-2026-10-13/review.md) |
 
 The first migration test compared D1 metadata (duration/last-row-ID) instead of stored result rows and was corrected. Later migration verification and the final full suite pass. Preliminary host-overload and browser-selector failures are retained with explanations, rather than counted as product defects. A cold Vite import error occurred during one all-assertions-passing usage run; the warmed rerun and final suites were clean. [Evidence guide and rerun instructions](../../output/playwright/remediation-2026-10-13/README.md).
 
 ### Release instructions and remaining limits
 
-1. Apply the new0006 migration before deploying this candidate. Seven sequential migrations validate. No previously applied migration was edited.
+1. Apply the new 0006 migration before deploying this candidate. Seven sequential migrations validate. No previously applied migration was edited.
 2. Before a live release, inspect the live company's attendance for overlapping/duplicate legacy sessions and rehearse against a disposable copy of that live data. The completed rehearsal used synthetic duplicate/split-shift data and verified no attendance deletion or finalised-result changes. Live D1 was not migrated or altered in this task.
 3. Backfill changes to derived overtime/updated-at can make an existing pending correction stale. Keep the optimistic guard and have affected employees submit refreshed requests; do not silently approve stale values.
-4. Deploy through the existing gated pipeline, then confirm `/healthz`, which now requires0006, and repeat live employee/admin handoffs. This deployment step remains outside the authorised implementation scope.
+4. Deploy through the existing gated pipeline, then confirm `/healthz`, which now requires 0006, and repeat live employee/admin handoffs. This deployment step remains outside the authorised implementation scope.
 5. The original audit's hardware/GPS, statutory certification, browser-engine and sustained-load limitations remain. Current evidence covers Chromium at four viewport sizes and bounded repeated usage.
 
 Original failure evidence remains in `output/playwright/audit-2026-10-13/`. Current verification is in `output/playwright/remediation-2026-10-13/`; the original checkout's source and untracked scratch data were preserved.

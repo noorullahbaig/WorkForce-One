@@ -7,8 +7,8 @@ Source branch: `codex/audit-remediation`. Original audit evidence remains separa
 - `check-release.log`: final typecheck, unit/integration tests, production build and Worker deploy **dry-run**. No deployment occurred.
 - `lint-release.log`: final ESLint output.
 - `e2e-release.log`: final four-viewport browser run; intentional skips remain visible.
-- `original-server-retests.json`/`.log`: all17 original server/D1 reproductions pass; timestamps and output path adapted for isolated execution.
-- `local-results.json`/`local-rerun.log`: all30 individual login/navigation/attendance/logout cycles pass, no extra records, no remaining current-day open shifts, no browser errors. Other profile/auth/leave/recovery checks pass too.
+- `original-server-retests.json`/`.log`: all 17 original server/D1 reproductions pass; timestamp-driven tests with only the output path adapted for isolated execution.
+- `local-results.json`/`local-rerun.log`: all 30 individual login/navigation/attendance/logout cycles pass, no extra records, no remaining current-day open shifts, no browser errors. Other profile/auth/leave/recovery checks pass too.
 - `supplement-results.json`: complete payslip itemisation, repeat-safe payroll, matching CSV totals, current Unicode identity/bank details and unchanged finalised financial snapshots; demo reset clears custom adjustments.
 - `edge-results.json`: duplicate clock-in creates one active row; impossible leave dates are rejected; cutoff/rejection checks pass.
 - `current-profile-unicode-payslip.pdf`/`.png`, `worker-pdf-review.json`: actual local Worker document generated through ASSETS/fontkit, visually reviewed and text checked. Identity/bank values were synthetic audit replacements.
@@ -22,7 +22,7 @@ Source branch: `codex/audit-remediation`. Original audit evidence remains separa
 - `e2e-initial.log` has four harness failures: hidden sign-out selectors at responsive sizes, and a strict global status selector during a transient navigation announcement. Selectors were corrected and full browser runs repeated.
 - `unit-final.log` preserves an overloaded preliminary run. Concurrent workerd/Chromium verification caused timeouts and cascading fixture shutdown errors. Vitest now bounds workers to2; final verification ran sequentially and passed without increasing test timeouts globally.
 - `check-initial-type-failure.log` preserves a test-only route-argument cast error, corrected before the release check.
-- `local-results-cold-start.json` preserves a cold Vite dependency-import error despite all44 assertions passing. Warm-start rerun completed all30 cycles and other assertions without any page error. Production build and the independently warmed full browser suite also pass. This was not classified as the earlier generic live `Response` error.
+- `local-results-cold-start.json` preserves a cold Vite dependency-import error despite all 44 assertions passing. Warm-start rerun completed all 30 cycles and other assertions without any page error. Production build and the independently warmed full browser suite also pass. This was not classified as the earlier generic live `Response` error.
 
 ## Rerun
 
@@ -51,3 +51,5 @@ Update their explicit SQLite path if using another checkout. The scripts open SQ
 Do not rerun against the shared deployment. Only `auth-live-diagnostic.mjs` intentionally targets the live host and limits itself to authentication/navigation.
 
 After local simulations, run `npm run db:seed:local` to restore the baseline, and stop the temporary dev server. Reruns replace output filenames; archive existing evidence first.
+
+Logs were explicitly versioned despite the default `*.log` ignore rule. Raw command output whitespace is preserved as evidence.

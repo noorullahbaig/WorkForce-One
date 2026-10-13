@@ -4,7 +4,7 @@ Source: user-approved complete remediation plan in this chat; initial audit is d
 
 ## Contract
 
-Resolve WF-001 through WF-013 and C-01 through C-04. Active shifts last at most24h including midnight. Older gaps prompt correction without blocking work. Daily first480 completed minutes regular; remaining overtime, attributed to clock-in work date. Current employee identities remain live on documents; finalised financial results remain immutable. No deployment.
+Resolve WF-001 through WF-013 and C-01 through C-04. Active shifts last at most24h including midnight. Older gaps prompt correction without blocking work. Daily first 480 completed minutes regular; remaining overtime, attributed to clock-in work date. Current employee identities remain live on documents; finalised financial results remain immutable. No deployment.
 
 ## Tasks
 
