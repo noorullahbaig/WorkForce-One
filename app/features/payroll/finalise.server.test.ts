@@ -159,3 +159,52 @@ it("preserves finalised snapshots and payslips after a historical approval", asy
       .first(),
   ).toEqual(run);
 });
+
+it.each([
+  ["adjustment amount", "UPDATE payroll_adjustments SET amount_sen=amount_sen+1 WHERE id='adj-001'"],
+  ["adjustment insertion", "INSERT INTO payroll_adjustments(id,payroll_run_id,employee_id,type,description,amount_sen,created_at) VALUES ('racing-adjustment','payroll-2026-08','emp-001','bonus','Race',100,'now')"],
+  ["adjustment deletion", "DELETE FROM payroll_adjustments WHERE id='adj-002'"],
+  ["monthly salary", "UPDATE employees SET monthly_salary_sen=monthly_salary_sen+100 WHERE id='emp-001'"],
+  ["hourly rate", "UPDATE employees SET hourly_rate_sen=hourly_rate_sen+100 WHERE id='emp-010'"],
+  ["employee status", "UPDATE employees SET status='inactive' WHERE id='emp-003'"],
+])("rejects a racing %s edit without writing financial outputs", async (_label, sql) => {
+  const original = await db.prepare("SELECT id,status,monthly_salary_sen,hourly_rate_sen FROM employees").all();
+  const adjustments = await db.prepare("SELECT * FROM payroll_adjustments").all<Record<string, string | number | null>>();
+  const wrapped = {
+    prepare: db.prepare.bind(db),
+    batch: async (statements: D1PreparedStatement[]) => {
+      await db.prepare(sql).run();
+      return db.batch(statements);
+    },
+  } as D1Database;
+  try {
+    expect(await finalise(wrapped)).toHaveProperty("error");
+    expect(await db.prepare("SELECT status FROM payroll_runs WHERE id='payroll-2026-08'").first()).toMatchObject({ status: "draft" });
+    expect(await db.prepare("SELECT count(*) n FROM payroll_results WHERE payroll_run_id='payroll-2026-08'").first()).toMatchObject({ n: 0 });
+    expect(await db.prepare("SELECT count(*) n FROM payslips WHERE payroll_run_id='payroll-2026-08'").first()).toMatchObject({ n: 0 });
+  } finally {
+    for (const row of original.results) await db.prepare("UPDATE employees SET status=?,monthly_salary_sen=?,hourly_rate_sen=? WHERE id=?").bind(row.status,row.monthly_salary_sen,row.hourly_rate_sen,row.id).run();
+    await db.prepare("DELETE FROM payroll_adjustments").run();
+    for (const row of adjustments.results) await db.prepare("INSERT INTO payroll_adjustments(id,payroll_run_id,employee_id,type,description,amount_sen,reason,created_at) VALUES (?,?,?,?,?,?,?,?)").bind(row.id,row.payroll_run_id,row.employee_id,row.type,row.description,row.amount_sen,row.reason,row.created_at).run();
+  }
+});
+
+it("keeps finalised financial snapshots unchanged after employee pay and adjustment edits", async () => {
+  expect(await finalise()).toHaveProperty("ok");
+  const before = await db.prepare("SELECT * FROM payroll_results WHERE payroll_run_id='payroll-2026-08' ORDER BY id").all();
+  const run = await db.prepare("SELECT * FROM payroll_runs WHERE id='payroll-2026-08'").first();
+  const salary = await db.prepare("SELECT monthly_salary_sen salary FROM employees WHERE id='emp-001'").first<{salary: number}>();
+  const adjustment = await db.prepare("SELECT amount_sen amount FROM payroll_adjustments WHERE id='adj-001'").first<{amount: number}>();
+  try {
+    await db.batch([
+      db.prepare("UPDATE employees SET monthly_salary_sen=monthly_salary_sen+100 WHERE id='emp-001'"),
+      db.prepare("UPDATE payroll_adjustments SET amount_sen=amount_sen+100 WHERE id='adj-001'"),
+    ]);
+    expect(await finalise()).toHaveProperty("ok");
+    expect((await db.prepare("SELECT * FROM payroll_results WHERE payroll_run_id='payroll-2026-08' ORDER BY id").all()).results).toEqual(before.results);
+    expect(await db.prepare("SELECT * FROM payroll_runs WHERE id='payroll-2026-08'").first()).toEqual(run);
+  } finally {
+    await db.prepare("UPDATE employees SET monthly_salary_sen=? WHERE id='emp-001'").bind(salary!.salary).run();
+    await db.prepare("UPDATE payroll_adjustments SET amount_sen=? WHERE id='adj-001'").bind(adjustment!.amount).run();
+  }
+});

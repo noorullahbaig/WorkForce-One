@@ -5,6 +5,11 @@ import {
 } from "../../domain/leave";
 import { NORMAL_DAY_MINUTES } from "../../domain/attendance";
 import type { DemoUser } from "../../services/auth.server";
+import {
+  employeePaySnapshotSql,
+  adjustmentSnapshotSql,
+  readInputSnapshot,
+} from "./input-snapshots.server";
 import { aggregateAttendance } from "./attendance-inputs";
 import {
   attendanceSnapshotSql,
@@ -62,18 +67,8 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
     };
   const [employeeRows, adjustmentRows, holidayRows, leaveRows] =
     await Promise.all([
-      db
-        .prepare(
-          "SELECT id,full_name fullName,salary_type salaryType,monthly_salary_sen monthlySalarySen,hourly_rate_sen hourlyRateSen FROM employees WHERE company_id=? AND status!='inactive'",
-        )
-        .bind(user.companyId)
-        .all<PayEmployee>(),
-      db
-        .prepare(
-          "SELECT a.employee_id employeeId,a.type,a.amount_sen amountSen FROM payroll_adjustments a JOIN employees e ON e.id=a.employee_id WHERE a.payroll_run_id=? AND e.company_id=?",
-        )
-        .bind(id, user.companyId)
-        .all<{ employeeId: string; type: string; amountSen: number }>(),
+      readInputSnapshot<PayEmployee>(db, employeePaySnapshotSql, [user.companyId]),
+      readInputSnapshot<{ employeeId: string; type: string; amountSen: number }>(db, adjustmentSnapshotSql, [id, user.companyId]),
       db
         .prepare(
           "SELECT date FROM holidays WHERE company_id=? AND active=1 AND date>=? AND date<=?",
@@ -209,7 +204,9 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
         `UPDATE payroll_runs SET status='finalised',gross_total_sen=?,deduction_total_sen=?,net_total_sen=?,employer_contribution_total_sen=?,idempotency_key=?,finalised_at=?,updated_at=?
    WHERE id=? AND company_id=? AND status='draft'
    AND NOT EXISTS (SELECT 1 FROM attendance_correction_requests WHERE company_id=? AND status='pending' AND work_date>=? AND work_date<=?)
-   AND (${attendanceSnapshotSql})=?`,
+   AND (${attendanceSnapshotSql})=?
+   AND (${employeePaySnapshotSql})=?
+   AND (${adjustmentSnapshotSql})=?`,
       )
       .bind(
         gross,
@@ -228,6 +225,11 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
         run.periodStart,
         run.periodEnd,
         source.snapshot,
+        user.companyId,
+        employeeRows.snapshot,
+        id,
+        user.companyId,
+        adjustmentRows.snapshot,
       ),
     db
       .prepare(
@@ -248,6 +250,6 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
     ? { ok: "Payroll finalised. Employee payslips are now available." }
     : {
         error:
-          "Payroll or attendance changed during finalisation. Refresh and review the latest inputs and pending corrections.",
+          "Payroll inputs changed during finalisation. Refresh and review the latest inputs and pending corrections.",
       };
 }

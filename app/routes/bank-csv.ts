@@ -4,7 +4,7 @@ import type { Route } from "./+types/bank-csv";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
 	const env = context.get(cloudflareContext).env;
-	await requireUser(request, env, "admin");
+	const user = await requireUser(request, env, "admin");
 	const rows = (await env.DB.prepare(`
 		SELECT 
 			e.employee_code employeeCode,
@@ -17,9 +17,9 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 		FROM payroll_results pr 
 		JOIN employees e ON e.id=pr.employee_id 
 		JOIN payroll_runs r ON r.id=pr.payroll_run_id 
-		WHERE r.id=? AND r.status='finalised' 
+		WHERE r.id=? AND r.company_id=? AND e.company_id=r.company_id AND r.status='finalised' 
 		ORDER BY e.employee_code
-	`).bind(params.id).all<{
+	`).bind(params.id, user.companyId).all<{
 		employeeCode: string;
 		fullName: string;
 		icNumber: string;
