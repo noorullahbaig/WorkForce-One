@@ -208,3 +208,18 @@ it("keeps finalised financial snapshots unchanged after employee pay and adjustm
     await db.prepare("UPDATE payroll_adjustments SET amount_sen=? WHERE id='adj-001'").bind(adjustment!.amount).run();
   }
 });
+it.each([
+ ['2026-08-99','2026-08-99','full'],['2026-08-18','2026-08-18','invalid'],['2026-08-19','2026-08-18','full'],['2026-07-99','2026-08-18','full'],['2026-07-31','2026-08-03','morning'],
+])('rejects malformed persisted unpaid leave %s %s %s',async(start,end,part)=>{
+ try {
+  await db.prepare("UPDATE leave_requests SET start_date=?,end_date=?,day_part=? WHERE id='lr-003'").bind(start,end,part).run();
+  expect(await finalise()).toHaveProperty('error');
+  expect(await db.prepare("SELECT count(*) n FROM payroll_results WHERE payroll_run_id='payroll-2026-08'").first()).toMatchObject({n:0});
+ }finally{await db.prepare("UPDATE leave_requests SET start_date='2026-08-18',end_date='2026-08-18',day_part='full' WHERE id='lr-003'").run()}
+});
+it('ignores valid unpaid leave intersection with no working days',async()=>{
+ try {
+  await db.prepare("UPDATE leave_requests SET start_date='2026-08-01',end_date='2026-08-02',day_part='full' WHERE id='lr-003'").run();
+  expect(await finalise()).toHaveProperty('ok');
+ }finally{await db.prepare("UPDATE leave_requests SET start_date='2026-08-18',end_date='2026-08-18',day_part='full' WHERE id='lr-003'").run()}
+});

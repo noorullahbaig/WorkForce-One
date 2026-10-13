@@ -33,3 +33,25 @@ describe("calculateAttendance", () => {
 		).toThrow("Clock out must be after clock in");
 	});
 });
+
+it('allocates daily overtime across chronological split sessions', async()=>{
+ const {allocateDailyAttendance}=await import('./attendance');
+ const rows=allocateDailyAttendance([{id:'b',employeeId:'e',workDate:'2027-02-01',clockIn:'2027-02-01T06:00:00Z',workedMinutes:300,overtimeMinutes:0},{id:'a',employeeId:'e',workDate:'2027-02-01',clockIn:'2027-02-01T00:00:00Z',workedMinutes:300,overtimeMinutes:0}]);
+ expect(rows.map(r=>[r.id,r.overtimeMinutes])).toEqual([['b',120],['a',0]]);
+});
+it('uses inclusive24h active window and Malaysia greeting',async()=>{
+ const {isActiveShift,greetingInMalaysia}=await import('./attendance');
+ const r={clockIn:'2027-02-01T01:00:00Z',clockOut:null};
+ expect(isActiveShift(r,'2027-02-02T01:00:00Z')).toBe(true);expect(isActiveShift(r,'2027-02-02T01:00:01Z')).toBe(false);
+ expect(greetingInMalaysia('2027-01-01T03:59:00Z')).toBe('Good morning');expect(greetingInMalaysia('2027-01-01T04:00:00Z')).toBe('Good afternoon');expect(greetingInMalaysia('2027-01-01T10:00:00Z')).toBe('Good evening');
+});
+it('orders daily allocation by instant rather than ISO spelling',async()=>{
+ const {allocateDailyAttendance}=await import('./attendance');
+ const rows=allocateDailyAttendance([{id:'a',employeeId:'e',workDate:'2027-02-01',clockIn:'2027-02-01T09:00:00+08:00',workedMinutes:300,overtimeMinutes:0},{id:'b',employeeId:'e',workDate:'2027-02-01',clockIn:'2027-02-01T06:00:00.000Z',workedMinutes:300,overtimeMinutes:0}]);
+ expect(rows.map(r=>[r.id,r.overtimeMinutes])).toEqual([['a',0],['b',120]]);
+});
+it('uses SQL binary ID order when clock instants tie',async()=>{
+ const {allocateDailyAttendance}=await import('./attendance');
+ const rows=allocateDailyAttendance([{id:'a',employeeId:'e',workDate:'2027-02-01',clockIn:'2027-02-01T01:00:00Z',workedMinutes:300,overtimeMinutes:0},{id:'A',employeeId:'e',workDate:'2027-02-01',clockIn:'2027-02-01T01:00:00.000Z',workedMinutes:300,overtimeMinutes:0}]);
+ expect(rows.map(r=>[r.id,r.overtimeMinutes])).toEqual([['a',120],['A',0]]);
+});

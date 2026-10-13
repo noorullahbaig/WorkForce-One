@@ -1,3 +1,4 @@
+import { isValidCalendarDate } from "../../lib/date";
 import { calculatePayroll, type PayrollBreakdown } from "../../domain/payroll";
 import {
   calculateLeaveDurationHalfDays,
@@ -77,9 +78,9 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
         .all<{ date: string }>(),
       db
         .prepare(
-          "SELECT l.employee_id employeeId,l.start_date startDate,l.end_date endDate,l.day_part dayPart FROM leave_requests l JOIN leave_types t ON t.id=l.leave_type_id JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status='approved' AND t.paid=0 AND l.start_date<=? AND l.end_date>=?",
+          "SELECT l.employee_id employeeId,l.start_date startDate,l.end_date endDate,l.day_part dayPart FROM leave_requests l JOIN leave_types t ON t.id=l.leave_type_id JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status='approved' AND t.paid=0 ",
         )
-        .bind(user.companyId, run.periodEnd, run.periodStart)
+        .bind(user.companyId)
         .all<{
           employeeId: string;
           startDate: string;
@@ -89,6 +90,11 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
     ]);
   const unpaidDays = new Map<string, number>();
   for (const leave of leaveRows.results) {
+    if (!isValidCalendarDate(leave.startDate) || !isValidCalendarDate(leave.endDate)
+      || leave.endDate < leave.startDate || !["full", "morning", "afternoon"].includes(leave.dayPart)
+      || (leave.dayPart !== "full" && leave.startDate !== leave.endDate))
+      return { error: "Approved unpaid leave has invalid dates or day parts. Correct it before finalising payroll." };
+    if (leave.startDate > run.periodEnd || leave.endDate < run.periodStart) continue;
     try {
       const duration = calculateLeaveDurationHalfDays({
         startDate:
@@ -101,8 +107,9 @@ export async function finalisePayroll(id: string, user: DemoUser, env: Env) {
         leave.employeeId,
         (unpaidDays.get(leave.employeeId) ?? 0) + duration.durationHalfDays / 2,
       );
-    } catch {
-      /* Existing leave calculation excludes empty working-day intersections. */
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "Choose at least one working day.")
+        return { error: "Approved unpaid leave could not be calculated. Correct it before finalising payroll." };
     }
   }
   const totals = aggregateAttendance(
