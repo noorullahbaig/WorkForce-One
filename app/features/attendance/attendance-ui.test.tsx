@@ -60,3 +60,12 @@ describe("attendance UI", () => {
     expect(qr).toHaveAttribute("aria-pressed", "true");
   });
 });
+
+test('overnight active record remains clockable and older gaps only prompt correction',()=>{
+ renderRoute(<EmployeeAttendance employee={{id:'employee-1',fullName:'Farah',employeeCode:'MC-1001'}} records={[{...record,clockOut:null,workedMinutes:null,overtimeMinutes:null,status:'missing_clock_out'}]} today='2026-09-09' now='2026-09-09T00:00:00Z' corrections={[]}/>);
+ expect(screen.getByRole('button',{name:'Clock Out'})).toBeVisible();
+});
+test('historical gaps show a nonblocking correction reminder',()=>{
+ renderRoute(<EmployeeAttendance employee={{id:'employee-1',fullName:'Farah',employeeCode:'MC-1001'}} records={[{...record,clockOut:null,workedMinutes:null,status:'missing_clock_out'}]} today='2026-09-10' now='2026-09-10T00:00:00Z' corrections={[]}/>);
+ expect(screen.getByRole('region',{name:'Missing clock-outs'})).toHaveTextContent('You can start a new shift');expect(screen.getByRole('button',{name:'Clock In'})).toBeEnabled();
+});

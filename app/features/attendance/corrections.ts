@@ -1,6 +1,8 @@
 import {
   calculateAttendance,
   NORMAL_DAY_MINUTES,
+  ACTIVE_SHIFT_MILLISECONDS,
+  allocateDailyAttendance,
 } from "../../domain/attendance";
 import { todayInTimeZone } from "../../lib/date";
 
@@ -12,6 +14,8 @@ export type CorrectionSource = {
   status: string;
 };
 export type Session = {
+  workDate?:string;
+  workedMinutes?:number|null;
   id: string;
   clockIn: string | null;
   clockOut: string | null;
@@ -69,7 +73,7 @@ export function validateCorrection(
     Date.parse(clockOut) === Date.parse(record.clockOut ?? "")
   )
     throw new Error("Change at least one clock time.");
-  const result = calculateAttendance({
+  calculateAttendance({
     clockIn,
     clockOut,
     normalDayMinutes: NORMAL_DAY_MINUTES,
@@ -80,9 +84,15 @@ export function validateCorrection(
         s.id !== record.id &&
         s.clockIn &&
         Date.parse(s.clockIn) < Date.parse(clockOut) &&
-        (!s.clockOut || Date.parse(s.clockOut) > Date.parse(clockIn)),
+        Date.parse(s.clockOut ?? new Date(Date.parse(s.clockIn) + ACTIVE_SHIFT_MILLISECONDS).toISOString()) > Date.parse(clockIn),
     )
   )
     throw new Error("The proposed times overlap another attendance session.");
-  return result;
+  return correctionPreview(record,clockIn,clockOut,sessions);
+}
+export function correctionPreview(record:CorrectionSource,clockIn:string,clockOut:string,sessions:Session[]){
+ const result=calculateAttendance({clockIn,clockOut,normalDayMinutes:NORMAL_DAY_MINUTES});
+  const proposed = {id:record.id,clockIn,clockOut,workDate:record.workDate,workedMinutes:result.workedMinutes};
+  const daySessions=[...sessions.filter(s=>s.id!==record.id),proposed].filter(s=>s.clockIn && (s.workDate??todayInTimeZone(new Date(s.clockIn),'Asia/Kuala_Lumpur'))===record.workDate).map(s=>({...s,employeeId:'preview',workDate:record.workDate,workedMinutes:s.workedMinutes!==undefined?s.workedMinutes:s.clockIn&&s.clockOut?calculateAttendance({clockIn:s.clockIn,clockOut:s.clockOut,normalDayMinutes:NORMAL_DAY_MINUTES}).workedMinutes:null,overtimeMinutes:null as number|null}));
+  return {...result,overtimeMinutes:allocateDailyAttendance(daySessions).find(s=>s.id===record.id)?.overtimeMinutes ?? result.overtimeMinutes};
 }

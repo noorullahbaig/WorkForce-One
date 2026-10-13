@@ -46,6 +46,6 @@ export default {
 		}
 	},
 	async scheduled(_controller, env, ctx) {
-		ctx.waitUntil(resetDemoData(env.DB));
+		if(env.DEMO_MODE === "true") ctx.waitUntil(resetDemoData(env.DB));
 	},
 } satisfies ExportedHandler<Env>;

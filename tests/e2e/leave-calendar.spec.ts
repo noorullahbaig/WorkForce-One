@@ -74,7 +74,7 @@ test("successful leave submission closes the form and preserves the selected dat
 	await page.getByRole("button", { name: "Submit leave request" }).click();
 
 	await expect(page).toHaveURL(/\/employee\/leave\?month=2099-01&date=2099-01-02$/);
-	await expect(page.getByRole("status")).toContainText("Leave request sent for approval.");
+	await expect(page.getByRole("status").filter({hasText:"Leave request sent for approval."})).toContainText("Leave request sent for approval.");
 	await expect(page.getByRole("complementary", { name: "Selected date details" })).toBeVisible();
 	await expect(page.getByRole("complementary", { name: "Request leave" })).toHaveCount(0);
   await page.getByRole("link", {name: "My requests", exact: true}).click();
@@ -223,14 +223,14 @@ test("submission notice is consumed without resizing the calendar", async ({page
   const before=await page.getByRole("grid").boundingBox();
   await page.goto(path+"&notice=leave-submitted&noticeId=test-notice");
   await expect(page).toHaveURL(new RegExp("view=calendar$"));
-  await expect(page.getByRole("status")).toContainText("Leave request sent for approval.");
+  await expect(page.getByRole("status").filter({hasText:"Leave request sent for approval."})).toContainText("Leave request sent for approval.");
   expect(await page.getByRole("grid").boundingBox()).toEqual(before);
   await expect(page.getByRole("status")).toHaveCount(0,{timeout:6000});
   expect(await page.getByRole("grid").boundingBox()).toEqual(before);
   await page.reload();
   await expect(page.getByText("Leave request sent for approval.")).toHaveCount(0);
   await page.goto(path+"&notice=leave-submitted&noticeId=navigate-away");
-  await expect(page.getByRole("status")).toContainText("Leave request sent for approval.");
+  await expect(page.getByRole("status").filter({hasText:"Leave request sent for approval."})).toContainText("Leave request sent for approval.");
   await page.getByRole("link",{name:"Payslips",exact:true}).click();
   await expect(page.getByRole("status")).toHaveCount(0);
   await page.goBack();

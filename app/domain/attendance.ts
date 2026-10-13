@@ -60,3 +60,8 @@ export function attendanceConflicts(records: (DailySession & {clockOut:string|nu
  }
  return warnings;
 }
+
+/** Match the server's timestamp-descending, binary-ID-descending choice for legacy duplicate active rows. */
+export function selectActiveShift<T extends {id:string;clockIn:string|null;clockOut:string|null}>(records:T[],now:string):T|undefined {
+ return records.filter(r=>isActiveShift(r,now)).sort((a,b)=>Date.parse(b.clockIn!)-Date.parse(a.clockIn!)||(a.id<b.id?1:a.id>b.id?-1:0))[0];
+}

@@ -55,3 +55,9 @@ it('uses SQL binary ID order when clock instants tie',async()=>{
  const rows=allocateDailyAttendance([{id:'a',employeeId:'e',workDate:'2027-02-01',clockIn:'2027-02-01T01:00:00Z',workedMinutes:300,overtimeMinutes:0},{id:'A',employeeId:'e',workDate:'2027-02-01',clockIn:'2027-02-01T01:00:00.000Z',workedMinutes:300,overtimeMinutes:0}]);
  expect(rows.map(r=>[r.id,r.overtimeMinutes])).toEqual([['a',120],['A',0]]);
 });
+it('selects the latest active legacy session consistently with the clock-out query',async()=>{
+ const {selectActiveShift}=await import('./attendance');
+ const rows=[{id:'a',clockIn:'2027-02-01T01:00:00Z',clockOut:null},{id:'b',clockIn:'2027-02-01T02:00:00Z',clockOut:null}];
+ expect(selectActiveShift(rows,'2027-02-01T03:00:00Z')?.id).toBe('b');
+ expect(selectActiveShift([{...rows[0],id:'Z'},{...rows[0],id:'a'}],'2027-02-01T03:00:00Z')?.id).toBe('a');
+});

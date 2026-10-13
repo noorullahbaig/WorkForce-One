@@ -276,22 +276,8 @@ it.each(["employee-clock", "simulate-attendance"])(
     await submit();
     const [r] = await listCorrections(db, employee);
     const wrapped = {
-      prepare: (sql: string) => {
-        const statement = db.prepare(sql);
-        if (!sql.startsWith("UPDATE attendance_records SET clock_out="))
-          return statement;
-        return {
-          bind: (...values: unknown[]) => {
-            const bound = statement.bind(...values);
-            return {
-              run: async () => {
-                await reviewCorrection(db, admin, r.id, "approved", "");
-                return bound.run();
-              },
-            };
-          },
-        };
-      },
+      prepare: db.prepare.bind(db),
+      batch: async(statements:D1PreparedStatement[])=>{await reviewCorrection(db,admin,r.id,'approved','');return db.batch(statements);},
     } as D1Database;
     expect(
       await attendanceClockAction(
@@ -352,4 +338,16 @@ it("corrects an existing absent record and preserves a pre-existing late flag", 
         .first()
     )?.status,
   ).toBe("late");
+});
+
+it('allocates overtime across sibling sessions when approving a correction',async()=>{
+ await db.prepare("INSERT INTO attendance_records(id,employee_id,work_date,clock_in,clock_out,worked_minutes,overtime_minutes,status,created_at,updated_at) VALUES('audit-split','emp-001','2026-08-26','2026-08-26T07:00:00Z','2026-08-26T12:00:00Z',300,0,'present','2026-08-26','2026-08-26')").run();
+ expect(await submitCorrection(db,employee,{attendanceId:'att-001',clockIn:'2026-08-26T09:00',clockOut:'2026-08-26T14:00',reason:'Split shift'})).toHaveProperty('ok');
+ const [request]=await listCorrections(db,employee);expect(await reviewCorrection(db,admin,request.id,'approved','')).toHaveProperty('ok');
+ expect(await db.prepare("SELECT sum(worked_minutes) worked,sum(overtime_minutes) overtime FROM attendance_records WHERE employee_id='emp-001' AND work_date='2026-08-26'").first()).toMatchObject({worked:600,overtime:120});
+ await db.prepare("DELETE FROM attendance_records WHERE id='audit-split'").run();
+});
+it('older unclosed gaps do not overlap every later correction forever',async()=>{
+ await db.prepare("INSERT INTO attendance_records(id,employee_id,work_date,clock_in,status,created_at,updated_at) VALUES('audit-old-gap','emp-001','2026-08-01','2026-08-01T01:00:00Z','missing_clock_out','2026-08-01','2026-08-01')").run();
+ expect(await submit()).toHaveProperty('ok');await db.prepare("DELETE FROM attendance_records WHERE id='audit-old-gap'").run();
 });

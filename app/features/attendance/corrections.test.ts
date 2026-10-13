@@ -100,3 +100,6 @@ it("preserves the precision of an unchanged captured timestamp", () => {
   const original = "2026-08-25T01:00:00.321Z";
   expect(toUtc(malaysiaInput(original), original)).toBe(original);
 });
+it('preview uses authoritative sibling worked minutes, matching persisted daily allocation',()=>{
+ expect(validateCorrection({...record,clockIn:'2026-08-25T07:00:00Z'},'2026-08-25T07:00:00Z','2026-08-25T10:00:00Z','Correct shift',[{id:'sibling',clockIn:'2026-08-25T01:00:00Z',clockOut:'2026-08-25T06:01:00Z',workDate:record.workDate,workedMinutes:300}],now).overtimeMinutes).toBe(0);
+});

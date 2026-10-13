@@ -30,3 +30,6 @@ it("aggregates only the selected period with existing per-record overtime rules"
     },
   ]);
 });
+it('combines split sessions before calculating daily regular and overtime totals',()=>{
+ expect(aggregateAttendance([{employeeId:'e',workDate:'2026-08-01',workedMinutes:300,overtimeMinutes:0},{employeeId:'e',workDate:'2026-08-01',workedMinutes:300,overtimeMinutes:0}],'2026-08-01','2026-08-31')).toEqual([{employeeId:'e',workedMinutes:600,regularMinutes:480,overtimeMinutes:120}]);
+});

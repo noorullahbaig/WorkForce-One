@@ -8,7 +8,7 @@ test("admin can sign in and reach live people and payroll data", async ({ page }
 	await expect(page.getByRole("button", { name: /Admin/ })).toHaveAttribute("aria-pressed", "true");
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await page.getByRole("button", { name: "Not now" }).click();
-	await expect(page.getByRole("heading", { name: /Good morning/ })).toBeVisible();
+	await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening)/ })).toBeVisible();
 	await expect(page.getByText("Needs your attention")).toBeVisible();
 	await expect(page.getByText("Resolve missing clock-outs")).toBeVisible();
 	await expect(page.getByText("August 2026 payroll is blocked")).toBeVisible();
@@ -17,7 +17,7 @@ test("admin can sign in and reach live people and payroll data", async ({ page }
 	await expect(page.getByText("Draft", { exact: true })).toHaveCount(0);
 	await page.goto("/admin/employees");
 	await expect(page.getByText("Farah Iskandar")).toBeVisible();
-	const results = await new AxeBuilder({ page }).disableRules(["color-contrast"]).analyze();
+	const results = await new AxeBuilder({ page }).analyze();
 	expect(results.violations).toEqual([]);
 });
 
@@ -26,7 +26,7 @@ test("employee account only sees Farah self-service", async ({ page }) => {
 	await page.getByRole("button", { name: /Employee/ }).click();
 	await page.getByRole("button", { name: "Enter workspace" }).click();
 	await page.getByRole("button", { name: "Not now" }).click();
-	await expect(page.getByRole("heading", { name: "Good morning, Farah" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening), Farah/ })).toBeVisible();
 	await page.goto("/admin");
 	await expect(page).toHaveURL(/\/employee$/);
 	await page.goto("/employee/payslips/not-owned");

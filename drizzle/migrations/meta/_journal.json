@@ -43,6 +43,13 @@
       "when": 1788539645610,
       "tag": "0005_attendance_corrections",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791849600000,
+      "tag": "0006_attendance_daily_allocation",
+      "breakpoints": true
     }
   ]
 }

@@ -17,9 +17,8 @@ import {
 import { date, initials, time } from "../../lib/format";
 import {
   calculateAttendance,
-  NORMAL_DAY_MINUTES,
 } from "../../domain/attendance";
-import { malaysiaInput, toUtc, validateCorrection } from "./corrections";
+import { malaysiaInput, toUtc, validateCorrection, correctionPreview } from "./corrections";
 import type {
   Attendance,
   CorrectionRequest,
@@ -340,7 +339,9 @@ function Review({
   request,
   periods,
   backHref,
+  attendance,
 }: {
+  attendance: Attendance[];
   request: CorrectionRequest;
   periods: PayrollPeriod[];
   backHref: string;
@@ -352,11 +353,7 @@ function Review({
     navigation.formData?.get("intent") === "review-attendance-correction"
       ? String(navigation.formData.get("decision") ?? "")
       : "";
-  const result = calculateAttendance({
-    clockIn: request.proposedClockIn,
-    clockOut: request.proposedClockOut,
-    normalDayMinutes: NORMAL_DAY_MINUTES,
-  });
+  const result=correctionPreview({id:request.attendanceId,workDate:request.workDate,clockIn:request.originalClockIn,clockOut:request.originalClockOut,status:request.originalStatus},request.proposedClockIn,request.proposedClockOut,attendance.filter(r=>r.employeeId===request.employeeId));
   const affected = periods.filter(
     (p) => p.periodStart <= request.workDate && p.periodEnd >= request.workDate,
   );
@@ -531,7 +528,9 @@ function Review({
 export function AdminCorrections({
   requests,
   periods,
+  attendance=[],
 }: {
+  attendance?: Attendance[];
   requests: CorrectionRequest[];
   periods: PayrollPeriod[];
 }) {
@@ -602,7 +601,7 @@ export function AdminCorrections({
           )}
         </ScrollableRegion>
         {selected && (
-          <Review key={selected.id} request={selected} periods={periods} backHref={`?status=${status}`} />
+          <Review key={selected.id} request={selected} periods={periods} attendance={attendance} backHref={`?status=${status}`} />
         )}
       </div>
     </TaskWorkspace>

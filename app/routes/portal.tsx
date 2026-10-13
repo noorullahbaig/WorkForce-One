@@ -1,3 +1,9 @@
+import {reviewLeave,cancelApprovedLeave,saveHoliday,archiveHoliday,adjustLeaveBalance} from '../features/leave/admin.server';
+import {allocateDailyAttendance,selectActiveShift,greetingInMalaysia} from '../domain/attendance';
+import {payslipLineItems} from '../services/payslip-line-items';
+import {saveEmployeeProfile,updateSelfProfile} from '../features/people/save.server';
+import {addPayrollAdjustment,deletePayrollAdjustment} from '../features/payroll/adjustments.server';
+import {DEMO_COMPANY_ID} from '../db/demo-fixture';
 import { finalisePayroll } from '../features/payroll/finalise.server';
 import { attendanceClockAction } from '../features/attendance/clock.server';
 import {
@@ -14,7 +20,7 @@ import {
 	WorkspaceHeader,
 	WorkspaceToolbar,
 } from '../components/portal-ui';
-import { AttendancePage, Simulator, EmployeeAttendance } from '../features/attendance/attendance-ui';
+import { AttendancePage, Simulator, EmployeeAttendance, HistoricalAttendanceGaps } from '../features/attendance/attendance-ui';
 import { AdminCorrections } from '../features/attendance/correction-ui';
 import { listCorrections, submitCorrection, reviewCorrection } from '../features/attendance/corrections.server';
 import type { Attendance, CorrectionRequest } from '../features/attendance/types';
@@ -37,7 +43,6 @@ import { useEffect, useRef, useState } from "react";
 import { calculateLeaveDurationHalfDays, calculateProjectedBalance, type LeaveDayPart } from "../domain/leave";
 import { getLeaveDatePolicyError } from "../domain/leave";
 import { cloudflareContext } from "../context";
-import { type PayrollBreakdown } from "../domain/payroll";
 import {
 	AdminLeaveWorkspace,
 	BalanceAdmin,
@@ -92,11 +97,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 		listCorrections(env.DB,user),
 	]);
 	const resolvedCompanyInfo = companyInfo ?? { id: "company-merdeka", name: "Merdeka Coffee Sdn. Bhd.", registrationNumber: "202001028884", timezone: "Asia/Kuala_Lumpur", leaveBackdateDays: 3 };
+	const now=new Date().toISOString();
 	return {
+		now,
 		user, admin, company: "Merdeka Coffee",
 		companyInfo: resolvedCompanyInfo,
-		today: todayInTimeZone(new Date(), resolvedCompanyInfo.timezone),
-		employees, attendance, leave, sharedLeave, holidays, payrolls, payslips, notifications, balances, adjustments, policies, corrections,
+		today: todayInTimeZone(new Date(now), resolvedCompanyInfo.timezone),
+		employees, attendance:allocateDailyAttendance(attendance), leave, sharedLeave, holidays, payrolls, payslips, notifications, balances, adjustments, policies, corrections,
 	};
 }
 
@@ -136,7 +143,7 @@ async function handleAction({ request, context }: Route.ActionArgs) {
 		if (policyError) return { error: policyError };
 		const leaveType = await env.DB.prepare("SELECT id,paid FROM leave_types WHERE id=? AND company_id=?").bind(data.leaveTypeId,user.companyId).first<{id:string;paid:number}>();
 		if (!leaveType) return { error: "Choose a valid leave type." };
-		const holidayRows = await all<{date:string}>(env.DB.prepare("SELECT date FROM holidays WHERE company_id=? AND active=1 AND date BETWEEN ? AND ?").bind(user.companyId,start,end));
+		const holidayRows = await all<{date:string}>(env.DB.prepare("SELECT date FROM holidays WHERE company_id=? AND active=1 AND date BETWEEN ? AND ? ORDER BY date,id").bind(user.companyId,start,end));
 		let duration;
 		try { duration = calculateLeaveDurationHalfDays({ startDate:start, endDate:end, dayPart, holidayDates:holidayRows.map((row)=>row.date) }); }
 		catch (error) { return { error:error instanceof Error ? error.message : "Choose valid leave dates." }; }
@@ -145,7 +152,10 @@ async function handleAction({ request, context }: Route.ActionArgs) {
 		const insertResult = await env.DB.prepare(`
 			INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, duration_half_days, day_part, reason, status, created_at, updated_at)
 			SELECT ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?
-			WHERE NOT EXISTS (
+			WHERE EXISTS(SELECT 1 FROM employees WHERE id=? AND company_id=?)
+   AND EXISTS(SELECT 1 FROM leave_types WHERE id=? AND company_id=?)
+   AND (SELECT json_group_array(date) FROM (SELECT date FROM holidays WHERE company_id=? AND active=1 AND date BETWEEN ? AND ? ORDER BY date,id))=?
+   AND NOT EXISTS (
 				SELECT 1 FROM leave_requests l2 
 				WHERE l2.employee_id = ? AND l2.status IN ('pending', 'approved') 
 				AND l2.start_date <= ? AND l2.end_date >= ?
@@ -161,14 +171,15 @@ async function handleAction({ request, context }: Route.ActionArgs) {
 			RETURNING id
 		`).bind(
 			requestId, user.employeeId, leaveType.id, start, end, duration.durationHalfDays, dayPart, reason, now, now,
+			user.employeeId,user.companyId,leaveType.id,user.companyId,user.companyId,start,end,JSON.stringify(holidayRows.map(row=>row.date)),
 			user.employeeId, end, start,
 			leaveType.paid, duration.durationHalfDays, user.employeeId, leaveType.id
 		).first<{id:string}>();
 
-		if (!insertResult) return { error: "Request failed: dates overlap an existing request or you have insufficient projected balance." };
+		if (!insertResult) return { error: "Request failed: dates overlap an existing request, balance is insufficient, or the calendar changed. Refresh and try again." };
 
 		await env.DB.batch([
-			env.DB.prepare("INSERT INTO notifications (id,user_id,title,body,href,created_at) VALUES (?,'user-admin','Leave request needs review',?,'/admin/leave',?)").bind(crypto.randomUUID(),`${user.name} requested ${duration.durationHalfDays/2} day${duration.durationHalfDays===2?"":"s"} of leave.`,now),
+			env.DB.prepare("INSERT INTO notifications (id,user_id,title,body,href,created_at) SELECT lower(hex(randomblob(16))),u.id,'Leave request needs review',?,'/admin/leave',? FROM users u WHERE u.company_id=? AND u.role='admin' AND u.active=1").bind(`${user.name} requested ${duration.durationHalfDays/2} day${duration.durationHalfDays===2?"":"s"} of leave.`,now,user.companyId),
 			env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.submitted','leave_request',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,requestId,JSON.stringify({durationHalfDays:duration.durationHalfDays,excludedDates:duration.excludedDates}),now),
 		]);
     const view = new URL(request.url).searchParams.get("view");
@@ -176,23 +187,13 @@ async function handleAction({ request, context }: Route.ActionArgs) {
     return redirect(`/employee/leave?month=${start.slice(0, 7)}&date=${start}${viewQuery}&notice=leave-submitted&noticeId=${requestId}`);
 	}
 	if (intent === "withdraw-leave" && user.employeeId) {
-		const result=await env.DB.prepare("UPDATE leave_requests SET status='withdrawn',cancelled_by=?,cancelled_at=?,updated_at=? WHERE id=? AND employee_id=? AND status='pending'").bind(user.id,now,now,data.id,user.employeeId).run();
+		const result=await env.DB.prepare("UPDATE leave_requests SET status='withdrawn',cancelled_by=?,cancelled_at=?,updated_at=? WHERE id=? AND employee_id=? AND status='pending' AND EXISTS(SELECT 1 FROM employees e WHERE e.id=leave_requests.employee_id AND e.company_id=?)").bind(user.id,now,now,data.id,user.employeeId,user.companyId).run();
 		if (!result.meta.changes) return { error:"Only pending leave requests can be withdrawn." };
 		await env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.withdrawn','leave_request',?,'{}',?)").bind(crypto.randomUUID(),user.companyId,user.id,data.id,now).run();
 		return { ok:"Leave request withdrawn." };
 	}
 	if (intent === "employee-clock") return attendanceClockAction(env,user,intent,data,today,now);
-	if (intent === "update-self-profile" && user.employeeId) {
-		const phone = String(data.phone ?? "").trim();
-		const email = String(data.email ?? "").trim();
-		const bankAccountNumber = String(data.bankAccountNumber ?? "").trim();
-		if (!phone || !email) return { error: "Please provide a valid phone number and email address." };
-		await env.DB.batch([
-			env.DB.prepare("UPDATE employees SET phone=?, email=?, bank_account_number=?, updated_at=? WHERE id=?").bind(phone, email, bankAccountNumber || null, now, user.employeeId),
-			env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,'company-merdeka',?,'employee.self_update','employee',?,'{}',?)").bind(crypto.randomUUID(), user.id, user.employeeId, now),
-		]);
-		return { ok: "Profile information updated successfully." };
-	}
+	if (intent === 'update-self-profile') return updateSelfProfile(env.DB,user,data,now);
 
 	if (!adminPath) throw new Response("Forbidden", { status: 403 });
 
@@ -206,92 +207,35 @@ async function handleAction({ request, context }: Route.ActionArgs) {
 		return { ok: "Leave policy updated." };
 	}
 
-	if (intent === "review-leave") {
-		const decision = data.decision === "approved" ? "approved" : "rejected";
-		const reviewNote=String(data.reviewNote??"").trim();
-		if(decision==="rejected"&&!reviewNote)return {error:"Add a decision note before rejecting this request."};
-		const record = await env.DB.prepare("SELECT l.employee_id employeeId,l.leave_type_id leaveTypeId,l.duration_half_days durationHalfDays,l.status,t.paid FROM leave_requests l JOIN employees e ON e.id=l.employee_id JOIN leave_types t ON t.id=l.leave_type_id WHERE l.id=? AND e.company_id=?").bind(data.id,user.companyId).first<{employeeId:string;leaveTypeId:string;durationHalfDays:number;status:string;paid:number}>();
-		if (!record || record.status !== "pending") return { error: "This request has already been reviewed." };
-		if(decision==="approved"&&record.paid){const balance=await env.DB.prepare("SELECT b.allocated_half_days allocatedHalfDays,COALESCE((SELECT SUM(a.delta_half_days) FROM leave_balance_adjustments a WHERE a.employee_id=b.employee_id AND a.leave_type_id=b.leave_type_id),0) adjustmentHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='approved'),0) approvedHalfDays FROM leave_balances b WHERE b.employee_id=? AND b.leave_type_id=?").bind(record.employeeId,record.leaveTypeId).first<{allocatedHalfDays:number;adjustmentHalfDays:number;approvedHalfDays:number}>();if(!balance||record.durationHalfDays>balance.allocatedHalfDays+balance.adjustmentHalfDays-balance.approvedHalfDays)return {error:"The employee no longer has enough leave balance for this request."}}
-		const result=await env.DB.prepare("UPDATE leave_requests SET status=?,reviewed_by=?,reviewed_at=?,review_note=?,updated_at=? WHERE id=? AND status='pending'").bind(decision,user.id,now,reviewNote||null,now,data.id).run();
-		if(!result.meta.changes)return {error:"This request has already been reviewed."};
-		await env.DB.batch([
-			env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,?, 'leave_request',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,`leave.${decision}`,data.id,JSON.stringify({durationHalfDays:record.durationHalfDays,note:reviewNote||null}),now),
-			env.DB.prepare("INSERT INTO notifications (id,user_id,title,body,href,created_at) SELECT ?,u.id,?,?, '/employee/leave',? FROM users u WHERE u.employee_id=? AND u.company_id=?").bind(crypto.randomUUID(),decision==="approved"?"Leave request approved":"Leave request declined",decision==="approved"?"Your leave request has been approved.":`Your leave request was declined: ${reviewNote}`,now,record.employeeId,user.companyId),
-		]);
-		return { ok: `Leave request ${decision}.` };
-	}
-	if(intent==="cancel-approved-leave"){
-		const note=String(data.reviewNote??"").trim();if(!note)return {error:"Add a cancellation reason."};
-		const record=await env.DB.prepare("SELECT l.employee_id employeeId,l.status FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE l.id=? AND e.company_id=?").bind(data.id,user.companyId).first<{employeeId:string;status:string}>();
-		if(!record||record.status!=="approved")return {error:"Only approved leave can be cancelled."};
-		const result=await env.DB.prepare("UPDATE leave_requests SET status='cancelled',cancelled_by=?,cancelled_at=?,review_note=?,updated_at=? WHERE id=? AND status='approved'").bind(user.id,now,note,now,data.id).run();if(!result.meta.changes)return {error:"This leave has already been changed."};
-		await env.DB.batch([env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.cancelled','leave_request',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,data.id,JSON.stringify({reason:note}),now),env.DB.prepare("INSERT INTO notifications (id,user_id,title,body,href,created_at) SELECT ?,u.id,'Approved leave cancelled',?,'/employee/leave',? FROM users u WHERE u.employee_id=? AND u.company_id=?").bind(crypto.randomUUID(),`An approved leave request was cancelled: ${note}`,now,record.employeeId,user.companyId)]);
-		return {ok:"Approved leave cancelled and balance restored."};
-	}
-	if(intent==="save-holiday"){
-		const name=String(data.name??"").trim(),holidayDate=String(data.date??"");if(!name||!/^(\d{4})-(\d{2})-(\d{2})$/.test(holidayDate)||holidayDate<=today)return {error:"Add a future holiday date and name."};
-		const overlap=await env.DB.prepare("SELECT l.id FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status IN ('pending','approved') AND l.start_date<=? AND l.end_date>=? LIMIT 1").bind(user.companyId,holidayDate,holidayDate).first();if(overlap)return {error:"This date already affects a pending or approved leave request."};
-		const id=crypto.randomUUID();await env.DB.batch([env.DB.prepare("INSERT INTO holidays (id,company_id,name,date,category,region,observed,active,created_at,updated_at) VALUES (?,?,?,?,'company','MY-PENANG',0,1,?,?)").bind(id,user.companyId,name,holidayDate,now,now),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'holiday.created','holiday',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,id,JSON.stringify({name,date:holidayDate}),now)]);return {ok:"Company holiday added."};
-	}
-	if(intent==="archive-holiday"){
-		const holiday=await env.DB.prepare("SELECT id,date,category,active FROM holidays WHERE id=? AND company_id=?").bind(data.id,user.companyId).first<{id:string;date:string;category:string;active:number}>();if(!holiday||holiday.category!=="company"||!holiday.active||holiday.date<=today)return {error:"Only future company holidays can be archived."};const overlap=await env.DB.prepare("SELECT l.id FROM leave_requests l JOIN employees e ON e.id=l.employee_id WHERE e.company_id=? AND l.status IN ('pending','approved') AND l.start_date<=? AND l.end_date>=? LIMIT 1").bind(user.companyId,holiday.date,holiday.date).first();if(overlap)return {error:"This holiday affects an existing leave request and cannot be archived."};await env.DB.batch([env.DB.prepare("UPDATE holidays SET active=0,updated_at=? WHERE id=? AND active=1").bind(now,holiday.id),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'holiday.archived','holiday',?,'{}',?)").bind(crypto.randomUUID(),user.companyId,user.id,holiday.id,now)]);return {ok:"Company holiday archived."};
-	}
-	if(intent==="adjust-leave-balance"){
-		const employeeId=String(data.employeeId),leaveTypeId=String(data.leaveTypeId),deltaHalfDays=Number(data.deltaHalfDays),reason=String(data.reason??"").trim();if(!reason||!Number.isInteger(deltaHalfDays)||deltaHalfDays===0||Math.abs(deltaHalfDays)>20)return {error:"Choose a valid adjustment and add a reason."};const balance=await env.DB.prepare("SELECT b.allocated_half_days allocatedHalfDays,lt.name leaveTypeName,COALESCE((SELECT SUM(a.delta_half_days) FROM leave_balance_adjustments a WHERE a.employee_id=b.employee_id AND a.leave_type_id=b.leave_type_id),0) adjustmentHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='approved'),0) approvedHalfDays,COALESCE((SELECT SUM(l.duration_half_days) FROM leave_requests l WHERE l.employee_id=b.employee_id AND l.leave_type_id=b.leave_type_id AND l.status='pending'),0) pendingHalfDays FROM leave_balances b JOIN leave_types lt ON lt.id=b.leave_type_id JOIN employees e ON e.id=b.employee_id WHERE b.employee_id=? AND b.leave_type_id=? AND e.company_id=?").bind(employeeId,leaveTypeId,user.companyId).first<{allocatedHalfDays:number;leaveTypeName?:string;adjustmentHalfDays:number;approvedHalfDays:number;pendingHalfDays:number}>();if(!balance)return {error:"Leave balance not found."};const projectedHalfDays=calculateProjectedBalance(balance).projectedHalfDays;if(projectedHalfDays+deltaHalfDays<0)return {error:"This adjustment would make the projected balance negative."};const id=crypto.randomUUID();const deltaDays=deltaHalfDays/2;const deltaFormatted=deltaDays>0?`+${deltaDays}`:`${deltaDays}`;const dayWord=Math.abs(deltaDays)===1?"day":"days";const newProjectedDays=(projectedHalfDays+deltaHalfDays)/2;const leaveName=balance.leaveTypeName||"leave";const notificationBody=`Your ${leaveName} balance was adjusted by ${deltaFormatted} ${dayWord} (${reason}). New balance: ${newProjectedDays} ${newProjectedDays===1?"day":"days"}.`;await env.DB.batch([env.DB.prepare("INSERT INTO leave_balance_adjustments (id,employee_id,leave_type_id,delta_half_days,reason,actor_user_id,created_at) VALUES (?,?,?,?,?,?,?)").bind(id,employeeId,leaveTypeId,deltaHalfDays,reason,user.id,now),env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,?,?,'leave.balance_adjusted','leave_balance',?,?,?)").bind(crypto.randomUUID(),user.companyId,user.id,`${employeeId}:${leaveTypeId}`,JSON.stringify({deltaHalfDays,reason}),now),env.DB.prepare("INSERT INTO notifications (id,user_id,title,body,href,created_at) SELECT ?,u.id,'Leave balance updated',?,'/employee/leave',? FROM users u WHERE u.employee_id=? AND u.company_id=?").bind(crypto.randomUUID(),notificationBody,now,employeeId,user.companyId)]);return {ok:"Leave balance adjusted."};
-	}
+ if(intent==='review-leave')return reviewLeave(env.DB,user,data,now);
+ if(intent==='cancel-approved-leave')return cancelApprovedLeave(env.DB,user,data,now);
+ if(intent==='save-holiday')return saveHoliday(env.DB,user,data,now);
+ if(intent==='archive-holiday')return archiveHoliday(env.DB,user,data,now);
+ if(intent==='adjust-leave-balance')return adjustLeaveBalance(env.DB,user,data,now);
 	if (intent === "simulate-attendance") return attendanceClockAction(env,user,intent,data,today,now);
-	if (intent === "save-employee") {
-		const required = ["fullName","email","phone","department","position","employeeCode","startDate"] as const;
-		if (required.some((key)=>!String(data[key]??"").trim())) return { error: "Complete every required employee field." };
-		const salaryType=data.salaryType==="hourly"?"hourly":"monthly"; const rateSen=Math.round(Number(data.rateRm)*100);
-		if(!Number.isFinite(rateSen)||rateSen<=0)return {error:"Enter a valid pay rate."};
-		const employeeId=String(data.employeeId||`custom-${crypto.randomUUID()}`);
-		const icNumber = String(data.icNumber ?? "").trim() || null;
-		const epfNumber = String(data.epfNumber ?? "").trim() || null;
-		const taxNumber = String(data.taxNumber ?? "").trim() || null;
-		const bankName = String(data.bankName ?? "").trim() || "Maybank";
-		const bankAccountNumber = String(data.bankAccountNumber ?? "").trim() || null;
+	if(intent==='save-employee') return saveEmployeeProfile(env.DB,user,data,now);
 
-		if(data.employeeId){await env.DB.prepare("UPDATE employees SET employee_code=?,full_name=?,email=?,phone=?,department=?,position=?,employment_type=?,salary_type=?,monthly_salary_sen=?,hourly_rate_sen=?,start_date=?,ic_number=?,epf_number=?,tax_number=?,bank_name=?,bank_account_number=?,updated_at=? WHERE id=? AND company_id='company-merdeka'").bind(data.employeeCode,data.fullName,data.email,data.phone,data.department,data.position,data.employmentType,salaryType,salaryType==="monthly"?rateSen:null,salaryType==="hourly"?rateSen:null,data.startDate,icNumber,epfNumber,taxNumber,bankName,bankAccountNumber,now,employeeId).run()}
-		else{await env.DB.prepare("INSERT INTO employees (id,company_id,employee_code,full_name,email,phone,department,position,employment_type,salary_type,monthly_salary_sen,hourly_rate_sen,start_date,status,statutory_profile,ic_number,epf_number,tax_number,bank_name,bank_account_number,created_at,updated_at) VALUES (?,'company-merdeka',?,?,?,?,?,?,?,?,?,?,?,'active','my_under_60',?,?,?,?,?,?,?)").bind(employeeId,data.employeeCode,data.fullName,data.email,data.phone,data.department,data.position,data.employmentType,salaryType,salaryType==="monthly"?rateSen:null,salaryType==="hourly"?rateSen:null,data.startDate,icNumber,epfNumber,taxNumber,bankName,bankAccountNumber,now,now).run()}
-		await env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,'company-merdeka',?,'employee.saved','employee',?,'{}',?)").bind(crypto.randomUUID(),user.id,employeeId,now).run();
-		return {ok:data.employeeId?"Employee profile updated.":"Employee added to the directory."};
-	}
-	if (intent === "toggle-employee-status") {
-		const employeeId = String(data.employeeId);
-		const targetStatus = data.status === "inactive" ? "inactive" : "active";
-		await env.DB.batch([
-			env.DB.prepare("UPDATE employees SET status=?, updated_at=? WHERE id=? AND company_id='company-merdeka'").bind(targetStatus, now, employeeId),
-			env.DB.prepare("INSERT INTO audit_events (id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) VALUES (?,'company-merdeka',?,?,'employee',?,'{}',?)").bind(crypto.randomUUID(), user.id, `employee.${targetStatus}`, employeeId, now),
-		]);
-		return { ok: targetStatus === "inactive" ? "Employee marked as inactive." : "Employee reactivated." };
-	}
-	if (intent === "add-adjustment") {
-		const payrollRunId = String(data.payrollRunId);
-		const employeeId = String(data.employeeId);
-		const type = String(data.type);
-		const description = String(data.description ?? "").trim();
-		const amountSen = Math.round(Number(data.amountRm) * 100);
-		const reason = String(data.reason ?? "").trim();
-		if (!employeeId || !description || !Number.isFinite(amountSen) || amountSen <= 0) return { error: "Please provide a valid amount and description." };
-		await env.DB.prepare("INSERT INTO payroll_adjustments (id, payroll_run_id, employee_id, type, description, amount_sen, reason, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(crypto.randomUUID(), payrollRunId, employeeId, type, description, amountSen, reason || null, now).run();
-		return { ok: "Payroll adjustment added." };
-	}
-	if (intent === "delete-adjustment") {
-		await env.DB.prepare("DELETE FROM payroll_adjustments WHERE id=?").bind(data.id).run();
-		return { ok: "Payroll adjustment removed." };
-	}
+	if(intent==='toggle-employee-status') {
+  if(data.status!=='active'&&data.status!=='inactive')return {error:'Choose a valid employee status.'};
+  const employeeId=String(data.employeeId??'');const results=await env.DB.batch([
+   env.DB.prepare('UPDATE employees SET status=?,updated_at=? WHERE id=? AND company_id=?').bind(data.status,now,employeeId,user.companyId),
+   env.DB.prepare("INSERT INTO audit_events(id,company_id,actor_user_id,action,entity_type,entity_id,metadata_json,created_at) SELECT ?,?,?,?,'employee',?,'{}',? WHERE changes()=1").bind(crypto.randomUUID(),user.companyId,user.id,`employee.${data.status}`,employeeId,now)
+  ]);return results[0].meta.changes?{ok:data.status==='inactive'?'Employee marked as inactive.':'Employee reactivated.'}:{error:'Employee not found.'};
+ }
+ if(intent==='add-adjustment')return addPayrollAdjustment(env.DB,user,{payrollRunId:String(data.payrollRunId??''),employeeId:String(data.employeeId??''),type:String(data.type??''),amountRm:String(data.amountRm??''),description:String(data.description??''),reason:String(data.reason??'')},now);
+ if(intent==='delete-adjustment')return deletePayrollAdjustment(env.DB,user,String(data.id??''),now);
+
 	if (intent === "clone-policy") {
 		const name = String(data.name ?? "").trim();
 		const normalDayMinutes = Math.round(Number(data.workdayHours ?? 8) * 60);
 		const overtimeMultiplierBasisPoints = Math.round(Number(data.overtimeMultiplier ?? 1.5) * 10000);
-		if (!name || normalDayMinutes <= 0) return { error: "Enter a valid policy name and daily hours." };
+		if (!name || !Number.isFinite(normalDayMinutes) || normalDayMinutes <= 0 || normalDayMinutes>1440 || !Number.isFinite(overtimeMultiplierBasisPoints) || overtimeMultiplierBasisPoints<10000 || overtimeMultiplierBasisPoints>50000) return { error: "Enter a valid policy name and daily hours." };
 		const policyId = `policy-${crypto.randomUUID().slice(0, 8)}`;
-		await env.DB.prepare("INSERT INTO payroll_policies (id, company_id, name, effective_from, verification_date, source_urls_json, normal_day_minutes, overtime_multiplier_basis_points, locked, active, created_at, updated_at) VALUES (?, 'company-merdeka', ?, '2026-01-01', '2026-08-26', '[]', ?, ?, 0, 1, ?, ?)").bind(policyId, name, normalDayMinutes, overtimeMultiplierBasisPoints, now, now).run();
+		await env.DB.prepare("INSERT INTO payroll_policies (id, company_id, name, effective_from, verification_date, source_urls_json, normal_day_minutes, overtime_multiplier_basis_points, locked, active, created_at, updated_at) VALUES (?, ?, ?, '2026-01-01', '2026-08-26', '[]', ?, ?, 0, 1, ?, ?)").bind(policyId, user.companyId, name, normalDayMinutes, overtimeMultiplierBasisPoints, now, now).run();
 		return { ok: `Custom policy "${name}" created.` };
 	}
 	if (intent === "reset-demo") {
+  if(env.DEMO_MODE!=="true" || user.companyId!==DEMO_COMPANY_ID)return {error:"Demo reset is not available for this company."};
 		await resetDemoData(env.DB);
 		return { ok: "Data restored to initial baseline." };
 	}
@@ -393,8 +337,8 @@ function AdminRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loa
 	if(path.includes("/employees/")) return <EmployeeInspector employee={data.employees.find((e)=>path.endsWith(e.id))}/>;
 	if(path==="/admin/employees") return <People data={data}/>;
 	if(path==="/admin/attendance/simulate") return <Simulator employees={data.employees} attendance={data.attendance} today={data.today}/>;
-	if(path==="/admin/attendance/corrections") return <AdminCorrections requests={data.corrections} periods={data.payrolls}/>;
-	if(path==="/admin/attendance") return <AttendancePage records={data.attendance} corrections={data.corrections}/>;
+	if(path==="/admin/attendance/corrections") return <AdminCorrections requests={data.corrections} periods={data.payrolls} attendance={data.attendance}/>;
+	if(path==="/admin/attendance") return <AttendancePage records={data.attendance} corrections={data.corrections} now={data.now}/>;
 	if(path==="/admin/leave/holidays") return <HolidayAdmin holidays={data.holidays} today={data.today}/>;
 	if(path==="/admin/leave/balances") return <BalanceAdmin balances={data.balances} employees={data.employees}/>;
 	if(path==="/admin/leave") return <AdminLeaveWorkspace records={data.leave} employees={data.employees} holidays={data.holidays} balances={data.balances} today={data.today} backdateDays={data.companyInfo.leaveBackdateDays}/>;
@@ -415,9 +359,8 @@ function AdminHome({data}:{data:Awaited<ReturnType<typeof loader>>}) {
 	const currentPayroll=draft??data.payrolls[0];
 	const payrollPeriod=currentPayroll?date(currentPayroll.periodStart,{month:"long",year:"numeric"}):"Current";
 	const payrollState=draft?(attendanceBlockers>0?"Blocked":"Ready to finalise"):"Finalised";
-	const latestFinalised=data.payrolls.find((r)=>r.status==="finalised");
 	const todayLabel=`${date(data.today,{weekday:"long"})} · ${date(data.today,{day:"numeric",month:"long"})}`;
-	return <><PageHeader eyebrow={todayLabel} title={`Good morning, ${data.user.name.split(" ")[0]}`} description="Here’s what needs attention across Merdeka Coffee." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Attendance capture</Link>}/>
+	return <><PageHeader eyebrow={todayLabel} title={`${greetingInMalaysia(data.now)}, ${data.user.name.split(" ")[0]}`} description="Here’s what needs attention across Merdeka Coffee." action={<Link className="button primary" to="/admin/attendance/simulate"><Fingerprint/>Attendance capture</Link>}/>
 		<div className="dashboard-grid"><section className="surface"><div className="section-head"><div><p className="eyebrow">Action queue</p><h2>Needs your attention</h2></div><span className="count">{pending+missingRecords.length+pendingCorrections.length}</span></div>
 			{pendingCorrections.length>0&&<Link className="action-row" to="/admin/attendance/corrections"><span className="action-icon warning"><Clock3/></span><span><strong>Review attendance corrections</strong><small>{pendingCorrections.length} request{pendingCorrections.length===1?"":"s"} awaiting a decision</small></span><ChevronRight/></Link>}
 			{missingRecords.length>0&&<Link className="action-row" to="/admin/attendance"><span className="action-icon warning"><Clock3/></span><span><strong>Resolve missing clock-outs</strong><small>{missingRecords.length} attendance record{missingRecords.length===1?"":"s"} block payroll finalisation</small></span><ChevronRight/></Link>}
@@ -787,6 +730,7 @@ function PayrollDetail({run,employees,attendance,adjustments,corrections,payslip
 					<details style={{marginTop:"20px"}} className="employee-form">
 						<summary>Add an adjustment to this run <ChevronRight size={16}/></summary>
 						<Form method="post" className="form-stack" style={{marginTop:"12px"}}>
+
 							<input type="hidden" name="intent" value="add-adjustment"/>
 							<input type="hidden" name="payrollRunId" value={run.id}/>
 							<div className="form-pair">
@@ -965,11 +909,11 @@ function Notifications({items}:{items:Notification[]}){
 	</>;
 }
 
-function EmployeeRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}){const employee=data.employees[0];if(path==="/employee/attendance")return <EmployeeAttendance records={data.attendance} employee={employee} today={data.today} corrections={data.corrections}/>;if(path==="/employee/leave")return <EmployeeLeaveWorkspace employeeId={employee.id} ownRecords={data.leave} sharedRecords={data.sharedLeave} balances={data.balances} holidays={data.holidays} today={data.today} backdateDays={data.companyInfo.leaveBackdateDays}/>;if(path.includes("/employee/payslips/"))return <PayslipDetail slip={data.payslips.find((p)=>path.endsWith(p.id))}/>;if(path==="/employee/payslips")return <Payslips slips={data.payslips}/>;if(path==="/employee/notifications")return <Notifications items={data.notifications}/>;if(path==="/employee/profile")return <EmployeeProfile employee={employee}/>;return <EmployeeHome data={data} employee={employee}/>}
+function EmployeeRouter({path,data}:{path:string;data:Awaited<ReturnType<typeof loader>>}){const employee=data.employees[0];if(path==="/employee/attendance")return <EmployeeAttendance records={data.attendance} employee={employee} today={data.today} corrections={data.corrections} now={data.now}/>;if(path==="/employee/leave")return <EmployeeLeaveWorkspace employeeId={employee.id} ownRecords={data.leave} sharedRecords={data.sharedLeave} balances={data.balances} holidays={data.holidays} today={data.today} backdateDays={data.companyInfo.leaveBackdateDays}/>;if(path.includes("/employee/payslips/"))return <PayslipDetail slip={data.payslips.find((p)=>path.endsWith(p.id))}/>;if(path==="/employee/payslips")return <Payslips slips={data.payslips}/>;if(path==="/employee/notifications")return <Notifications items={data.notifications}/>;if(path==="/employee/profile")return <EmployeeProfile employee={employee}/>;return <EmployeeHome data={data} employee={employee}/>}
 
 function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;employee:Employee}){
 	const todayRecords=data.attendance.filter((r)=>r.workDate===data.today);
-	const activeShift=todayRecords.find((r)=>!r.clockOut);
+	const activeShift=selectActiveShift(data.attendance,data.now);
 	const totalMins=todayRecords.reduce((sum,r)=>sum+(r.workedMinutes??0),0);
 	const annual=data.balances.find((b)=>b.leaveTypeId==="leave-annual");
 	const annualAvailable=annual?calculateProjectedBalance(annual).availableHalfDays/2:0;
@@ -981,7 +925,7 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 	return <>
 		<PageHeader
 			eyebrow={todayLabel}
-			title={`Good morning, ${employee.fullName.split(" ")[0]}`}
+			title={`${greetingInMalaysia(data.now)}, ${employee.fullName.split(" ")[0]}`}
 			description="Here’s your workday summary, leave balance, and recent updates."
 			action={
 				<Link className="button primary" to="/employee/attendance">
@@ -990,6 +934,7 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 			}
 		/>
 
+		<HistoricalAttendanceGaps records={data.attendance} corrections={data.corrections} now={data.now}/>
 		<div className="dashboard-grid">
 			<section className="surface">
 				<div className="section-head">
@@ -1107,7 +1052,7 @@ function EmployeeHome({data,employee}:{data:Awaited<ReturnType<typeof loader>>;e
 
 function Payslips({slips}:{slips:Payslip[]}){return <><PageHeader eyebrow="Self-service" title="Payslips" description="Your protected, finalised payroll records."/><section className="payslip-list">{slips.length?slips.map((s)=><Link className="surface payslip-row" to={`/employee/payslips/${s.id}`} key={s.id}><div className="document-icon"><FileText/></div><span><strong>{date(`${s.period}-01`,{month:"long",year:"numeric"})}</strong><small>Paid {date(s.payDate)}</small></span><span><small>Net pay</small><strong>{money(s.netPaySen)}</strong></span><Status value="finalised"/><ChevronRight/></Link>):<Empty title="No payslips yet" body="Finalised payroll records will appear here."/>}</section></>}
 
-function PayslipDetail({slip}:{slip?:Payslip}){if(!slip)return <Empty title="Payslip not found" body="You do not have access to this record."/>;const b=JSON.parse(slip.breakdownJson) as PayrollBreakdown;return <><PageHeader eyebrow="Payslips / Detail" title={`${date(`${slip.period}-01`,{month:"long",year:"numeric"})} payslip`} description={`Merdeka Coffee · paid ${date(slip.payDate)}`} action={<><Link className="button secondary" to="/employee/payslips"><ChevronRight className="back-icon"/>Back to payslips</Link><a className="button primary" href={`/resources/payslips/${slip.id}.pdf`}><Download/>Download PDF</a></>}/><section className="payslip-paper"><div className="payslip-brand"><div className="wordmark"><span>P</span> PayME</div><div><strong>Merdeka Coffee Sdn. Bhd.</strong><small>Document issuer · 202001028884</small></div></div><div className="net-block"><span>Net pay</span><strong>{money(slip.netPaySen)}</strong><small>Finalised payroll record</small></div><div className="payslip-columns"><section><h2>Earnings</h2><dl><div><dt>Base pay</dt><dd>{money(b.basePaySen)}</dd></div><div><dt>Overtime</dt><dd>{money(b.overtimePaySen)}</dd></div><div><dt>Allowances</dt><dd>{money(b.allowanceSen)}</dd></div><div className="total"><dt>Gross pay</dt><dd>{money(slip.grossPaySen)}</dd></div></dl></section><section><h2>Deductions</h2><dl><div><dt>EPF</dt><dd>{money(b.epfEmployeeSen)}</dd></div><div><dt>SOCSO</dt><dd>{money(b.socsoEmployeeSen)}</dd></div><div><dt>EIS</dt><dd>{money(b.eisEmployeeSen)}</dd></div><div><dt>PCB</dt><dd>{money(b.pcbSen)}</dd></div><div className="total"><dt>Total deductions</dt><dd>{money(slip.totalDeductionsSen)}</dd></div></dl></section></div><p className="payslip-note">Generated from the finalised payroll record. PCB values reflect verified tax schedules.</p></section></>}
+function PayslipDetail({slip}:{slip?:Payslip}){if(!slip)return <Empty title="Payslip not found" body="You do not have access to this record."/>;const lines=payslipLineItems(slip);return <><PageHeader eyebrow="Payslips / Detail" title={`${date(`${slip.period}-01`,{month:"long",year:"numeric"})} payslip`} description={`Merdeka Coffee · paid ${date(slip.payDate)}`} action={<><Link className="button secondary" to="/employee/payslips"><ChevronRight className="back-icon"/>Back to payslips</Link><a className="button primary" href={`/resources/payslips/${slip.id}.pdf`}><Download/>Download PDF</a></>}/><section className="payslip-paper"><div className="payslip-brand"><div className="wordmark"><span>P</span> PayME</div><div><strong>Merdeka Coffee Sdn. Bhd.</strong><small>Document issuer · 202001028884</small></div></div><div className="net-block"><span>Net pay</span><strong>{money(slip.netPaySen)}</strong><small>Finalised payroll record</small></div><div className="payslip-columns"><section><h2>Earnings</h2><dl>{lines.earnings.map(item=><div key={item.label} className={item.total?'total':undefined}><dt>{item.label}</dt><dd>{money(item.amountSen)}</dd></div>)}</dl></section><section><h2>Deductions</h2><dl>{lines.deductions.map(item=><div key={item.label} className={item.total?'total':undefined}><dt>{item.label}</dt><dd>{money(item.amountSen)}</dd></div>)}</dl></section></div><p className="payslip-note">Generated from the finalised payroll record. PCB values reflect verified tax schedules.</p></section></>}
 
 function EmployeeProfile({employee}:{employee:Employee}){
 	const actionResult = useActionData<typeof action>();
@@ -1115,7 +1060,8 @@ function EmployeeProfile({employee}:{employee:Employee}){
 	const [email, setEmail] = useState(employee.email);
 	const [phone, setPhone] = useState(employee.phone);
 	const [bankAccountNumber, setBankAccountNumber] = useState(employee.bankAccountNumber ?? "");
-	const editButtonRef = useRef<HTMLButtonElement>(null);
+	const fieldErrors=actionResult && actionResult.intent==="update-self-profile" && "fieldErrors" in actionResult ? actionResult.fieldErrors as Record<string,string> : {};
+ const editButtonRef = useRef<HTMLButtonElement>(null);
 	const emailRef = useRef<HTMLInputElement>(null);
 	const dirty = email !== employee.email || phone !== employee.phone || bankAccountNumber !== (employee.bankAccountNumber ?? "");
 	useEffect(()=>{
@@ -1127,7 +1073,8 @@ function EmployeeProfile({employee}:{employee:Employee}){
 		window.addEventListener("beforeunload",warn);
 		return()=>window.removeEventListener("beforeunload",warn);
 	},[dirty]);
-	const closeEdit=()=>{
+	useEffect(()=>{if(actionResult && "error" in actionResult && actionResult.intent==="update-self-profile") setShowEdit(true);},[actionResult]);
+ const closeEdit=()=>{
 		setEmail(employee.email);setPhone(employee.phone);setBankAccountNumber(employee.bankAccountNumber ?? "");setShowEdit(false);
 		requestAnimationFrame(()=>editButtonRef.current?.focus());
 	};
@@ -1170,18 +1117,19 @@ function EmployeeProfile({employee}:{employee:Employee}){
 		{showEdit&&<section id="edit-contact" className="surface employee-form profile-edit" style={{marginTop:"20px"}} aria-labelledby="edit-contact-title">
 			<div className="section-head"><div><p className="eyebrow">Profile details</p><h2 id="edit-contact-title">Update contact & bank details</h2></div><button type="button" className="text-button" onClick={closeEdit}>Cancel</button></div>
 			<Form method="post" className="form-stack" style={{marginTop:"12px"}}>
+    {actionResult && "error" in actionResult && actionResult.intent==="update-self-profile" && <p role="alert" className="alert danger">{actionResult.error}</p>}
 				<input type="hidden" name="intent" value="update-self-profile"/>
 				<div className="form-pair">
 					<label>Email address
-						<input ref={emailRef} name="email" type="email" value={email} onChange={(event)=>setEmail(event.target.value)} required/>
+						<input ref={emailRef} name="email" type="email" aria-invalid={!!fieldErrors?.email} aria-describedby={fieldErrors?.email ? "profile-email-error" : undefined} value={email} onChange={(event)=>setEmail(event.target.value)} required/>{fieldErrors?.email&&<small id="profile-email-error">{fieldErrors.email}</small>}
 					</label>
 					<label>Phone number
-						<input name="phone" value={phone} onChange={(event)=>setPhone(event.target.value)} required/>
+						<input name="phone" aria-invalid={!!fieldErrors?.phone} aria-describedby={fieldErrors?.phone ? "profile-phone-error" : undefined} value={phone} onChange={(event)=>setPhone(event.target.value)} required/>{fieldErrors?.phone&&<small id="profile-phone-error">{fieldErrors.phone}</small>}
 					</label>
 				</div>
 				<div className="form-pair">
 					<label>Disbursement Bank Account No.
-						<input name="bankAccountNumber" value={bankAccountNumber} onChange={(event)=>setBankAccountNumber(event.target.value)} placeholder="e.g. 514012384910"/>
+						<input name="bankAccountNumber" aria-invalid={!!fieldErrors?.bankAccountNumber} aria-describedby={fieldErrors?.bankAccountNumber ? "profile-bankAccountNumber-error" : undefined} value={bankAccountNumber} onChange={(event)=>setBankAccountNumber(event.target.value)} placeholder="e.g. 514012384910"/>{fieldErrors?.bankAccountNumber&&<small id="profile-bankAccountNumber-error">{fieldErrors.bankAccountNumber}</small>}
 					</label>
 					<div/>
 				</div>

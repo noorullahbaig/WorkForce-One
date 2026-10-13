@@ -73,7 +73,9 @@ export function NavigationFeedback({
 
 export function hasInlineErrorOwner(intent: string, path: string, search: string) {
   const params = new URLSearchParams(search);
-  return (intent === "apply-leave" && path === "/employee/leave" && params.get("request") === "new") ||
+  return (intent === "update-self-profile" && path === "/employee/profile") ||
+    (intent === "save-employee" && (path === "/admin/employees" || path.startsWith("/admin/employees/"))) ||
+    (intent === "apply-leave" && path === "/employee/leave" && params.get("request") === "new") ||
     (intent === "request-attendance-correction" && path === "/employee/attendance" && params.has("correct")) ||
     (intent === "review-attendance-correction" && path === "/admin/attendance/corrections" && params.has("request"));
 }

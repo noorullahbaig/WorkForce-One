@@ -1,3 +1,6 @@
+import {selectActiveShift,attendanceConflicts} from '../../domain/attendance';
+import {todayInTimeZone,addCalendarDays} from '../../lib/date';
+import {malaysiaInput} from './corrections';
 import { Form, Link, useSearchParams } from "react-router";
 import { useState } from "react";
 import {
@@ -30,7 +33,9 @@ type Employee = { id: string; fullName: string; employeeCode: string };
 export function AttendancePage({
   records,
   corrections,
+  now=new Date().toISOString(),
 }: {
+  now?:string;
   records: Attendance[];
   corrections: CorrectionRequest[];
 }) {
@@ -42,9 +47,9 @@ export function AttendancePage({
   const pendingCorrections = corrections.filter((c) => c.status === "pending");
 
   // Date range filter
-  const today = new Date().toISOString().slice(0, 10);
-  const weekAgo = new Date(Date.now() - 6 * 86400_000).toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 29 * 86400_000).toISOString().slice(0, 10);
+  const today = todayInTimeZone(new Date(now),"Asia/Kuala_Lumpur");
+  const weekAgo = addCalendarDays(today,-6);
+  const monthAgo = addCalendarDays(today,-29);
 
   const dateFiltered = records.filter((r) => {
     if (range === "today") return r.workDate === today;
@@ -92,6 +97,7 @@ export function AttendancePage({
         }
       />
 
+      {attendanceConflicts(records).length>0 && <p className="alert warning" role="status">Overlapping legacy attendance needs review. Request corrections for the affected sessions; no records have been removed.</p>}
       <WorkspaceToolbar label="Attendance controls">
         <div className="balance-search-pill">
           <Search size={15} />
@@ -222,7 +228,9 @@ export function Simulator({
   const empAttendance = attendance.filter(
     (r) => r.employeeId === selectedId && r.workDate === today,
   );
-  const openShift = empAttendance.find((r) => !r.clockOut);
+  const openShift = [...attendance].filter(r=>r.employeeId===selectedId&&r.clockIn&&!r.clockOut).sort((a,b)=>Date.parse(a.clockIn!)-Date.parse(b.clockIn!))[0];
+  const suggestedOut = openShift?.clockIn ? new Date(Math.max(Date.parse(`${openShift.workDate}T10:15:00.000Z`),Date.parse(openShift.clockIn)+1)).toISOString() : "";
+  const defaultOut=openShift?.clockIn && Date.parse(suggestedOut)<=Date.parse(openShift.clockIn)+1 ? new Date(Date.parse(openShift.clockIn)+8*3600_000).toISOString() : suggestedOut;
   const selectedEmp = employees.find((e) => e.id === selectedId);
 
   return (
@@ -267,6 +275,7 @@ export function Simulator({
                 ))}
               </select>
             </label>
+            {openShift && <label>Clock out (Malaysia time)<input key={openShift.id} name="clockOut" type="datetime-local" step="1" defaultValue={malaysiaInput(defaultOut)} required/><small>Simulated departure time. Check the date and time before capture.</small></label>}
             <div className="method-choice">
               <label>
                 <input type="radio" name="method" value="fingerprint" defaultChecked />
@@ -322,14 +331,16 @@ export function EmployeeAttendance({
   records,
   today,
   corrections,
+  now=new Date().toISOString(),
 }: {
+  now?:string;
   records: Attendance[];
   employee: Employee;
   today: string;
   corrections: CorrectionRequest[];
 }) {
   const todayRecords = records.filter((r) => r.workDate === today);
-  const openSession = todayRecords.find((r) => !r.clockOut);
+  const openSession = selectActiveShift(records,now);
   const totalWorkedMins = todayRecords.reduce(
     (sum, r) => sum + (r.workedMinutes ?? 0),
     0,
@@ -345,6 +356,7 @@ export function EmployeeAttendance({
         description="Your workday history in Malaysia time."
       />
 
+      <HistoricalAttendanceGaps records={records} corrections={corrections} now={now}/>
       <section className="employee-clock-card">
         <div className="employee-clock-info">
           <div className="shift-badge-row">
@@ -432,4 +444,10 @@ export function EmployeeAttendance({
       <EmployeeCorrectionHistory records={records} corrections={corrections} />
     </>
   );
+}
+
+export function HistoricalAttendanceGaps({records,corrections,now}:{records:Attendance[];corrections:CorrectionRequest[];now:string}){
+ const gaps=records.filter(r=>r.clockIn&&!r.clockOut&&Date.parse(now)-Date.parse(r.clockIn)>24*3600_000);
+ if(!gaps.length)return null;
+ return <section className="surface attendance-gap-reminder" aria-label="Missing clock-outs"><h2>Missing clock-outs</h2><p>Request a correction for earlier shifts. You can start a new shift while these are reviewed.</p><ul>{gaps.map(r=>{const request=corrections.find(c=>c.attendanceId===r.id);const pending=request?.status==='pending';return <li key={r.id}><span>{date(r.workDate)}{request ? ` · ${request.status}`:''}</span><Link to={pending?`/employee/attendance?request=${request.id}`:`/employee/attendance?correct=${r.id}`}>{pending?'View pending correction':`Correct attendance for ${date(r.workDate)}`}</Link></li>})}</ul></section>;
 }

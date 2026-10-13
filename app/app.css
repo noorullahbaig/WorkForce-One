@@ -589,3 +589,18 @@ button.review-row:focus-visible{position:relative;z-index:1;outline:3px solid ok
 @media(max-width:700px){
   .calendar-viewport .calendar-event{width:7px;height:7px;min-height:7px;padding:0}
 }
+
+/* Audit remediation: readable secondary text and status labels. */
+:root { --muted: #536273; }
+.eyebrow { color: #365bb0; }
+.page-header p:not(.eyebrow) { color: #536273; }
+.employee-clock-card .status.pending { color: #ffce66; }
+.employee-clock-card .employee-clock-info p { color: #bcc9d8; }
+.employee-clock-card .clock-method-toggle .button:not([aria-pressed="true"]) { color: #bcc9d8; }
+.employee-shift-banner .shift-status-desc { color: #bcc9d8; }
+.attendance-gap-reminder { padding: 18px 22px; margin-bottom: 18px; }
+.attendance-gap-reminder h2 { font-size: 1rem; margin: 0 0 8px; }
+.attendance-gap-reminder p { color: #536273; margin: 0 0 10px; }
+.attendance-gap-reminder ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.attendance-gap-reminder li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.profile-edit small[id$="-error"] { color: #a32432; }

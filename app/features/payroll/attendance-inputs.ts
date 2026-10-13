@@ -1,4 +1,4 @@
-import { NORMAL_DAY_MINUTES } from "../../domain/attendance";
+import { allocateDailyAttendance } from "../../domain/attendance";
 export type AttendanceInput = {
   employeeId: string;
   workDate: string;
@@ -19,7 +19,7 @@ export function aggregateAttendance(
       overtimeMinutes: number;
     }
   >();
-  for (const r of records) {
+  for (const r of allocateDailyAttendance(records)) {
     if (r.workDate < start || r.workDate > end) continue;
     const t = totals.get(r.employeeId) ?? {
       employeeId: r.employeeId,
@@ -27,7 +27,7 @@ export function aggregateAttendance(
       workedMinutes: 0,
       overtimeMinutes: 0,
     };
-    t.regularMinutes += Math.min(r.workedMinutes ?? 0, NORMAL_DAY_MINUTES);
+    t.regularMinutes += (r.workedMinutes ?? 0) - (r.overtimeMinutes ?? 0);
     t.workedMinutes += r.workedMinutes ?? 0;
     t.overtimeMinutes += r.overtimeMinutes ?? 0;
     totals.set(r.employeeId, t);

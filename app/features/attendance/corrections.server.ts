@@ -1,3 +1,4 @@
+import {reallocateDay,daySnapshot,daySnapshotSql} from './allocation.server';
 import type { DemoUser } from "../../services/auth.server";
 import { toUtc, validateCorrection } from "./corrections";
 import type { Attendance, CorrectionRequest, CorrectionResult } from "./types";
@@ -51,14 +52,14 @@ async function sessions(db: D1Database, employeeId: string) {
   return (
     await db
       .prepare(
-        "SELECT id,clock_in clockIn,clock_out clockOut FROM attendance_records WHERE employee_id=?",
+        "SELECT id,work_date workDate,worked_minutes workedMinutes,clock_in clockIn,clock_out clockOut FROM attendance_records WHERE employee_id=?",
       )
       .bind(employeeId)
       .all<Attendance>()
   ).results;
 }
 // Repeated in the guarded write so a session created after validation cannot be overwritten.
-const noOverlap = `NOT EXISTS (SELECT 1 FROM attendance_records s WHERE s.employee_id=? AND s.id!=? AND s.clock_in IS NOT NULL AND julianday(s.clock_in)<julianday(?) AND (s.clock_out IS NULL OR julianday(s.clock_out)>julianday(?)))`;
+const noOverlap = `NOT EXISTS (SELECT 1 FROM attendance_records s WHERE s.employee_id=? AND s.id!=? AND s.clock_in IS NOT NULL AND julianday(s.clock_in)<julianday(?) AND COALESCE(julianday(s.clock_out),julianday(s.clock_in)+1)>julianday(?))`;
 function audit(
   db: D1Database,
   id: string,
@@ -238,6 +239,7 @@ export async function reviewCorrection(
     return { error: "Pending correction not found or already reviewed." };
   const record = await source(db, user, request.attendanceId);
   if (!record) return { error: "Attendance record not found." };
+  const siblingSnapshot=await daySnapshot(db,record.employeeId,record.workDate);
   let calculation:
     | { workedMinutes: number | null; overtimeMinutes: number | null }
     | undefined;
@@ -278,7 +280,7 @@ export async function reviewCorrection(
         `UPDATE attendance_correction_requests AS c SET status=?,reviewed_by=?,reviewed_at=?,rejection_reason=?,updated_at=?
   WHERE c.id=? AND c.company_id=? AND c.status='pending'
   AND EXISTS (SELECT 1 FROM employees e WHERE e.id=c.employee_id AND e.company_id=?)
-  ${decision === "approved" ? `AND EXISTS (SELECT 1 FROM attendance_records a WHERE a.id=c.attendance_id AND ${originalMatch}) AND ${noOverlap}` : ""}`,
+  ${decision === "approved" ? `AND EXISTS (SELECT 1 FROM attendance_records a WHERE a.id=c.attendance_id AND ${originalMatch}) AND ${noOverlap} AND (${daySnapshotSql})=?` : ""}`,
       )
       .bind(
         ...[
@@ -296,6 +298,7 @@ export async function reviewCorrection(
                 record.id,
                 request.proposedClockOut,
                 request.proposedClockIn,
+                record.employeeId,record.workDate,siblingSnapshot,
               ]
             : []),
         ],
@@ -337,6 +340,7 @@ export async function reviewCorrection(
           eventId,
         ),
     );
+  if(calculation) statements.push(reallocateDay(db,record.employeeId,record.workDate,now,'EXISTS(SELECT 1 FROM audit_events WHERE id=?)',[eventId]));
   statements.push(
     notification(
       db,

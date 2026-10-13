@@ -1,4 +1,4 @@
-export const REQUIRED_MIGRATION = "0005_attendance_corrections.sql";
+export const REQUIRED_MIGRATION = "0006_attendance_daily_allocation.sql";
 
 export type DatabaseHealth = {
   ok: boolean;
