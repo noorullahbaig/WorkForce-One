@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -27,10 +27,11 @@ const employee: EmployeeFormRecord = {
   bankAccountNumber: null,
 };
 
-function renderForm(props: Partial<React.ComponentProps<typeof EmployeeForm>> = {}) {
+function renderForm(props: Partial<React.ComponentProps<typeof EmployeeForm>> = {}, actionData?: Record<string, unknown>) {
   const router = createMemoryRouter([
     {
       path: "/",
+      action: () => actionData ?? {},
       element: (
         <EmployeeForm
           open
@@ -65,4 +66,36 @@ describe("EmployeeForm", () => {
     await user.click(screen.getByRole("button", { name: "Close employee form" }));
     expect(onClose).toHaveBeenCalledOnce();
   });
+});
+
+
+test("shows one save error summary and accessible field errors, focuses the first invalid field", async () => {
+ const {router} = renderForm({employee}, {intent:"save-employee",error:"Review the highlighted employee fields.",fieldErrors:{email:"Enter a valid email address.",bankAccountNumber:"Enter 6–34 digits."}});
+ const data = new FormData(); data.set("intent","save-employee");
+ await act(async () => { await router.navigate("/", {formMethod:"post",formData:data}); });
+ expect(screen.getAllByRole("alert")).toHaveLength(1);
+ expect(screen.getByRole("alert")).toHaveTextContent("Review the highlighted employee fields.");
+ const email = screen.getByRole("textbox",{name:"Email"});
+ expect(email).toHaveAttribute("aria-invalid","true");
+ expect(email).toHaveAccessibleDescription("Enter a valid email address.");
+ expect(email).toHaveFocus();
+ expect(email).toHaveValue("farah@example.com");
+ expect(screen.getByRole("textbox",{name:"Bank account number"})).toHaveAccessibleDescription("Enter 6–34 digits.");
+ expect(screen.getByRole("textbox",{name:"Full name"})).not.toHaveAttribute("aria-invalid");
+});
+
+test("ignores errors from unrelated intents", async () => {
+ const {router} = renderForm({employee}, {intent:"update-self-profile",error:"Other error",fieldErrors:{email:"Other field error"}});
+ const data = new FormData(); data.set("intent","update-self-profile");
+ await act(async () => { await router.navigate("/",{formMethod:"post",formData:data}); });
+ expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+ expect(screen.getByRole("textbox",{name:"Email"})).not.toHaveAttribute("aria-invalid");
+});
+
+test("focuses the save summary when the server returns a general error", async () => {
+ const {router} = renderForm({employee}, {intent:"save-employee",error:"Employee not found in your company."});
+ const data = new FormData(); data.set("intent","save-employee");
+ await act(async () => { await router.navigate("/",{formMethod:"post",formData:data}); });
+ expect(screen.getAllByRole("alert")).toHaveLength(1);
+ expect(screen.getByRole("alert")).toHaveFocus();
 });

@@ -39,10 +39,33 @@ export function EmployeeForm({
   returnFocusRef,
 }: EmployeeFormProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
   const submittedHere = useRef(false);
   const [dirty, setDirty] = useState(false);
-  const actionData = useActionData<{ ok?: string; error?: string }>();
+  const actionData = useActionData<{ intent?: string; ok?: string; error?: string; fieldErrors?: Record<string, string> }>();
   const navigation = useNavigation();
+  const saveError = actionData?.intent === "save-employee" ? actionData.error : undefined;
+  const fieldErrors = saveError ? actionData?.fieldErrors ?? {} : {};
+
+  useEffect(() => {
+    if (!open || !saveError || navigation.state !== "idle") return;
+    const firstInvalid = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    (firstInvalid ?? errorRef.current)?.focus();
+  }, [open, saveError, actionData, navigation.state]);
+
+  function fieldProps(name: string) {
+    return {
+      id: `employee-field-${name}`,
+      "aria-labelledby": `employee-label-${name}`,
+      "aria-invalid": fieldErrors[name] ? true as const : undefined,
+      "aria-describedby": fieldErrors[name] ? `employee-error-${name}` : undefined,
+    };
+  }
+
+  function fieldError(name: string) {
+    return fieldErrors[name] ? <span className="field-error" id={`employee-error-${name}`}>{fieldErrors[name]}</span> : null;
+  }
 
   useEffect(() => {
     if (open) headingRef.current?.focus();
@@ -95,57 +118,56 @@ export function EmployeeForm({
         </button>
       </div>
 
-      <Form method="post" className="employee-add-form review-actions" onChange={() => setDirty(true)}>
+      <Form ref={formRef} method="post" className="employee-add-form review-actions" onChange={() => setDirty(true)}>
         <input type="hidden" name="intent" value="save-employee" />
         {employee && <input type="hidden" name="employeeId" value={employee.id} />}
+        {saveError && <p ref={errorRef} role="alert" tabIndex={-1} className="form-error">{saveError}</p>}
 
         <p className="balance-field-label">Identity</p>
         <div className="form-pair tight">
-          <label>Full name<input name="fullName" defaultValue={employee?.fullName} required /></label>
-          <label>Employee ID<input name="employeeCode" defaultValue={employee?.employeeCode ?? "MC-1011"} required /></label>
+          <label htmlFor="employee-field-fullName"><span id="employee-label-fullName">Full name</span><input name="fullName" {...fieldProps("fullName")} defaultValue={employee?.fullName} required />{fieldError("fullName")}</label>
+          <label htmlFor="employee-field-employeeCode"><span id="employee-label-employeeCode">Employee ID</span><input name="employeeCode" {...fieldProps("employeeCode")} defaultValue={employee?.employeeCode ?? "MC-1011"} required />{fieldError("employeeCode")}</label>
         </div>
         <div className="form-pair tight">
-          <label>Email<input name="email" type="email" defaultValue={employee?.email} required /></label>
-          <label>Phone<input name="phone" defaultValue={employee?.phone ?? "+60 "} required /></label>
+          <label htmlFor="employee-field-email"><span id="employee-label-email">Email</span><input name="email" {...fieldProps("email")} type="email" defaultValue={employee?.email} required />{fieldError("email")}</label>
+          <label htmlFor="employee-field-phone"><span id="employee-label-phone">Phone</span><input name="phone" {...fieldProps("phone")} defaultValue={employee?.phone ?? "+60 "} required />{fieldError("phone")}</label>
         </div>
 
         <p className="balance-field-label">Role</p>
         <div className="form-pair tight">
-          <label>Department<input name="department" defaultValue={employee?.department} required /></label>
-          <label>Position<input name="position" defaultValue={employee?.position} required /></label>
+          <label htmlFor="employee-field-department"><span id="employee-label-department">Department</span><input name="department" {...fieldProps("department")} defaultValue={employee?.department} required />{fieldError("department")}</label>
+          <label htmlFor="employee-field-position"><span id="employee-label-position">Position</span><input name="position" {...fieldProps("position")} defaultValue={employee?.position} required />{fieldError("position")}</label>
         </div>
 
         <p className="balance-field-label">Pay</p>
         <div className="form-pair tight">
-          <label>Employment
-            <select name="employmentType" defaultValue={employee?.employmentType ?? "full_time"}>
+          <label htmlFor="employee-field-employmentType"><span id="employee-label-employmentType">Employment</span><select name="employmentType" {...fieldProps("employmentType")} defaultValue={employee?.employmentType ?? "full_time"}>
               <option value="full_time">Full time</option>
               <option value="part_time">Part time</option>
               <option value="contract">Contract</option>
             </select>
-          </label>
-          <label>Pay basis
-            <select name="salaryType" defaultValue={employee?.salaryType ?? "monthly"}>
+          {fieldError("employmentType")}</label>
+          <label htmlFor="employee-field-salaryType"><span id="employee-label-salaryType">Pay basis</span><select name="salaryType" {...fieldProps("salaryType")} defaultValue={employee?.salaryType ?? "monthly"}>
               <option value="monthly">Monthly</option>
               <option value="hourly">Hourly</option>
             </select>
-          </label>
+          {fieldError("salaryType")}</label>
         </div>
         <div className="form-pair tight">
-          <label>Rate (RM)<input name="rateRm" type="number" min="1" step="0.01" defaultValue={((employee?.monthlySalarySen ?? employee?.hourlyRateSen ?? 450000) / 100).toFixed(2)} required /></label>
-          <label>Start date<input name="startDate" type="date" defaultValue={employee?.startDate ?? "2026-08-26"} required /></label>
+          <label htmlFor="employee-field-rateRm"><span id="employee-label-rateRm">Rate (RM)</span><input name="rateRm" {...fieldProps("rateRm")} type="number" min="1" step="0.01" defaultValue={((employee?.monthlySalarySen ?? employee?.hourlyRateSen ?? 450000) / 100).toFixed(2)} required />{fieldError("rateRm")}</label>
+          <label htmlFor="employee-field-startDate"><span id="employee-label-startDate">Start date</span><input name="startDate" {...fieldProps("startDate")} type="date" defaultValue={employee?.startDate ?? "2026-08-26"} required />{fieldError("startDate")}</label>
         </div>
 
         <p className="balance-field-label">Statutory &amp; banking</p>
         <div className="form-pair tight">
-          <label>MyKad / IC No.<input name="icNumber" defaultValue={employee?.icNumber ?? ""} placeholder="920315-10-5542" /></label>
-          <label>KWSP / EPF No.<input name="epfNumber" defaultValue={employee?.epfNumber ?? ""} placeholder="21498102" /></label>
+          <label htmlFor="employee-field-icNumber"><span id="employee-label-icNumber">MyKad / IC No.</span><input name="icNumber" {...fieldProps("icNumber")} defaultValue={employee?.icNumber ?? ""} placeholder="920315-10-5542" />{fieldError("icNumber")}</label>
+          <label htmlFor="employee-field-epfNumber"><span id="employee-label-epfNumber">KWSP / EPF No.</span><input name="epfNumber" {...fieldProps("epfNumber")} defaultValue={employee?.epfNumber ?? ""} placeholder="21498102" />{fieldError("epfNumber")}</label>
         </div>
         <div className="form-pair tight">
-          <label>LHDN Tax No.<input name="taxNumber" defaultValue={employee?.taxNumber ?? ""} placeholder="SG 291048201" /></label>
-          <label>Bank name<input name="bankName" defaultValue={employee?.bankName ?? "Maybank"} placeholder="Maybank / CIMB" /></label>
+          <label htmlFor="employee-field-taxNumber"><span id="employee-label-taxNumber">LHDN Tax No.</span><input name="taxNumber" {...fieldProps("taxNumber")} defaultValue={employee?.taxNumber ?? ""} placeholder="SG 291048201" />{fieldError("taxNumber")}</label>
+          <label htmlFor="employee-field-bankName"><span id="employee-label-bankName">Bank name</span><input name="bankName" {...fieldProps("bankName")} defaultValue={employee?.bankName ?? "Maybank"} placeholder="Maybank / CIMB" />{fieldError("bankName")}</label>
         </div>
-        <label>Bank account number<input name="bankAccountNumber" defaultValue={employee?.bankAccountNumber ?? ""} placeholder="514012384910" /></label>
+        <label htmlFor="employee-field-bankAccountNumber"><span id="employee-label-bankAccountNumber">Bank account number</span><input name="bankAccountNumber" {...fieldProps("bankAccountNumber")} defaultValue={employee?.bankAccountNumber ?? ""} placeholder="514012384910" />{fieldError("bankAccountNumber")}</label>
 
         <PendingButton className="button primary" intent="save-employee" pendingLabel="Saving…">
           {employee ? "Save changes" : "Add employee"}
